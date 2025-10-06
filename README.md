@@ -39,6 +39,15 @@ Advanced image and video optimization plugin for WordPress. Converts images to W
 - **Real-time Updates**: Live system status and conversion progress
 - **Debug Mode**: Enhanced error reporting and exception output in development
 
+### Public-Facing Features
+- **Automatic Image Optimization**: Seamlessly serves WebP/AVIF formats to all visitors
+- **WordPress Integration**: Hooks into WordPress image rendering system
+- **Hybrid Approach**: Uses `<picture>` tags for optimal browser support
+- **Responsive Images**: Full support for WordPress responsive image features
+- **Attribute Preservation**: Maintains all WordPress image attributes and functionality
+- **Progressive Enhancement**: Graceful fallback to original images when needed
+- **Zero Configuration**: Works automatically without theme or content changes
+
 ## 🏗️ Architecture
 
 ### Frontend Architecture
@@ -103,18 +112,23 @@ flux-media/
 ├── assets/
 │   └── js/
 │       ├── src/
-│       │   ├── App.js                    # Main React Router app
+│       │   ├── App.js                    # Main React Router app with hash routing
 │       │   ├── admin/
 │       │   │   └── index.js             # Admin entry point
-│       │   ├── pages/
-│       │   │   ├── OverviewPage.js      # Overview page
-│       │   │   └── SettingsPage.js      # Settings page
 │       │   ├── components/
 │       │   │   ├── common/              # Reusable UI components
 │       │   │   │   ├── PageSkeleton.js  # Skeleton loading components
 │       │   │   │   ├── FluxMediaIcon.js # Brand icon component
-│       │   │   │   └── Breadcrumbs.js   # Navigation breadcrumbs
+│       │   │   │   ├── Breadcrumbs.js   # Navigation breadcrumbs
+│       │   │   │   └── LoadingSpinner.js # Loading spinner component
 │       │   │   ├── features/            # Feature-specific components
+│       │   │   │   ├── SystemStatusCard.js # System status display
+│       │   │   │   ├── QuotaProgressCard.js # Quota progress display
+│       │   │   │   └── ConversionStatsCard.js # Conversion statistics
+│       │   │   ├── pages/               # Page components
+│       │   │   │   ├── OverviewPage.js  # Overview page
+│       │   │   │   ├── SettingsPage.js  # Settings page
+│       │   │   │   └── LogsPage.js      # Logs page with pagination
 │       │   │   └── index.js             # Barrel exports
 │       │   ├── hooks/                   # React Query hooks
 │       │   │   ├── useSystemStatus.js   # System status hook
@@ -122,7 +136,7 @@ flux-media/
 │       │   │   ├── useConversions.js    # Conversion operations hooks
 │       │   │   ├── useAutoSaveForm.js   # Auto-save form hook
 │       │   │   ├── useQuotaProgress.js  # Quota progress hook
-│       │   │   ├── useLogs.js           # Logs hook
+│       │   │   ├── useLogs.js           # Logs hook with pagination
 │       │   │   └── useCleanup.js        # Cleanup operations hook
 │       │   ├── contexts/
 │       │   │   └── AutoSaveContext.js   # Auto-save state management
@@ -143,26 +157,42 @@ flux-media/
 │   │   ├── VideoConverter.php          # Video conversion service
 │   │   ├── ConversionTracker.php       # Conversion tracking
 │   │   └── QuotaManager.php            # Freemium quota management
+│   ├── Converters/                     # Converter interface implementations (integrated into Services)
 │   ├── Processors/
 │   │   ├── GDProcessor.php             # GD image processor
 │   │   ├── ImagickProcessor.php        # Imagick processor
 │   │   └── FFmpegProcessor.php         # FFmpeg video processor
 │   ├── Interfaces/
+│   │   ├── Converter.php               # Universal converter interface
 │   │   ├── ImageProcessorInterface.php # Image processor contract
 │   │   └── VideoProcessorInterface.php # Video processor contract
 │   ├── Models/
 │   │   └── ConversionRecord.php        # Conversion data model
 │   ├── Admin/
 │   │   └── Admin.php                   # WordPress admin integration
+│   ├── Public/
+│   │   └── ImageRenderer.php           # Public-facing image rendering service
 │   ├── Api/
-│   │   └── RestApi.php                 # REST API endpoints
+│   │   ├── RestApiManager.php          # REST API manager
+│   │   └── Controllers/                # Individual API controllers
+│   │       ├── BaseController.php      # Base controller class
+│   │       ├── SystemController.php    # System status endpoints
+│   │       ├── LogsController.php      # Logs endpoints
+│   │       ├── OptionsController.php   # Options endpoints
+│   │       ├── ConversionsController.php # Conversion endpoints
+│   │       ├── QuotaController.php     # Quota endpoints
+│   │       ├── FilesController.php     # File operation endpoints
+│   │       └── CleanupController.php   # Cleanup endpoints
 │   └── Utils/
-│       └── Logger.php                  # Logging utility
+│       ├── Logger.php                  # Logging utility
+│       ├── DatabaseHandler.php         # Database log handler
+│       └── StructuredLogger.php        # Structured logging utility
 ├── tests/                              # Test files
 ├── vendor/                             # Composer dependencies
 ├── composer.json                       # PHP dependencies
 ├── package.json                        # Node.js dependencies
 ├── webpack.config.js                   # Webpack configuration
+├── babel.config.js                     # Babel configuration
 └── flux-media.php                      # Main plugin file
 ```
 
@@ -329,23 +359,135 @@ const count = _n('%d image', '%d images', total, 'flux-media');
 ```
 
 ### Component Patterns
+
+#### Smart/Dumb Component Architecture
 - **Smart Components**: Handle data fetching with React Query hooks
-- **Dumb Components**: Pure presentation components
-- **Skeleton Components**: Professional loading states using MUI Skeleton
+- **Dumb Components**: Pure presentation components with props
 - **Container Pattern**: Data fetching containers with presentation components
-- **React Query Hooks**: Encapsulated data fetching with caching and error handling
+- **Hook Separation**: Custom hooks for data logic, components for presentation
+
+#### Loading States
+- **Skeleton Components**: Professional loading states using MUI Skeleton
+- **Page-Specific Skeletons**: Tailored loading states for each page
+- **Perceived Performance**: Users see content structure while loading
+- **Smooth Transitions**: Seamless transition from skeleton to content
+
+#### State Management
+- **React Query**: Server state management with caching and background updates
 - **Auto-Save Context**: Global state management for form auto-saving
-- **MUI Grid Layout**: Responsive layouts using Grid components instead of flex styles
+- **Local State**: useState for component-specific state
+- **Context Providers**: Global state for shared functionality
+
+#### Layout & Navigation
+- **MUI Grid System**: Responsive layouts using Grid components (no explicit flex styles)
 - **React Router Links**: Accessible navigation using Link components
+- **Hash Routing**: Client-side routing with hash-based navigation
+- **Breadcrumb Navigation**: Clear navigation hierarchy
+
+#### Internationalization
 - **WordPress i18n**: Internationalized text throughout all components
+- **Translation Functions**: Use `__()`, `_x()`, and `_n()` for all text
+- **Context-Aware**: Proper context for ambiguous translations
+- **Pluralization**: Handle singular/plural forms correctly
+
+#### Error Handling
+- **Error Boundaries**: Comprehensive error handling at component level
+- **React Query Errors**: Automatic error handling for API calls
+- **User Feedback**: Clear error messages and recovery options
+- **Debug Mode**: Enhanced error reporting in development
+
+#### Performance Optimization
+- **Code Splitting**: Lazy loading for route-based components
+- **Memoization**: React.memo for expensive components
+- **Debounced Actions**: Auto-save with debounced API calls
+- **Optimistic Updates**: Immediate UI feedback for better UX
 
 ### Backend Development
-- Follow WordPress coding standards
-- Use dependency injection for services
-- Implement proper error handling with debug mode
-- Add comprehensive logging
-- Sanitize and validate all input data
-- Use WordPress REST API best practices
+
+#### Service Architecture
+- **Dependency Injection**: Use container for service management
+- **Interface Segregation**: Define clear contracts for all services
+- **Single Responsibility**: Each service has one clear purpose
+- **Error Handling**: Comprehensive error handling with debug mode
+- **Structured Logging**: Consistent logging format for troubleshooting
+
+#### Converter Interface Architecture
+The plugin uses a unified converter interface integrated into the Services layer:
+
+```php
+// Fluent API for all converters
+$converter = new ImageConverter($logger);
+$result = $converter
+    ->from('/path/to/source.jpg')
+    ->to('/path/to/destination.webp')
+    ->with_options(['quality' => 85])
+    ->convert();
+
+if (!$result) {
+    $errors = $converter->get_errors();
+    $lastError = $converter->get_last_error();
+}
+
+// WordPress-specific functionality still available
+$results = $converter->process_uploaded_image($attachment_id);
+```
+
+#### Converter Features
+- **Fluent Interface**: Chainable method calls for clean API
+- **Format Constants**: Predefined constants for all supported formats
+- **Error Tracking**: Comprehensive error collection and reporting
+- **Validation**: Input validation with detailed error messages
+- **WordPress Integration**: Maintains WordPress-specific functionality
+- **Unified Architecture**: Single class per converter type with both interfaces
+
+#### Format Constants
+The plugin uses predefined constants for all supported formats to ensure consistency and maintainability:
+
+**Image Format Constants:**
+```php
+use FluxMedia\Interfaces\Converter;
+
+// Image formats
+Converter::FORMAT_WEBP = 'webp'
+Converter::FORMAT_AVIF = 'avif'
+Converter::FORMAT_JPEG = 'jpeg'
+Converter::FORMAT_PNG = 'png'
+Converter::FORMAT_GIF = 'gif'
+
+// Video formats
+Converter::FORMAT_AV1 = 'av1'
+Converter::FORMAT_WEBM = 'webm'
+Converter::FORMAT_MP4 = 'mp4'
+Converter::FORMAT_OGV = 'ogv'
+
+// Audio formats
+Converter::FORMAT_OPUS = 'opus'
+Converter::FORMAT_AAC = 'aac'
+Converter::FORMAT_MP3 = 'mp3'
+
+// Conversion types
+Converter::TYPE_IMAGE = 'image'
+Converter::TYPE_VIDEO = 'video'
+Converter::TYPE_AUDIO = 'audio'
+Converter::TYPE_DOCUMENT = 'document'
+```
+
+**Usage Example:**
+```php
+// Instead of hardcoded strings
+$converted_files = $converter->get_converted_files( $attachment_id );
+if ( isset( $converted_files['webp'] ) ) { // ❌ Don't do this
+
+// Use constants for consistency
+if ( isset( $converted_files[ Converter::FORMAT_WEBP ] ) ) { // ✅ Do this
+```
+
+#### WordPress Integration
+- **WordPress Coding Standards**: Follow WPCS guidelines strictly
+- **REST API Best Practices**: Controller-per-resource architecture
+- **Database Abstraction**: Use WordPress database layer
+- **Security**: Proper sanitization, validation, and escaping
+- **Debug Mode**: Enhanced error reporting in development
 
 ## 📊 Database Schema
 
@@ -353,6 +495,7 @@ const count = _n('%d image', '%d images', total, 'flux-media');
 - `wp_flux_media_conversions` - Conversion records
 - `wp_flux_media_quota_usage` - Quota tracking
 - `wp_flux_media_settings` - Plugin settings
+- `wp_flux_media_logs` - Structured logging with pagination support
 
 ### WordPress Integration
 - Uses WordPress options API for configuration
@@ -430,6 +573,12 @@ ls -la assets/js/dist/
 ## 🆕 Recent Updates
 
 ### Latest Improvements (v1.0.0)
+- **Unified Converter Interface**: Fluent API for all file processing with consistent error handling
+- **REST API Refactoring**: Controller-per-resource architecture with proper separation of concerns
+- **Database Logging**: Structured logging system with pagination and search capabilities
+- **Logs Admin Page**: Complete logs management interface with filtering and pagination
+- **Enhanced Video Processing**: Improved FFmpeg integration with detailed status reporting
+- **Consistent Service Architecture**: Standardized ImageConverter and VideoConverter with structured logging
 - **WordPress i18n Integration**: Full internationalization support with `__()`, `_x()`, and `_n()` functions
 - **React Router Enhancement**: Proper Link components for accessible navigation
 - **MUI Grid System**: Replaced explicit flex styles with Grid components for consistency
@@ -489,25 +638,163 @@ Professional loading states for all pages:
 ## 📝 Coding Standards
 
 ### PHP Standards
-- **WordPress Coding Standards**: Follow WPCS guidelines
-- **PSR-4 Autoloading**: Proper namespace usage
-- **Type Hints**: Use PHP 7.4+ type declarations
-- **Documentation**: Comprehensive PHPDoc comments
+
+#### Naming Conventions
+- **Classes**: PascalCase (e.g., `ImageConverter`, `FFmpegProcessor`)
+- **Methods**: snake_case (e.g., `get_processor_info()`, `convert_to_webp()`)
+- **Properties**: snake_case (e.g., `$logger`, `$structured_logger`, `$processor`)
+- **Constants**: UPPER_SNAKE_CASE (e.g., `TYPE_IMAGE`, `FORMAT_WEBP`)
+- **Files**: PascalCase matching class name (e.g., `ImageConverter.php`)
+
+#### Code Structure
+- **WordPress Coding Standards**: Follow WPCS guidelines strictly
+- **PSR-4 Autoloading**: Proper namespace usage with `FluxMedia\` prefix
+- **Type Hints**: Use PHP 7.4+ type declarations for all parameters and returns
+- **Documentation**: Comprehensive PHPDoc comments with `@since TBD`
+- **Use Statements**: Always use shortened qualified class names
+- **No Underscore Prefixes**: Properties and methods use standard naming without underscores
+- **Dependency Injection**: Use container for service management
+- **Interface Segregation**: Define clear contracts for all processors and services
+
+#### File Organization
+- **Single Responsibility**: Each class/component has one purpose
+- **Namespace Structure**: Mirror directory structure in namespaces
+- **Interface-First**: Define interfaces before implementations
+- **Error Handling**: Comprehensive error boundaries and structured logging
+- **Database Abstraction**: Use WordPress database layer with custom tables
 
 ### JavaScript Standards
-- **ESLint**: React and JavaScript linting rules
-- **Prettier**: Code formatting (when configured)
-- **Modern ES6+**: Use modern JavaScript features
-- **Component Documentation**: JSDoc for components
-- **WordPress i18n**: Use WordPress translation functions for all text
-- **MUI Grid**: Use Grid components for responsive layouts
-- **React Router**: Use Link components for navigation
 
-### File Organization
-- **Single Responsibility**: Each class/component has one purpose
-- **Dependency Injection**: Use container for service management
-- **Interface Segregation**: Define clear contracts
-- **Error Handling**: Comprehensive error boundaries and logging
+#### Naming Conventions
+- **Components**: PascalCase (e.g., `SystemStatusCard`, `OverviewPage`)
+- **Files**: PascalCase matching component name (e.g., `SystemStatusCard.js`)
+- **Hooks**: camelCase starting with 'use' (e.g., `useSystemStatus`, `useAutoSaveForm`)
+- **Variables/Functions**: camelCase (e.g., `apiService`, `handleTabChange`)
+- **Constants**: UPPER_SNAKE_CASE (e.g., `API_BASE_URL`)
+
+#### Code Structure
+- **ESLint**: React and JavaScript linting rules
+- **Modern ES6+**: Use modern JavaScript features (arrow functions, destructuring, etc.)
+- **Component Documentation**: JSDoc for components and hooks
+- **WordPress i18n**: Use WordPress translation functions for ALL text strings
+- **MUI Grid**: Use Grid components for responsive layouts (no explicit flex styles)
+- **React Router**: Use Link components for navigation (no manual hash changes)
+- **Path Mapping**: Use `@flux-media` alias for clean imports
+- **Functional Components**: Use React hooks, no class components
+
+#### File Organization
+- **Component Structure**: Smart/Dumb component separation
+- **Hook Organization**: Custom hooks in dedicated `hooks/` directory
+- **Service Layer**: API services in dedicated `services/` directory
+- **Context Usage**: Global state management with React Context
+- **Error Boundaries**: Comprehensive error handling
+- **Skeleton Loading**: Professional loading states using MUI Skeleton
+
+### Folder Structure Standards
+
+#### Frontend Structure
+```
+assets/js/src/
+├── components/
+│   ├── common/          # Reusable UI components
+│   ├── features/        # Feature-specific components
+│   └── pages/          # Page-level components
+├── hooks/              # Custom React hooks
+├── contexts/           # React Context providers
+├── services/           # API and external services
+├── theme/              # MUI theme configuration
+└── utils/              # Utility functions
+```
+
+#### Backend Structure
+```
+src/
+├── Core/               # Core plugin functionality
+├── Services/           # Business logic services (with Converter interface)
+├── Processors/         # Image/video processors
+├── Interfaces/         # Contract definitions
+├── Models/             # Data models
+├── Api/
+│   └── Controllers/    # REST API controllers
+├── Admin/              # WordPress admin integration
+├── Public/             # Public-facing features
+└── Utils/              # Utility classes
+```
+
+### API Standards
+
+#### REST API Structure
+- **Controller per Resource**: One controller class per API resource
+- **Base Controller**: Common functionality in `BaseController`
+- **Endpoint Naming**: RESTful naming conventions
+- **Authentication**: WordPress nonce verification
+- **Error Handling**: Consistent error response format
+- **Debug Mode**: Enhanced error reporting in development
+
+#### Response Format
+- **Success Responses**: Return data directly
+- **Error Responses**: WordPress apiFetch format
+- **Pagination**: Standard WordPress pagination parameters
+- **Filtering**: Query parameters for filtering and search
+
+### Database Standards
+
+#### Table Naming
+- **Custom Tables**: `wp_flux_media_` prefix
+- **Column Naming**: snake_case
+- **Indexes**: Proper indexing for performance
+- **Foreign Keys**: WordPress post/option relationships
+
+#### Data Handling
+- **Sanitization**: All input data sanitized
+- **Validation**: Comprehensive input validation
+- **Escaping**: Output escaping for security
+- **WordPress Integration**: Use WordPress database abstraction
+
+### Testing Standards
+
+#### Frontend Testing
+- **Component Testing**: Test component behavior and rendering
+- **Hook Testing**: Test custom hooks in isolation
+- **Integration Testing**: Test component interactions
+- **Accessibility Testing**: Ensure WCAG compliance
+
+#### Backend Testing
+- **Unit Testing**: Test individual classes and methods
+- **Integration Testing**: Test service interactions
+- **WordPress Testing**: Use WordPress test suite
+- **Mock Services**: Mock external dependencies
+
+### Performance Standards
+
+#### Frontend Performance
+- **Code Splitting**: Use React.lazy() for route-based splitting
+- **Bundle Optimization**: Webpack optimization and tree shaking
+- **Caching**: React Query caching and background updates
+- **Loading States**: Skeleton components for perceived performance
+- **Debouncing**: Auto-save with debounced API calls
+
+#### Backend Performance
+- **Database Queries**: Efficient queries with proper indexing
+- **Memory Management**: Proper memory usage for large files
+- **Background Processing**: Async processing for conversions
+- **Caching**: Cache system status and configuration
+- **Error Handling**: Structured logging for performance monitoring
+
+### Security Standards
+
+#### Authentication & Authorization
+- **WordPress Integration**: Use WordPress user capabilities
+- **Nonce Verification**: All API requests verified
+- **Input Sanitization**: All user input sanitized
+- **Output Escaping**: All output properly escaped
+- **File Validation**: Secure file upload handling
+
+#### Data Protection
+- **Sensitive Data**: No sensitive data in logs
+- **Error Messages**: User-friendly error messages
+- **Debug Mode**: Enhanced errors only in development
+- **File Permissions**: Proper file system permissions
 
 ## 🤝 Contributing
 

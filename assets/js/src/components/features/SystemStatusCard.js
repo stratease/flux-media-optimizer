@@ -47,8 +47,8 @@ const SystemStatusCard = ({ status, loading, error }) => {
             </Box>
           </Grid>
 
-          {/* Video Processing Skeleton */}
-          <Grid item xs={12} md={6}>
+          {/* Video Processing Skeleton - Hidden for MVP */}
+          {/* <Grid item xs={12} md={6}>
             <Box>
               <Skeleton variant="text" width="40%" height={32} sx={{ mb: 2 }} />
               <Skeleton variant="rectangular" width={120} height={32} sx={{ borderRadius: 1, mb: 2 }} />
@@ -62,7 +62,7 @@ const SystemStatusCard = ({ status, loading, error }) => {
                 </Grid>
               </Grid>
             </Box>
-          </Grid>
+          </Grid> */}
 
           {/* PHP Configuration Skeleton */}
           <Grid item xs={12}>
@@ -135,8 +135,10 @@ const SystemStatusCard = ({ status, loading, error }) => {
   const hasImageSupport = imageProcessor.available && 
     (imageProcessor.webp_support || imageProcessor.avif_support);
   
-  const hasVideoSupport = videoProcessor.available && 
-    (videoProcessor.av1_support || videoProcessor.webm_support);
+  // Video support hidden for MVP
+  // const hasVideoSupport = videoProcessor.available && 
+  //   (videoProcessor.av1_support || videoProcessor.webm_support);
+  const hasVideoSupport = true; // Always true for MVP to hide video warnings
 
   return (
     <Box>
@@ -185,8 +187,8 @@ const SystemStatusCard = ({ status, loading, error }) => {
             </Box>
           </Grid>
 
-          {/* Video Processing Status */}
-          <Grid item xs={12} md={6}>
+          {/* Video Processing Status - Hidden for MVP */}
+          {/* <Grid item xs={12} md={6}>
             <Box>
               <Typography variant="h6" gutterBottom>
                 {__('Video Processing', 'flux-media')}
@@ -217,7 +219,7 @@ const SystemStatusCard = ({ status, loading, error }) => {
                 </Grid>
               </Box>
             </Box>
-          </Grid>
+          </Grid> */}
 
           {/* PHP Configuration */}
           <Grid item xs={12}>
@@ -266,23 +268,19 @@ const SystemStatusCard = ({ status, loading, error }) => {
               <Alert severity="warning">
                 <AlertTitle>{__('System Requirements Not Met', 'flux-media')}</AlertTitle>
                 <Typography variant="body2">
-                  {!hasImageSupport && !hasVideoSupport && 
-                    __('Neither image nor video processing is available. Please install Imagick/GD with WebP/AVIF support and FFmpeg with AV1/WebM support.', 'flux-media')}
-                  {!hasImageSupport && hasVideoSupport && 
+                  {!hasImageSupport && 
                     __('Image processing is not available. Please install Imagick or GD with WebP/AVIF support.', 'flux-media')}
-                  {hasImageSupport && !hasVideoSupport && 
-                    __('Video processing is not available. Please install FFmpeg with AV1/WebM support.', 'flux-media')}
                 </Typography>
               </Alert>
             </Grid>
           )}
 
-          {hasImageSupport && hasVideoSupport && (
+          {hasImageSupport && (
             <Grid item xs={12}>
               <Alert severity="success">
                 <AlertTitle>{__('System Ready', 'flux-media')}</AlertTitle>
                 <Typography variant="body2">
-                  {__('All required components are available. Flux Media can optimize both images and videos.', 'flux-media')}
+                  {__('All required components are available. Flux Media can optimize images.', 'flux-media')}
                 </Typography>
               </Alert>
             </Grid>

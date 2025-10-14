@@ -3,27 +3,27 @@
  * Unit tests for ImageConverter class.
  *
  * @package FluxMedia\Tests\Unit
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 namespace FluxMedia\Tests\Unit;
 
-use FluxMedia\Services\ImageConverter;
+use FluxMedia\App\Services\ImageConverter;
 use FluxMedia\Tests\Support\Mocks\NoopLogger;
-use FluxMedia\Interfaces\Converter;
+use FluxMedia\App\Services\Converter;
 use PHPUnit\Framework\TestCase;
 
 /**
  * ImageConverter unit tests.
  *
- * @since 1.0.0
+ * @since 0.1.0
  */
 class ImageConverterTest extends TestCase {
 
     /**
      * ImageConverter instance.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @var ImageConverter
      */
     private $image_converter;
@@ -31,7 +31,7 @@ class ImageConverterTest extends TestCase {
     /**
      * Logger instance.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @var NoopLogger
      */
     private $logger;
@@ -39,7 +39,7 @@ class ImageConverterTest extends TestCase {
     /**
      * Set up test environment.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     protected function setUp(): void {
@@ -51,7 +51,7 @@ class ImageConverterTest extends TestCase {
     /**
      * Test ImageConverter instantiation.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testImageConverterInstantiation() {
@@ -61,7 +61,7 @@ class ImageConverterTest extends TestCase {
     /**
      * Test processor availability check.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testIsAvailable() {
@@ -72,7 +72,7 @@ class ImageConverterTest extends TestCase {
     /**
      * Test processor info retrieval.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testGetProcessorInfo() {
@@ -93,7 +93,7 @@ class ImageConverterTest extends TestCase {
     /**
      * Test supported image format check.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testIsSupportedImage() {
@@ -113,7 +113,7 @@ class ImageConverterTest extends TestCase {
     /**
      * Test supported formats retrieval.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testGetSupportedFormats() {
@@ -127,7 +127,7 @@ class ImageConverterTest extends TestCase {
     /**
      * Test format support check.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testIsFormatSupported() {
@@ -140,7 +140,7 @@ class ImageConverterTest extends TestCase {
     /**
      * Test converter type.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testGetType() {
@@ -151,7 +151,7 @@ class ImageConverterTest extends TestCase {
     /**
      * Data provider for image conversion tests.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return array Test data with source files and target formats.
      */
     public function imageConversionDataProvider() {
@@ -189,7 +189,7 @@ class ImageConverterTest extends TestCase {
     /**
      * Test image conversion with real files.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @dataProvider imageConversionDataProvider
      * @param string $source_file Source image file path.
      * @param string $target_format Target format to convert to.
@@ -257,7 +257,7 @@ class ImageConverterTest extends TestCase {
     /**
      * Test hybrid conversion approach with real files.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testHybridConversion() {
@@ -326,7 +326,7 @@ class ImageConverterTest extends TestCase {
     /**
      * Test file size reduction calculation.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testFileSizeReduction() {
@@ -355,7 +355,7 @@ class ImageConverterTest extends TestCase {
     /**
      * Test error handling for invalid inputs.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testErrorHandling() {

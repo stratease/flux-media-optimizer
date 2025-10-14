@@ -34,7 +34,6 @@ import { __ } from '@wordpress/i18n';
 import { useQuery } from '@tanstack/react-query';
 import { apiService } from '@flux-media/services/api';
 import { useAutoSaveForm } from '@flux-media/hooks/useAutoSaveForm';
-import { AutoSaveStatus } from '@flux-media/contexts/AutoSaveContext';
 
 /**
  * Logs page component with pagination and filtering
@@ -152,9 +151,6 @@ const LogsPage = () => {
           <Typography variant="body2" color="text.secondary">
             {__('View error and warning logs from Flux Media operations', 'flux-media')}
           </Typography>
-        </Grid>
-        <Grid item>
-          <AutoSaveStatus saveKey="logs" />
         </Grid>
       </Grid>
 
@@ -293,8 +289,8 @@ const LogsPage = () => {
                   </TableCell>
                 </TableRow>
               ))
-            ) : logsData?.logs?.length > 0 ? (
-              logsData.logs.map((log) => (
+            ) : logsData?.data?.length > 0 ? (
+              logsData.data.map((log) => (
                 <TableRow key={log.id} hover>
                   <TableCell>
                     <Chip
@@ -349,10 +345,10 @@ const LogsPage = () => {
       </TableContainer>
 
       {/* Pagination */}
-      {logsData?.pagination && logsData.pagination.total_pages > 1 && (
+      {logsData?.data && logsData.total_pages > 1 && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
           <Pagination
-            count={logsData.pagination.total_pages}
+            count={logsData.total_pages}
             page={page}
             onChange={handlePageChange}
             color="primary"
@@ -363,10 +359,10 @@ const LogsPage = () => {
       )}
 
           {/* Pagination Info */}
-          {logsData?.pagination && (
+          {logsData?.data && (
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
               <Typography variant="body2" color="text.secondary">
-                {__('Showing', 'flux-media')} {((page - 1) * perPage) + 1} - {Math.min(page * perPage, logsData.pagination.total)} {__('of', 'flux-media')} {logsData.pagination.total} {__('logs', 'flux-media')}
+                {__('Showing', 'flux-media')} {((page - 1) * perPage) + 1} - {Math.min(page * perPage, logsData.total)} {__('of', 'flux-media')} {logsData.total} {__('logs', 'flux-media')}
               </Typography>
             </Box>
           )}

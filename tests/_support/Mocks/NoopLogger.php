@@ -3,24 +3,24 @@
  * Noop Logger implementation for testing.
  *
  * @package FluxMedia\Tests\Support\Mocks
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 namespace FluxMedia\Tests\Support\Mocks;
 
-use FluxMedia\Interfaces\LoggerInterface;
+use FluxMedia\App\Services\LoggerInterface;
 
 /**
  * Noop Logger that does nothing - used for testing to avoid WordPress dependencies.
  *
- * @since 1.0.0
+ * @since 0.1.0
  */
 class NoopLogger implements LoggerInterface {
 
 	/**
 	 * Log debug message (noop).
 	 *
-	 * @since 1.0.0
+	 * @since 0.1.0
 	 * @param string $message Log message.
 	 * @param array  $context Additional context.
 	 */
@@ -31,7 +31,7 @@ class NoopLogger implements LoggerInterface {
 	/**
 	 * Log info message (noop).
 	 *
-	 * @since 1.0.0
+	 * @since 0.1.0
 	 * @param string $message Log message.
 	 * @param array  $context Additional context.
 	 */
@@ -42,7 +42,7 @@ class NoopLogger implements LoggerInterface {
 	/**
 	 * Log warning message (noop).
 	 *
-	 * @since 1.0.0
+	 * @since 0.1.0
 	 * @param string $message Log message.
 	 * @param array  $context Additional context.
 	 */
@@ -53,7 +53,7 @@ class NoopLogger implements LoggerInterface {
 	/**
 	 * Log error message (noop).
 	 *
-	 * @since 1.0.0
+	 * @since 0.1.0
 	 * @param string $message Log message.
 	 * @param array  $context Additional context.
 	 */
@@ -64,7 +64,7 @@ class NoopLogger implements LoggerInterface {
 	/**
 	 * Log critical message (noop).
 	 *
-	 * @since 1.0.0
+	 * @since 0.1.0
 	 * @param string $message Log message.
 	 * @param array  $context Additional context.
 	 */
@@ -75,7 +75,7 @@ class NoopLogger implements LoggerInterface {
 	/**
 	 * Log an operation with structured context (noop).
 	 *
-	 * @since 1.0.0
+	 * @since 0.1.0
 	 * @param string $level Log level (debug, info, warning, error, critical).
 	 * @param string $operation Operation being performed.
 	 * @param string $message Human-readable message.
@@ -88,7 +88,7 @@ class NoopLogger implements LoggerInterface {
 	/**
 	 * Log a conversion operation (noop).
 	 *
-	 * @since 1.0.0
+	 * @since 0.1.0
 	 * @param string $level Log level.
 	 * @param string $source_path Source file path.
 	 * @param string $target_format Target format.
@@ -102,7 +102,7 @@ class NoopLogger implements LoggerInterface {
 	/**
 	 * Log a processor availability issue (noop).
 	 *
-	 * @since 1.0.0
+	 * @since 0.1.0
 	 * @param string $processor_type Type of processor (GD, Imagick, FFmpeg).
 	 * @param string $reason Reason for unavailability.
 	 * @param array  $context Additional context.
@@ -114,7 +114,7 @@ class NoopLogger implements LoggerInterface {
 	/**
 	 * Log a format support issue (noop).
 	 *
-	 * @since 1.0.0
+	 * @since 0.1.0
 	 * @param string $processor_type Type of processor.
 	 * @param string $format Format that's not supported.
 	 * @param string $reason Reason for lack of support.
@@ -127,7 +127,7 @@ class NoopLogger implements LoggerInterface {
 	/**
 	 * Log a system resource issue (noop).
 	 *
-	 * @since 1.0.0
+	 * @since 0.1.0
 	 * @param string $resource_type Type of resource (memory, disk, execution_time).
 	 * @param string $issue Description of the issue.
 	 * @param array  $context Additional context.
@@ -139,7 +139,7 @@ class NoopLogger implements LoggerInterface {
 	/**
 	 * Log a filesystem operation (noop).
 	 *
-	 * @since 1.0.0
+	 * @since 0.1.0
 	 * @param string $level Log level.
 	 * @param string $operation Operation being performed.
 	 * @param string $file_path File path involved.

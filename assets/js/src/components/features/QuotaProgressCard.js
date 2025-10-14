@@ -49,8 +49,8 @@ const QuotaProgressCard = ({ quota, loading, error, onUpgrade }) => {
             </Box>
           </Grid>
 
-          {/* Video Quota Skeleton */}
-          <Grid item xs={12} md={6}>
+          {/* Video Quota Skeleton - Hidden for MVP */}
+          {/* <Grid item xs={12} md={6}>
             <Box>
               <Skeleton variant="text" width="40%" height={32} sx={{ mb: 2 }} />
               <Skeleton variant="text" width="60%" height={48} sx={{ mb: 1 }} />
@@ -58,7 +58,7 @@ const QuotaProgressCard = ({ quota, loading, error, onUpgrade }) => {
               <Skeleton variant="rectangular" height={8} sx={{ borderRadius: 4, mb: 1 }} />
               <Skeleton variant="text" width="25%" height={16} />
             </Box>
-          </Grid>
+          </Grid> */}
 
           {/* Quota Status Skeleton */}
           <Grid item xs={12}>
@@ -95,12 +95,14 @@ const QuotaProgressCard = ({ quota, loading, error, onUpgrade }) => {
   }
 
   // Safely access nested properties with fallbacks
-  const images = quota.images || { used: 0, limit: 0 };
-  const videos = quota.videos || { used: 0, limit: 0 };
-  const plan = quota.plan || 'free';
+  const images = quota.progress?.images || { used: 0, limit: 0 };
+  const videos = quota.progress?.videos || { used: 0, limit: 0 };
+  const plan = quota.progress?.plan || 'free';
 
   const isImageQuotaExceeded = images.used >= images.limit;
-  const isVideoQuotaExceeded = videos.used >= videos.limit;
+  // Video quota hidden for MVP
+  // const isVideoQuotaExceeded = videos.used >= videos.limit;
+  const isVideoQuotaExceeded = false; // Always false for MVP
   const isAnyQuotaExceeded = isImageQuotaExceeded || isVideoQuotaExceeded;
 
   const getProgressColor = (progress, isExceeded) => {
@@ -167,17 +169,13 @@ const QuotaProgressCard = ({ quota, loading, error, onUpgrade }) => {
                 variant="determinate"
                 value={Math.min(images.progress || 0, 100)}
                 color={getProgressColor(images.progress || 0, isImageQuotaExceeded)}
-                sx={{ height: 8, borderRadius: 4, mb: 1 }}
+                sx={{ height: 8, borderRadius: 4 }}
               />
-              
-              <Typography variant="caption" color="text.secondary">
-                {(images.progress || 0).toFixed(1)}% used
-              </Typography>
             </Box>
           </Grid>
 
-          {/* Video Quota */}
-          <Grid item xs={12} md={6}>
+          {/* Video Quota - Hidden for MVP */}
+          {/* <Grid item xs={12} md={6}>
             <Box>
               <Grid container alignItems="center" sx={{ mb: 1 }}>
                 <Grid item>
@@ -210,14 +208,14 @@ const QuotaProgressCard = ({ quota, loading, error, onUpgrade }) => {
                 {(videos.progress || 0).toFixed(1)}% used
               </Typography>
             </Box>
-          </Grid>
+          </Grid> */}
 
           {/* Quota Status */}
           <Grid item xs={12}>
             <Grid container alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
               <Grid item>
                 <Typography variant="body2" color="text.secondary">
-                  {__('Next reset:', 'flux-media')} {quota.next_reset ? formatDate(quota.next_reset) : __('Unknown', 'flux-media')}
+                  {__('Next reset:', 'flux-media')} {quota.progress?.next_reset ? formatDate(quota.progress.next_reset) : __('Unknown', 'flux-media')}
                 </Typography>
               </Grid>
               <Grid item>
@@ -234,22 +232,18 @@ const QuotaProgressCard = ({ quota, loading, error, onUpgrade }) => {
               <Alert severity="warning" sx={{ mb: 2 }}>
                 <AlertTitle>Quota Exceeded</AlertTitle>
                 <Typography variant="body2">
-                  {isImageQuotaExceeded && isVideoQuotaExceeded && 
-                    'Both image and video conversion quotas have been exceeded. Upgrade to continue converting media.'}
-                  {isImageQuotaExceeded && !isVideoQuotaExceeded && 
-                    'Image conversion quota has been exceeded. You can still convert videos or upgrade for unlimited conversions.'}
-                  {!isImageQuotaExceeded && isVideoQuotaExceeded && 
-                    'Video conversion quota has been exceeded. You can still convert images or upgrade for unlimited conversions.'}
+                  {isImageQuotaExceeded && 
+                    'Image conversion quota has been exceeded. Upgrade for unlimited conversions.'}
                 </Typography>
               </Alert>
             )}
 
             {/* Free Plan Benefits */}
-            {quota.plan === 'free' && !isAnyQuotaExceeded && (
+            {plan === 'free' && !isAnyQuotaExceeded && (
               <Alert severity="info">
                 <AlertTitle>Free Plan Benefits</AlertTitle>
                 <Typography variant="body2">
-                  You're using the free plan with {quota.images.limit} image conversions and {quota.videos.limit} video conversions per month. 
+                  You're using the free plan with {images.limit} image conversions per month. 
                   Upgrade to unlock unlimited conversions, CDN integration, and premium features.
                 </Typography>
               </Alert>

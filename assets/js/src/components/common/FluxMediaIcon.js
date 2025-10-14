@@ -3,7 +3,7 @@ import React from 'react';
 /**
  * Flux Media brand icon component
  * 
- * @since 1.0.0
+ * @since 0.1.0
  */
 const FluxMediaIcon = ({ size = 32, ...props }) => {
   return (
@@ -17,64 +17,80 @@ const FluxMediaIcon = ({ size = 32, ...props }) => {
       {...props}
     >
       <title id="title">Flux Media Logo</title>
-      <desc id="desc">Minimalist abstract icon with blue-to-teal gradient outline of an inverted trapezoidal shape with internal geometric divisions.</desc>
+      <desc id="desc">Symmetrical triangle logo with energy filaments and electricity effects representing power and flow.</desc>
 
       <defs>
-        {/* Blue to teal gradient for the outline */}
-        <linearGradient id="fluxGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#00BFFF" stopOpacity="1"/>
-          <stop offset="50%" stopColor="#20B2AA" stopOpacity="1"/>
-          <stop offset="100%" stopColor="#00CED1" stopOpacity="1"/>
+        {/* Energy gradient for the outer triangle */}
+        <linearGradient id="energyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style={{stopColor: '#00A3FF', stopOpacity: 1}} />
+          <stop offset="100%" style={{stopColor: '#00FFFF', stopOpacity: 1}} />
         </linearGradient>
       </defs>
 
-      {/* Main inverted trapezoidal shape with rounded top corners */}
-      <path
-        d="M 40 60 
-           L 160 60 
-           L 160 65 
-           L 150 140 
-           L 50 140 
-           L 40 65 
-           Z"
-        fill="none"
-        stroke="url(#fluxGradient)"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      {/* Background (transparent) */}
+      <rect width="200" height="200" fill="none"/>
 
-      {/* Central vertical line */}
-      <line
-        x1="100"
-        y1="65"
-        x2="100"
-        y2="140"
-        stroke="url(#fluxGradient)"
-        strokeWidth="2"
+      {/* Symmetrical outer triangle: Closed path with curved edges */}
+      <path 
+        d="M 100 30 
+           C 130 50, 170 110, 170 150 
+           C 170 170, 30 170, 30 150 
+           C 30 110, 70 50, 100 30 Z" 
+        fill="none" 
+        stroke="url(#energyGradient)" 
+        strokeWidth="6" 
         strokeLinecap="round"
       />
 
-      {/* Left diagonal line from top-left corner to center */}
-      <line
-        x1="50"
-        y1="65"
-        x2="100"
-        y2="100"
-        stroke="url(#fluxGradient)"
-        strokeWidth="2"
+      {/* Symmetrical inner Y-shape filaments: Curved paths converging at center */}
+      <path 
+        d="M 100 30 C 100 50, 100 70, 100 90" 
+        stroke="#00A3FF" 
+        strokeWidth="4" 
+        strokeLinecap="round"
+      />
+      <path 
+        d="M 30 150 C 50 130, 70 110, 100 90" 
+        stroke="#00A3FF" 
+        strokeWidth="4" 
+        strokeLinecap="round"
+      />
+      <path 
+        d="M 170 150 C 150 130, 130 110, 100 90" 
+        stroke="#00A3FF" 
+        strokeWidth="4" 
         strokeLinecap="round"
       />
 
-      {/* Right diagonal line from top-right corner to center */}
-      <line
-        x1="150"
-        y1="65"
-        x2="100"
-        y2="100"
-        stroke="url(#fluxGradient)"
-        strokeWidth="2"
-        strokeLinecap="round"
+      {/* Central node (energy core) */}
+      <circle 
+        cx="100" 
+        cy="90" 
+        r="6" 
+        fill="#00FFFF"
+      />
+
+      {/* Electricity: Jagged solid lines along triangle edges */}
+      <path 
+        d="M 100 30 C 110 40, 125 60, 130 80 C 135 100, 155 120, 170 150" 
+        stroke="#00FFFF" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        opacity="0.8"
+      />
+      <path 
+        d="M 170 150 C 155 160, 135 165, 100 170 C 65 165, 45 160, 30 150" 
+        stroke="#00FFFF" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        opacity="0.8"
+      />
+      <path 
+        d="M 30 150 C 45 120, 65 100, 70 80 C 75 60, 90 40, 100 30" 
+        stroke="#00FFFF" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        opacity="0.8"
       />
     </svg>
   );

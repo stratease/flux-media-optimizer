@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useAutoSave } from '@flux-media/contexts/AutoSaveContext';
-import { apiService } from '@flux-media/services/api';
+import { useUpdateOptions } from './useOptions';
 
 /**
  * Custom hook for auto-save form functionality
@@ -13,28 +13,31 @@ import { apiService } from '@flux-media/services/api';
  */
 export const useAutoSaveForm = (saveKey, initialData = {}, saveFunction = null, debounceMs = 1000) => {
   const { startSave, markSaveSuccess, markSaveError, resetSaveState } = useAutoSave();
+  const updateOptionsMutation = useUpdateOptions();
   const timeoutRef = useRef(null);
   const lastSavedDataRef = useRef(JSON.stringify(initialData));
 
-  // Default save function using API service
-  const defaultSaveFunction = useCallback(async (data) => {
-    return apiService.updateOptions(data);
-  }, []);
+  // Default save function using React Query mutation for options
+  const defaultSaveFunction = useCallback(async (options) => {
+    return updateOptionsMutation.mutateAsync(options);
+  }, [updateOptionsMutation]);
 
   const saveFn = saveFunction || defaultSaveFunction;
 
   // Auto-save function
-  const autoSave = useCallback(async (data) => {
+  const autoSave = useCallback(async (options) => {
     try {
       startSave(saveKey);
       
-      const response = await saveFn(data);
+      const response = await saveFn(options);
       
-      if (response.success) {
+      // The API service returns the data directly, so if we get a response object
+      // (not an error), it means the save was successful
+      if (response && typeof response === 'object') {
         markSaveSuccess(saveKey);
-        lastSavedDataRef.current = JSON.stringify(data);
+        lastSavedDataRef.current = JSON.stringify(options);
       } else {
-        markSaveError(saveKey, response.message || 'Save failed');
+        markSaveError(saveKey, 'Save failed - invalid response');
       }
     } catch (error) {
       console.error('Auto-save error:', error);
@@ -43,32 +46,32 @@ export const useAutoSaveForm = (saveKey, initialData = {}, saveFunction = null, 
   }, [saveKey, saveFn, startSave, markSaveSuccess, markSaveError]);
 
   // Debounced save function
-  const debouncedSave = useCallback((data) => {
+  const debouncedSave = useCallback((options) => {
     // Clear existing timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
 
-    // Check if data has actually changed
-    const currentDataString = JSON.stringify(data);
-    if (currentDataString === lastSavedDataRef.current) {
+    // Check if options have actually changed
+    const currentOptionsString = JSON.stringify(options);
+    if (currentOptionsString === lastSavedDataRef.current) {
       return; // No changes, don't save
     }
 
     // Set new timeout
     timeoutRef.current = setTimeout(() => {
-      autoSave(data);
+      autoSave(options);
     }, debounceMs);
   }, [autoSave, debounceMs]);
 
   // Manual save function (immediate)
-  const manualSave = useCallback(async (data) => {
+  const manualSave = useCallback(async (options) => {
     // Clear any pending debounced save
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
 
-    await autoSave(data);
+    await autoSave(options);
   }, [autoSave]);
 
   // Reset save state

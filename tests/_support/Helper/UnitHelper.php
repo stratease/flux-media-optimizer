@@ -3,7 +3,7 @@
  * Unit test helper for Flux Media plugin.
  *
  * @package FluxMedia\Tests\Support\Helper
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 namespace FluxMedia\Tests\Support\Helper;
@@ -13,14 +13,14 @@ use Codeception\Module;
 /**
  * Unit test helper class.
  *
- * @since 1.0.0
+ * @since 0.1.0
  */
 class UnitHelper extends Module {
 
     /**
      * Create a mock image file for testing.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @param string $format Image format (jpg, png, gif).
      * @param int    $width Image width.
      * @param int    $height Image height.
@@ -64,7 +64,7 @@ class UnitHelper extends Module {
     /**
      * Create a mock video file for testing.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @param string $format Video format (mp4, avi, mov).
      * @param int    $size File size in bytes.
      * @return string Path to created mock file.
@@ -82,7 +82,7 @@ class UnitHelper extends Module {
     /**
      * Get file size in bytes.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @param string $filepath Path to file.
      * @return int File size in bytes.
      */
@@ -93,7 +93,7 @@ class UnitHelper extends Module {
     /**
      * Clean up test files.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @param array $files Array of file paths to clean up.
      * @return void
      */
@@ -108,7 +108,7 @@ class UnitHelper extends Module {
     /**
      * Assert that a file exists and has content.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @param string $filepath Path to file.
      * @param string $message Optional assertion message.
      * @return void
@@ -121,7 +121,7 @@ class UnitHelper extends Module {
     /**
      * Assert that a conversion resulted in a smaller file size.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @param string $original_file Path to original file.
      * @param string $converted_file Path to converted file.
      * @param string $message Optional assertion message.
@@ -140,7 +140,7 @@ class UnitHelper extends Module {
     /**
      * Assert that a conversion resulted in a larger file size (for testing edge cases).
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @param string $original_file Path to original file.
      * @param string $converted_file Path to converted file.
      * @param string $message Optional assertion message.

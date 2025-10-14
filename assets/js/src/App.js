@@ -5,10 +5,9 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Box, Typography, Container, Tabs, Tab, Paper, Grid } from '@mui/material';
 import { __ } from '@wordpress/i18n';
-import { ErrorBoundary, FluxMediaIcon } from '@flux-media/components';
+import { ErrorBoundary, FluxMediaIcon, LogsPage } from '@flux-media/components';
 import OverviewPage from '@flux-media/pages/OverviewPage';
 import SettingsPage from '@flux-media/pages/SettingsPage';
-import LogsPage from '@flux-media/components/pages/LogsPage';
 import theme from '@flux-media/theme';
 import { AutoSaveProvider } from '@flux-media/contexts/AutoSaveContext';
 
@@ -51,11 +50,9 @@ const Navigation = () => {
   return (
     <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
       <Grid container alignItems="center" sx={{ mb: 2 }}>
-        <Grid item>
+        <Grid item sx={{ display: 'flex', alignItems: 'center' }}>
           <FluxMediaIcon size={40} sx={{ mr: 2 }} />
-        </Grid>
-        <Grid item>
-          <Typography variant="h4" component="h1">
+          <Typography variant="h4" component="h1" sx={{ m: 0, lineHeight: 1 }}>
             {__('Flux Media', 'flux-media')}
           </Typography>
         </Grid>

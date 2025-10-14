@@ -1,6 +1,6 @@
 {
   "name": "flux-media-admin",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Flux Media WordPress plugin admin interface",
   "private": true,
   "scripts": {

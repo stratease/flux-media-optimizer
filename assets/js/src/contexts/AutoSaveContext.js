@@ -1,92 +1,68 @@
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
-import { Box, CircularProgress, Grid } from '@mui/material';
-import { CheckCircle, Error } from '@mui/icons-material';
+import React, { createContext, useContext, useCallback, useState } from 'react';
+import { CircularProgress, Snackbar, Alert } from '@mui/material';
+import { __ } from '@wordpress/i18n';
 
 /**
  * Auto-save context for managing save states across the application
  * 
- * @since 1.0.0
+ * @since 0.1.0
  */
 const AutoSaveContext = createContext();
 
-/**
- * Auto-save status reducer
- */
-const autoSaveReducer = (state, action) => {
-  switch (action.type) {
-    case 'SAVE_START':
-      return {
-        ...state,
-        [action.key]: {
-          status: 'saving',
-          error: null,
-          lastSaved: null,
-        },
-      };
-    case 'SAVE_SUCCESS':
-      return {
-        ...state,
-        [action.key]: {
-          status: 'saved',
-          error: null,
-          lastSaved: new Date().toISOString(),
-        },
-      };
-    case 'SAVE_ERROR':
-      return {
-        ...state,
-        [action.key]: {
-          status: 'error',
-          error: action.error,
-          lastSaved: state[action.key]?.lastSaved || null,
-        },
-      };
-    case 'SAVE_RESET':
-      return {
-        ...state,
-        [action.key]: {
-          status: 'idle',
-          error: null,
-          lastSaved: state[action.key]?.lastSaved || null,
-        },
-      };
-    case 'CLEAR_SAVE_STATE':
-      const newState = { ...state };
-      delete newState[action.key];
-      return newState;
-    default:
-      return state;
-  }
-};
 
 /**
  * Auto-save provider component
  */
 export const AutoSaveProvider = ({ children }) => {
-  const [saveStates, dispatch] = useReducer(autoSaveReducer, {});
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'info',
+  });
 
   const startSave = useCallback((key) => {
-    dispatch({ type: 'SAVE_START', key });
+    setSnackbar({
+      open: true,
+      message: __('Saving...', 'flux-media'),
+      severity: 'info',
+      showSpinner: true,
+    });
   }, []);
 
   const markSaveSuccess = useCallback((key) => {
-    dispatch({ type: 'SAVE_SUCCESS', key });
+    setSnackbar({
+      open: true,
+      message: __('Settings saved successfully', 'flux-media'),
+      severity: 'success',
+      showSpinner: false,
+    });
   }, []);
 
   const markSaveError = useCallback((key, error) => {
-    dispatch({ type: 'SAVE_ERROR', key, error });
+    setSnackbar({
+      open: true,
+      message: error || __('Failed to save settings', 'flux-media'),
+      severity: 'error',
+      showSpinner: false,
+    });
   }, []);
 
   const resetSaveState = useCallback((key) => {
-    dispatch({ type: 'SAVE_RESET', key });
+    // No-op for simplified version
   }, []);
 
   const clearSaveState = useCallback((key) => {
-    dispatch({ type: 'CLEAR_SAVE_STATE', key });
+    // No-op for simplified version
+  }, []);
+
+  const handleSnackbarClose = useCallback((event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setSnackbar(prev => ({ ...prev, open: false }));
   }, []);
 
   const value = {
-    saveStates,
     startSave,
     markSaveSuccess,
     markSaveError,
@@ -97,6 +73,23 @@ export const AutoSaveProvider = ({ children }) => {
   return (
     <AutoSaveContext.Provider value={value}>
       {children}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={snackbar.severity === 'error' ? 6000 : 3000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        sx={{ mb: 2, mr: 2 }}
+      >
+        <Alert
+          onClose={snackbar.severity !== 'info' ? handleSnackbarClose : undefined}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+          icon={snackbar.showSpinner ? <CircularProgress size={20} sx={{ color: 'inherit' }} /> : undefined}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </AutoSaveContext.Provider>
   );
 };
@@ -112,102 +105,3 @@ export const useAutoSave = () => {
   return context;
 };
 
-/**
- * Auto-save status indicator component
- */
-export const AutoSaveIndicator = ({ saveKey, size = 20, sx = {} }) => {
-  const { saveStates } = useAutoSave();
-  const saveState = saveStates[saveKey];
-
-  if (!saveState || saveState.status === 'idle') {
-    return null;
-  }
-
-  const getIcon = () => {
-    switch (saveState.status) {
-      case 'saving':
-        return <CircularProgress size={size} sx={{ color: 'primary.main' }} />;
-      case 'saved':
-        return <CheckCircle sx={{ color: 'success.main', fontSize: size }} />;
-      case 'error':
-        return <Error sx={{ color: 'error.main', fontSize: size }} />;
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <Grid 
-      container 
-      alignItems="center" 
-      justifyContent="center"
-      sx={{
-        minWidth: size,
-        minHeight: size,
-        ...sx,
-      }}
-    >
-      <Grid item>
-        {getIcon()}
-      </Grid>
-    </Grid>
-  );
-};
-
-/**
- * Auto-save status text component
- */
-export const AutoSaveStatus = ({ saveKey, showLastSaved = true }) => {
-  const { saveStates } = useAutoSave();
-  const saveState = saveStates[saveKey];
-
-  if (!saveState || saveState.status === 'idle') {
-    return null;
-  }
-
-  const getStatusText = () => {
-    switch (saveState.status) {
-      case 'saving':
-        return 'Saving...';
-      case 'saved':
-        return 'Saved';
-      case 'error':
-        return 'Save failed';
-      default:
-        return '';
-    }
-  };
-
-  const getLastSavedText = () => {
-    if (!saveState.lastSaved || !showLastSaved) return null;
-    
-    const lastSaved = new Date(saveState.lastSaved);
-    const now = new Date();
-    const diffMs = now - lastSaved;
-    const diffMins = Math.floor(diffMs / 60000);
-    
-    if (diffMins < 1) return 'just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    
-    return lastSaved.toLocaleDateString();
-  };
-
-  return (
-    <Grid container alignItems="center" spacing={1}>
-      <Grid item>
-        <AutoSaveIndicator saveKey={saveKey} size={16} />
-      </Grid>
-      <Grid item>
-        <Box sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
-          {getStatusText()}
-          {saveState.status === 'saved' && getLastSavedText() && (
-            <span> • {getLastSavedText()}</span>
-          )}
-        </Box>
-      </Grid>
-    </Grid>
-  );
-};

@@ -1,5 +1,28 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '@flux-media/services/api';
+
+/**
+ * React Query hook for getting conversion statistics
+ */
+export const useConversions = () => {
+  return useQuery({
+    queryKey: ['conversions', 'stats'],
+    queryFn: () => apiService.getConversionStats(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 30 * 1000, // 30 seconds
+  });
+};
+
+/**
+ * React Query hook for getting recent conversions
+ */
+export const useRecentConversions = (limit = 10) => {
+  return useQuery({
+    queryKey: ['conversions', 'recent', limit],
+    queryFn: () => apiService.getRecentConversions(limit),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+};
 
 /**
  * React Query hook for starting a conversion

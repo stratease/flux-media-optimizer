@@ -3,26 +3,26 @@
  * Unit tests for video conversion efficiency and file size validation.
  *
  * @package FluxMedia\Tests\Unit
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 namespace FluxMedia\Tests\Unit;
 
-use FluxMedia\Services\VideoConverter;
+use FluxMedia\App\Services\VideoConverter;
 use FluxMedia\Tests\Support\Mocks\NoopLogger;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Video conversion efficiency unit tests.
  *
- * @since 1.0.0
+ * @since 0.1.0
  */
 class VideoConversionEfficiencyTest extends TestCase {
 
     /**
      * VideoConverter instance.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @var VideoConverter
      */
     private $video_converter;
@@ -30,7 +30,7 @@ class VideoConversionEfficiencyTest extends TestCase {
     /**
      * Logger instance.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @var NoopLogger
      */
     private $logger;
@@ -38,7 +38,7 @@ class VideoConversionEfficiencyTest extends TestCase {
     /**
      * Mock files for testing.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @var array
      */
     private $mock_files = [];
@@ -46,7 +46,7 @@ class VideoConversionEfficiencyTest extends TestCase {
     /**
      * Set up test environment.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     protected function setUp(): void {
@@ -65,7 +65,7 @@ class VideoConversionEfficiencyTest extends TestCase {
     /**
      * Clean up after tests.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     protected function tearDown(): void {
@@ -75,7 +75,7 @@ class VideoConversionEfficiencyTest extends TestCase {
     /**
      * Data provider for video conversion efficiency tests with real files.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return array Test data with source files, target formats, and CRF levels.
      */
     public function videoEfficiencyDataProvider() {
@@ -138,7 +138,7 @@ class VideoConversionEfficiencyTest extends TestCase {
     /**
      * Test video conversion efficiency with real files and CRF variations.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @dataProvider videoEfficiencyDataProvider
      * @param string $source_file Source video file path.
      * @param string $target_format Target format to convert to.
@@ -214,7 +214,7 @@ class VideoConversionEfficiencyTest extends TestCase {
     /**
      * Test CRF vs file size trade-off for videos.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testVideoCRFVsFileSize() {
@@ -264,7 +264,7 @@ class VideoConversionEfficiencyTest extends TestCase {
     /**
      * Test video conversion performance with large files.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testLargeVideoConversionPerformance() {
@@ -298,7 +298,7 @@ class VideoConversionEfficiencyTest extends TestCase {
     /**
      * Test memory usage during video conversion.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testVideoConversionMemoryUsage() {
@@ -334,7 +334,7 @@ class VideoConversionEfficiencyTest extends TestCase {
     /**
      * Test video conversion with edge case file sizes.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testVideoEdgeCaseFileSizes() {
@@ -374,7 +374,7 @@ class VideoConversionEfficiencyTest extends TestCase {
     /**
      * Test supported video format check.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testIsSupportedVideo() {
@@ -396,7 +396,7 @@ class VideoConversionEfficiencyTest extends TestCase {
     /**
      * Test supported formats retrieval.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testGetSupportedFormats() {
@@ -410,7 +410,7 @@ class VideoConversionEfficiencyTest extends TestCase {
     /**
      * Test format support check.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testIsFormatSupported() {
@@ -423,7 +423,7 @@ class VideoConversionEfficiencyTest extends TestCase {
     /**
      * Test converter type.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testGetType() {
@@ -434,7 +434,7 @@ class VideoConversionEfficiencyTest extends TestCase {
     /**
      * Create a mock video file for testing.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @param string $format Video format (mp4, avi, mov).
      * @param int    $size File size in bytes.
      * @return string Path to created mock file.
@@ -452,7 +452,7 @@ class VideoConversionEfficiencyTest extends TestCase {
     /**
      * Get file size in bytes.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @param string $filepath Path to file.
      * @return int File size in bytes.
      */
@@ -463,7 +463,7 @@ class VideoConversionEfficiencyTest extends TestCase {
     /**
      * Clean up test files.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @param array $files Array of file paths to clean up.
      * @return void
      */
@@ -478,7 +478,7 @@ class VideoConversionEfficiencyTest extends TestCase {
     /**
      * Assert that a file exists and has content.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @param string $filepath Path to file.
      * @param string $message Optional assertion message.
      * @return void

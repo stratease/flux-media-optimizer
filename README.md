@@ -292,6 +292,11 @@ All endpoints are prefixed with `/wp-json/flux-media/v1/` and require admin auth
 - `POST /cleanup/temp-files` - Cleanup temporary files
 - `POST /cleanup/old-records` - Cleanup old conversion records
 
+##### AJAX Endpoints (WordPress AJAX)
+- `POST /wp-admin/admin-ajax.php?action=flux_media_convert_attachment` - Convert specific attachment
+- `POST /wp-admin/admin-ajax.php?action=flux_media_disable_conversion` - Disable conversion for attachment
+- `POST /wp-admin/admin-ajax.php?action=flux_media_enable_conversion` - Enable conversion for attachment
+
 ### Response Format
 All API responses use WordPress apiFetch format. React Query handles error states and caching automatically.
 
@@ -492,7 +497,14 @@ if ( isset( $converted_files[ Converter::FORMAT_WEBP ] ) ) { // ✅ Do this
 ## 📊 Database Schema
 
 ### Custom Tables
-- `wp_flux_media_conversions` - Conversion records
+- `wp_flux_media_conversions` - Enhanced conversion records with file size tracking
+  - `id` - Primary key
+  - `attachment_id` - WordPress attachment ID
+  - `file_type` - Format (webp, avif, av1, webm)
+  - `original_size` - Original file size in bytes
+  - `converted_size` - Converted file size in bytes
+  - `size_savings` - Bytes saved
+  - `converted_at` - Conversion timestamp
 - `wp_flux_media_quota_usage` - Quota tracking
 - `wp_flux_media_settings` - Plugin settings
 - `wp_flux_media_logs` - Structured logging with pagination support
@@ -501,6 +513,8 @@ if ( isset( $converted_files[ Converter::FORMAT_WEBP ] ) ) { // ✅ Do this
 - Uses WordPress options API for configuration
 - Integrates with WordPress media library
 - Follows WordPress database abstraction
+- Enhanced post meta for conversion tracking
+- AJAX handlers for attachment management
 
 ## 🔒 Security
 
@@ -572,7 +586,12 @@ ls -la assets/js/dist/
 
 ## 🆕 Recent Updates
 
-### Latest Improvements (v1.0.0)
+### Latest Improvements (v0.1.0)
+- **Decoupled Architecture**: Complete separation of business logic from WordPress dependencies
+- **Provider Pattern**: WordPressProvider handles all WordPress integration while services remain pure
+- **Dependency Inversion**: LoggerInterface and NoopLogger for testable, decoupled components
+- **Pure Business Logic**: ImageConverter and VideoConverter are now WordPress-independent
+- **Single Source of Truth**: Centralized Settings class with constants for all default values
 - **Unified Converter Interface**: Fluent API for all file processing with consistent error handling
 - **REST API Refactoring**: Controller-per-resource architecture with proper separation of concerns
 - **Database Logging**: Structured logging system with pagination and search capabilities
@@ -588,6 +607,15 @@ ls -la assets/js/dist/
 - **Navigation Breadcrumbs**: Added breadcrumb navigation component
 - **Enhanced Error Handling**: Better error boundaries and user feedback
 - **Performance Optimizations**: Improved loading states and caching strategies
+- **PHPUnit Testing**: Migrated from Codeception to PHPUnit for better test isolation
+- **Format Constants**: Centralized format constants for consistency across the codebase
+- **File Size Tracking**: Comprehensive tracking of original and converted file sizes with savings calculations
+- **Quota Management**: Proper quota counting for hybrid conversions (counts each format separately)
+- **Attachment Management**: Convert and disable buttons on attachment details screen with AJAX handling
+- **Bulk Conversion**: Automated cron job for processing existing media with smart skipping
+- **Conversion Statistics**: Detailed savings statistics displayed on overview page and attachment screens
+- **Database Schema**: Enhanced conversion tracking with file size and savings percentage columns
+- **WordPress Integration**: Full integration with WordPress media library and attachment management
 
 ## 🎨 Key Features
 
@@ -608,6 +636,18 @@ Professional auto-save functionality with visual feedback:
 - **Visual Feedback**: Spinner during save, checkmark when complete
 - **Error Handling**: Clear error messages if save fails
 - **Context-Based**: Global state management for all forms
+
+### Attachment Management
+Comprehensive media file management with conversion controls:
+
+- **Convert Button**: Manual conversion trigger on attachment details screen
+- **Disable Conversion**: Exclude specific files from automatic conversion
+- **File Size Tracking**: Real-time display of original vs converted file sizes
+- **Savings Statistics**: Detailed breakdown of space savings per attachment
+- **AJAX Integration**: Seamless conversion without page reloads
+- **Conversion Status**: Clear visual indicators for conversion state
+- **Bulk Processing**: Automated cron job for processing existing media
+- **Smart Skipping**: Avoids re-converting already processed files
 
 ### Skeleton Loading
 Professional loading states for all pages:

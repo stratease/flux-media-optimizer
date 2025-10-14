@@ -23,7 +23,7 @@ class ApiService {
    */
   async request(endpoint, options = {}) {
     const defaultOptions = {
-      path: `/${this.namespace}${endpoint}`,
+      path: endpoint,
       method: 'GET',
       headers: {
         'X-WP-Nonce': window.fluxMediaAdmin?.nonce || '',
@@ -44,7 +44,6 @@ class ApiService {
       endpoint,
       path: mergedOptions.path,
       method: mergedOptions.method,
-      fullPath: `/${this.namespace}${endpoint}`,
       apiRoot: window.fluxMediaAdmin?.apiUrl,
       nonce: window.fluxMediaAdmin?.nonce,
       headers: mergedOptions.headers,
@@ -80,7 +79,7 @@ class ApiService {
 
   // System endpoints
   async getSystemStatus() {
-    return this.request('/system/status');
+    return this.request('/status');
   }
 
   // Conversion endpoints
@@ -102,11 +101,11 @@ class ApiService {
 
   // Quota endpoints
   async getQuotaProgress() {
-    return this.request('/quota/progress');
+    return this.request('/quota');
   }
 
   async getPlanInfo() {
-    return this.request('/quota/plan');
+    return this.request('/quota');
   }
 
   // Options endpoints
@@ -117,7 +116,7 @@ class ApiService {
   async updateOptions(options) {
     return this.request('/options', {
       method: 'POST',
-      body: JSON.stringify(options),
+      body: JSON.stringify({ options }),
     });
   }
 

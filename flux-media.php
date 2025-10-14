@@ -16,7 +16,7 @@
  * Network: false
  *
  * @package FluxMedia
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 // Prevent direct access.
@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'FLUX_MEDIA_VERSION', '1.0.0' );
+define( 'FLUX_MEDIA_VERSION', '0.1.0' );
 define( 'FLUX_MEDIA_PLUGIN_FILE', __FILE__ );
 define( 'FLUX_MEDIA_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FLUX_MEDIA_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -40,7 +40,7 @@ if ( version_compare( PHP_VERSION, '7.4', '<' ) ) {
 /**
  * Display PHP version compatibility notice.
  *
- * @since 1.0.0
+ * @since 0.1.0
  */
 function flux_media_php_version_notice() {
 	?>
@@ -70,7 +70,7 @@ if ( file_exists( FLUX_MEDIA_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 /**
  * Display Composer dependencies notice.
  *
- * @since 1.0.0
+ * @since 0.1.0
  */
 function flux_media_composer_notice() {
 	?>
@@ -88,32 +88,39 @@ add_action( 'plugins_loaded', 'flux_media_init' );
 /**
  * Initialize the Flux Media plugin.
  *
- * @since 1.0.0
+ * @since 0.1.0
  */
 function flux_media_init() {
 	// Load text domain for internationalization.
 	load_plugin_textdomain( 'flux-media', false, dirname( FLUX_MEDIA_PLUGIN_BASENAME ) . '/languages' );
 
 	// Initialize the main plugin class.
-	$flux_media = new FluxMedia\Core\Plugin();
+	$flux_media = new FluxMedia\App\Plugin();
 	$flux_media->init();
+
+	// Register WP-CLI commands if WP-CLI is available.
+	if ( defined( 'WP_CLI' ) && WP_CLI ) {
+		WP_CLI::add_command( 'flux-media', 'FluxMedia\App\Console\Commands\FluxMediaCommand' );
+	}
 }
 
 // Activation and deactivation hooks.
 register_activation_hook( __FILE__, 'flux_media_activate' );
 register_deactivation_hook( __FILE__, 'flux_media_deactivate' );
+register_uninstall_hook( __FILE__, 'flux_media_uninstall' );
 
 /**
  * Plugin activation handler.
  *
- * @since 1.0.0
+ * @since 0.1.0
  */
 function flux_media_activate() {
-	// Create necessary database tables.
-	FluxMedia\Core\Database::create_tables();
+	// Create database tables
+	FluxMedia\App\Services\Database::create_tables();
 	
-	// Set default options.
-	FluxMedia\Core\Options::set_defaults();
+	// Initialize settings with defaults
+	$settings = new FluxMedia\App\Services\Settings();
+	$settings->initialize_defaults();
 	
 	// Schedule cleanup cron job.
 	wp_schedule_event( time(), 'daily', 'flux_media_cleanup' );
@@ -122,9 +129,22 @@ function flux_media_activate() {
 /**
  * Plugin deactivation handler.
  *
- * @since 1.0.0
+ * @since 0.1.0
  */
 function flux_media_deactivate() {
 	// Clear scheduled events.
+	wp_clear_scheduled_hook( 'flux_media_cleanup' );
+	
+	// Note: We don't drop tables on deactivation to preserve data
+	// Tables will only be dropped on uninstall
+}
+
+/**
+ * Plugin uninstall handler.
+ *
+ * @since 0.1.0
+ */
+function flux_media_uninstall() {	
+	// Clear scheduled events
 	wp_clear_scheduled_hook( 'flux_media_cleanup' );
 }

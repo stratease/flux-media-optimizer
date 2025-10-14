@@ -3,26 +3,27 @@
  * Unit tests for VideoConverter class.
  *
  * @package FluxMedia\Tests\Unit
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 namespace FluxMedia\Tests\Unit;
 
-use FluxMedia\Services\VideoConverter;
+use FluxMedia\App\Services\VideoConverter;
 use FluxMedia\Tests\Support\Mocks\NoopLogger;
+use FluxMedia\App\Services\Converter;
 use PHPUnit\Framework\TestCase;
 
 /**
  * VideoConverter unit tests.
  *
- * @since 1.0.0
+ * @since 0.1.0
  */
 class VideoConverterTest extends TestCase {
 
     /**
      * VideoConverter instance.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @var VideoConverter
      */
     private $video_converter;
@@ -30,7 +31,7 @@ class VideoConverterTest extends TestCase {
     /**
      * Logger instance.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @var NoopLogger
      */
     private $logger;
@@ -38,7 +39,7 @@ class VideoConverterTest extends TestCase {
     /**
      * Set up test environment.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     protected function setUp(): void {
@@ -50,7 +51,7 @@ class VideoConverterTest extends TestCase {
     /**
      * Test VideoConverter instantiation.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testVideoConverterInstantiation() {
@@ -60,7 +61,7 @@ class VideoConverterTest extends TestCase {
     /**
      * Test processor availability check.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testIsAvailable() {
@@ -71,7 +72,7 @@ class VideoConverterTest extends TestCase {
     /**
      * Test processor info retrieval.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testGetProcessorInfo() {
@@ -92,7 +93,7 @@ class VideoConverterTest extends TestCase {
     /**
      * Test supported video format check.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testIsSupportedVideo() {
@@ -114,7 +115,7 @@ class VideoConverterTest extends TestCase {
     /**
      * Test supported MIME types retrieval.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testGetSupportedMimeTypes() {
@@ -130,45 +131,45 @@ class VideoConverterTest extends TestCase {
     /**
      * Test supported formats retrieval.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testGetSupportedFormats() {
         $formats = $this->video_converter->get_supported_formats();
         
         $this->assertIsArray( $formats );
-        $this->assertContains( 'av1', $formats );
-        $this->assertContains( 'webm', $formats );
+        $this->assertContains( Converter::FORMAT_AV1, $formats );
+        $this->assertContains( Converter::FORMAT_WEBM, $formats );
     }
 
     /**
      * Test format support check.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testIsFormatSupported() {
-        $this->assertTrue( $this->video_converter->is_format_supported( 'av1' ) );
-        $this->assertTrue( $this->video_converter->is_format_supported( 'webm' ) );
-        $this->assertFalse( $this->video_converter->is_format_supported( 'mp4' ) );
+        $this->assertTrue( $this->video_converter->is_format_supported( Converter::FORMAT_AV1 ) );
+        $this->assertTrue( $this->video_converter->is_format_supported( Converter::FORMAT_WEBM ) );
+        $this->assertFalse( $this->video_converter->is_format_supported( Converter::FORMAT_MP4 ) );
         $this->assertFalse( $this->video_converter->is_format_supported( 'avi' ) );
     }
 
     /**
      * Test converter type.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testGetType() {
         $type = $this->video_converter->get_type();
-        $this->assertEquals( 'video', $type );
+        $this->assertEquals( Converter::TYPE_VIDEO, $type );
     }
 
     /**
      * Test conversion statistics.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testGetConversionStats() {
@@ -192,7 +193,7 @@ class VideoConverterTest extends TestCase {
     /**
      * Test error handling for invalid inputs.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testErrorHandling() {
@@ -208,7 +209,7 @@ class VideoConverterTest extends TestCase {
     /**
      * Test cleanup temp files functionality.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testCleanupTempFiles() {
@@ -244,7 +245,7 @@ class VideoConverterTest extends TestCase {
     /**
      * Test cleanup with non-existent directory.
      *
-     * @since 1.0.0
+     * @since 0.1.0
      * @return void
      */
     public function testCleanupNonExistentDirectory() {

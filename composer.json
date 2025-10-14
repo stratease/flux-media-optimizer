@@ -12,12 +12,7 @@
     "require": {
         "php": ">=7.4",
         "monolog/monolog": "^3.0",
-        "league/flysystem": "^3.0",
-        "intervention/image": "^2.7",
         "symfony/process": "^6.0",
-        "ramsey/uuid": "^4.0",
-        "psr/log": "^3.0",
-        "psr/container": "^2.0",
         "php-ffmpeg/php-ffmpeg": "^1.0"
     },
     "require-dev": {
@@ -28,7 +23,9 @@
     },
     "autoload": {
         "psr-4": {
-            "FluxMedia\\": "src/"
+            "FluxMedia\\App\\": "app/",
+            "FluxMedia\\Config\\": "config/",
+            "FluxMedia\\Database\\": "database/"
         }
     },
     "autoload-dev": {
@@ -41,8 +38,8 @@
         "test:unit": "phpunit tests/unit",
         "test:coverage": "phpunit --coverage-html coverage tests/unit",
         "phpstan": "phpstan analyse",
-        "phpcs": "phpcs --standard=WordPress src/ tests/",
-        "phpcbf": "phpcbf --standard=WordPress src/ tests/",
+        "phpcs": "phpcs --standard=WordPress app/ config/ database/ tests/",
+        "phpcbf": "phpcbf --standard=WordPress app/ config/ database/ tests/",
         "quality": [
             "@phpcs",
             "@phpstan",

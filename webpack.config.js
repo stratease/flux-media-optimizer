@@ -4,6 +4,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 module.exports = {
   entry: {
     admin: './assets/js/src/admin/index.js',
+    attachment: './assets/js/src/admin/attachment.js',
   },
   output: {
     path: path.resolve(__dirname, 'assets/js/dist'),

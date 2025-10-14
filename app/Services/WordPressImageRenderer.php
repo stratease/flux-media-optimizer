@@ -338,21 +338,51 @@ class WordPressImageRenderer {
      * @return string HTML for conversion status.
      */
     private function get_conversion_status_html( $attachment_id, $converted_files ) {
-        $html = '<div class="flux-media-conversion-status">';
+        $upload_dir = wp_upload_dir();
+        $original_file = get_attached_file( $attachment_id );
+        $original_size = file_exists( $original_file ) ? filesize( $original_file ) : 0;
+        $original_url = wp_get_attachment_url( $attachment_id );
         
-        foreach ( $converted_files as $format => $file_path ) {
-            $file_size = file_exists( $file_path ) ? filesize( $file_path ) : 0;
-            $original_size = filesize( get_attached_file( $attachment_id ) );
-            $savings = $original_size > 0 ? ( ( $original_size - $file_size ) / $original_size ) * 100 : 0;
-            
-            $html .= sprintf(
-                '<div class="conversion-format">
-                    <strong>%s:</strong> %s (%s%% smaller)
-                </div>',
-                strtoupper( $format ),
-                size_format( $file_size ),
-                round( $savings, 1 )
-            );
+        $html = '<div class="flux-media-conversion-status" style="background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; padding: 15px; margin: 10px 0;">';
+        
+        // Original file info
+        $html .= '<div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #ddd;">';
+        $html .= '<h4 style="margin: 0 0 8px 0; color: #333; font-size: 14px;">' . __( 'Original File', 'flux-media' ) . '</h4>';
+        $html .= '<div style="font-size: 12px; color: #666;">';
+        $html .= '<strong>' . __( 'Size:', 'flux-media' ) . '</strong> ' . size_format( $original_size ) . '<br>';
+        $html .= '<strong>' . __( 'URL:', 'flux-media' ) . '</strong> <a href="' . esc_url( $original_url ) . '" target="_blank" style="color: #0073aa; text-decoration: none;">' . esc_html( $original_url ) . '</a>';
+        $html .= '</div>';
+        $html .= '</div>';
+        
+        // Converted files
+        $html .= '<h4 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">' . __( 'Converted Files', 'flux-media' ) . '</h4>';
+        
+        if ( empty( $converted_files ) ) {
+            $html .= '<p style="color: #666; font-style: italic; margin: 0;">' . __( 'No conversions available', 'flux-media' ) . '</p>';
+        } else {
+            foreach ( $converted_files as $format => $file_path ) {
+                $file_size = file_exists( $file_path ) ? filesize( $file_path ) : 0;
+                $savings = $original_size > 0 ? ( ( $original_size - $file_size ) / $original_size ) * 100 : 0;
+                
+                // Convert absolute path to relative path from uploads directory
+                $relative_path = str_replace( $upload_dir['basedir'] . '/', '', $file_path );
+                $converted_url = $upload_dir['baseurl'] . '/' . $relative_path;
+                
+                // Format-specific styling
+                $format_color = $format === 'webp' ? '#4285f4' : ( $format === 'avif' ? '#ea4335' : '#34a853' );
+                
+                $html .= '<div style="background: white; border: 1px solid #e1e1e1; border-radius: 3px; padding: 12px; margin-bottom: 8px;">';
+                $html .= '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">';
+                $html .= '<span style="font-weight: bold; color: ' . $format_color . '; text-transform: uppercase; font-size: 12px;">' . esc_html( $format ) . '</span>';
+                $html .= '<span style="background: #e8f5e8; color: #2e7d32; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold;">' . round( $savings, 1 ) . '% ' . __( 'smaller', 'flux-media' ) . '</span>';
+                $html .= '</div>';
+                
+                $html .= '<div style="font-size: 12px; color: #666;">';
+                $html .= '<strong>' . __( 'Size:', 'flux-media' ) . '</strong> ' . size_format( $file_size ) . '<br>';
+                $html .= '<strong>' . __( 'URL:', 'flux-media' ) . '</strong> <a href="' . esc_url( $converted_url ) . '" target="_blank" style="color: #0073aa; text-decoration: none; word-break: break-all;">' . esc_html( $converted_url ) . '</a>';
+                $html .= '</div>';
+                $html .= '</div>';
+            }
         }
         
         $html .= '</div>';
@@ -368,32 +398,35 @@ class WordPressImageRenderer {
      * @return string HTML for conversion actions.
      */
     private function get_conversion_actions_html( $attachment_id, $conversion_disabled ) {
-        $html = '<div class="flux-media-conversion-actions">';
+        $html = '<div class="flux-media-conversion-actions" style="background: #f0f8ff; border: 1px solid #b3d9ff; border-radius: 4px; padding: 12px; margin: 10px 0;">';
+        $html .= '<h4 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">' . __( 'Conversion Actions', 'flux-media' ) . '</h4>';
         
         if ( $conversion_disabled ) {
             $html .= sprintf(
-                '<button type="button" class="button button-secondary" onclick="fluxMediaEnableConversion(%d)">
+                '<button type="button" class="button button-primary" onclick="fluxMediaEnableConversion(%d)" style="background: #00a32a; border-color: #00a32a; color: white; padding: 6px 12px; border-radius: 3px; cursor: pointer;">
                     %s
                 </button>',
                 $attachment_id,
                 __( 'Enable Conversion', 'flux-media' )
             );
         } else {
+            $html .= '<div style="display: flex; gap: 8px; flex-wrap: wrap;">';
             $html .= sprintf(
-                '<button type="button" class="button button-primary" onclick="fluxMediaConvertAttachment(%d)">
+                '<button type="button" class="button button-primary" onclick="fluxMediaConvertAttachment(%d)" style="background: #0073aa; border-color: #0073aa; color: white; padding: 6px 12px; border-radius: 3px; cursor: pointer;">
                     %s
-                </button> ',
+                </button>',
                 $attachment_id,
                 __( 'Re-convert', 'flux-media' )
             );
             
             $html .= sprintf(
-                '<button type="button" class="button button-secondary" onclick="fluxMediaDisableConversion(%d)">
+                '<button type="button" class="button button-secondary" onclick="fluxMediaDisableConversion(%d)" style="background: #f0f0f1; border-color: #c3c4c7; color: #2c3338; padding: 6px 12px; border-radius: 3px; cursor: pointer;">
                     %s
                 </button>',
                 $attachment_id,
                 __( 'Disable Conversion', 'flux-media' )
             );
+            $html .= '</div>';
         }
         
         $html .= '</div>';

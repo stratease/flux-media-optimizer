@@ -116,6 +116,12 @@ class Plugin {
     private function init_admin() {
         $admin_controller = new AdminController( $this->settings );
         $admin_controller->init();
+        
+        // Initialize AJAX handlers using WordPressProvider
+        $this->init_ajax_handlers();
+        
+        // Enqueue admin scripts
+        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_scripts' ] );
     }
 
     /**
@@ -202,5 +208,55 @@ class Plugin {
      */
     public function get_video_converter() {
         return $this->video_converter;
+    }
+
+    /**
+     * Initialize AJAX handlers for attachment actions.
+     *
+     * @since 0.1.0
+     * @return void
+     */
+    private function init_ajax_handlers() {
+        // AJAX handlers for logged-in users
+        add_action( 'wp_ajax_flux_media_convert_attachment', [ $this->wordpress_provider, 'handle_ajax_convert_attachment' ] );
+        add_action( 'wp_ajax_flux_media_disable_conversion', [ $this->wordpress_provider, 'handle_ajax_disable_conversion' ] );
+        add_action( 'wp_ajax_flux_media_enable_conversion', [ $this->wordpress_provider, 'handle_ajax_enable_conversion' ] );
+    }
+
+    /**
+     * Enqueue admin scripts.
+     *
+     * @since 0.1.0
+     * @param string $hook Current admin page hook.
+     * @return void
+     */
+    public function enqueue_admin_scripts( $hook ) {
+        // Only enqueue on attachment pages
+        if ( 'post.php' !== $hook && 'upload.php' !== $hook ) {
+            return;
+        }
+
+        // Check if we're on an attachment page
+        global $post;
+        if ( 'post.php' === $hook && ( ! $post || 'attachment' !== $post->post_type ) ) {
+            return;
+        }
+
+        // Enqueue attachment-specific JavaScript
+        wp_enqueue_script(
+            'flux-media-attachment',
+            plugin_dir_url( dirname( __FILE__ ) ) . 'assets/js/dist/attachment.bundle.js',
+            [],
+            '1.0.0',
+            true
+        );
+
+        // Localize script with admin data
+        wp_localize_script( 'flux-media-attachment', 'fluxMediaAdmin', [
+            'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+            'convertNonce' => wp_create_nonce( 'flux_media_convert_attachment' ),
+            'disableNonce' => wp_create_nonce( 'flux_media_disable_conversion' ),
+            'enableNonce' => wp_create_nonce( 'flux_media_enable_conversion' ),
+        ] );
     }
 }

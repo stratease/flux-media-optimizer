@@ -35,24 +35,13 @@ class ConversionTracker {
 	private $logger;
 
 	/**
-	 * Quota manager instance.
-	 *
-	 * @since 0.1.0
-	 * @var QuotaManager
-	 */
-	private $quota_manager;
-
-
-	/**
 	 * Constructor.
 	 *
 	 * @since 0.1.0
 	 * @param Logger $logger Logger instance.
-	 * @param QuotaManager $quota_manager Quota manager instance.
 	 */
-	public function __construct( Logger $logger, QuotaManager $quota_manager ) {
+	public function __construct( Logger $logger ) {
 		$this->logger = $logger;
-		$this->quota_manager = $quota_manager;
 		global $wpdb;
 		$this->table_name = $wpdb->prefix . 'flux_media_conversions';
 	}
@@ -95,52 +84,13 @@ class ConversionTracker {
 			current_time( 'mysql' )
 		) );
 
-		// Track quota usage for this attachment (only once per attachment, regardless of formats)
+		// TODO: SaaS API integration will handle quota tracking
+		// Local quota tracking has been removed in favor of SaaS API integration
 		if ( $result !== false ) {
-			$this->track_quota_usage( $attachment_id, $file_type );
+			$this->logger->info( "Conversion recorded for attachment {$attachment_id}, type {$file_type} - SaaS API integration pending" );
 		}
 
 		return $result !== false;
-	}
-
-	/**
-	 * Track quota usage for a conversion.
-	 * Each conversion is counted individually for quota purposes.
-	 *
-	 * @since 0.1.0
-	 * @param int    $attachment_id WordPress attachment ID.
-	 * @param string $file_type File type to determine quota type.
-	 * @return void
-	 */
-	private function track_quota_usage( $attachment_id, $file_type ) {
-		// Determine quota type based on file type
-		$quota_type = $this->get_quota_type_from_file_type( $file_type );
-		
-		if ( $quota_type ) {
-			// Record quota usage for this conversion
-			$this->quota_manager->record_usage( $quota_type );
-		}
-	}
-
-	/**
-	 * Get quota type from file type.
-	 *
-	 * @since 0.1.0
-	 * @param string $file_type File type.
-	 * @return string|null Quota type or null if not applicable.
-	 */
-	private function get_quota_type_from_file_type( $file_type ) {
-		// Image formats
-		if ( in_array( $file_type, [ Converter::FORMAT_WEBP, Converter::FORMAT_AVIF ], true ) ) {
-			return 'image';
-		}
-		
-		// Video formats
-		if ( in_array( $file_type, [ Converter::FORMAT_AV1, Converter::FORMAT_WEBM ], true ) ) {
-			return 'video';
-		}
-		
-		return null;
 	}
 
 

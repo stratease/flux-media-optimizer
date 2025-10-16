@@ -356,21 +356,20 @@ class ImageConverter implements Converter {
 	 * @param string $source_path Source image path.
 	 * @param string $webp_path Destination WebP path.
 	 * @param string $avif_path Destination AVIF path.
-	 * @param array  $webp_options WebP conversion options.
-	 * @param array  $avif_options AVIF conversion options.
+	 * @param array  $options Conversion options.
 	 * @return array Results array with 'webp' and 'avif' keys.
 	 */
-	public function convert_hybrid( $source_path, $webp_path, $avif_path, $webp_options = [], $avif_options = [] ) {
+	public function convert_hybrid( $source_path, $webp_path, $avif_path, $options = [] ) {
 		$results = [
 			Converter::FORMAT_WEBP => false,
 			Converter::FORMAT_AVIF => false,
 		];
 
 		// Convert to WebP
-		$results[ Converter::FORMAT_WEBP ] = $this->convert_to_webp( $source_path, $webp_path, $webp_options );
+		$results[ Converter::FORMAT_WEBP ] = $this->convert_to_webp( $source_path, $webp_path, $options );
 		
 		// Convert to AVIF
-		$results[ Converter::FORMAT_AVIF ] = $this->convert_to_avif( $source_path, $avif_path, $avif_options );
+		$results[ Converter::FORMAT_AVIF ] = $this->convert_to_avif( $source_path, $avif_path, $options );
 
 		// Log hybrid conversion results only on failure
 		if ( ! $results[ Converter::FORMAT_WEBP ] && ! $results[ Converter::FORMAT_AVIF ] ) {
@@ -453,8 +452,7 @@ class ImageConverter implements Converter {
 				$source_path,
 				$destination_paths[ Converter::FORMAT_WEBP ],
 				$destination_paths[ Converter::FORMAT_AVIF ],
-				['quality' => $settings['webp_quality']],
-				['quality' => $settings['avif_quality']]
+				$settings
 			);
 
 			if ( $conversion_results[ Converter::FORMAT_WEBP ] ) {
@@ -469,15 +467,11 @@ class ImageConverter implements Converter {
 		} else {
 			// Individual format conversion
 			foreach ( $destination_paths as $format => $destination_path ) {
-				$conversion_options = [];
-
 				$success = false;
 				if ( Converter::FORMAT_WEBP === $format ) {
-					$conversion_options = ['quality' => $settings['webp_quality']];
-					$success = $this->convert_to_webp( $source_path, $destination_path, $conversion_options );
+					$success = $this->convert_to_webp( $source_path, $destination_path, $settings );
 				} elseif ( Converter::FORMAT_AVIF === $format ) {
-					$conversion_options = ['quality' => $settings['avif_quality']];
-					$success = $this->convert_to_avif( $source_path, $destination_path, $conversion_options );
+					$success = $this->convert_to_avif( $source_path, $destination_path, $settings );
 				}
 
 				if ( $success ) {

@@ -86,7 +86,7 @@ class ImagickProcessor implements ImageProcessorInterface {
 			
 			// Set optimized WebP options for better compression.
 			$image->setImageFormat( 'WEBP' );
-			$image->setImageCompressionQuality( $options['quality'] ?? 75 );
+			$image->setImageCompressionQuality( $options['webp_quality'] );
 			
 			// Enable lossless compression if requested.
 			if ( $options['lossless'] ?? false ) {
@@ -145,19 +145,32 @@ class ImagickProcessor implements ImageProcessorInterface {
 			
 			// Set high-quality AVIF options.
 			$image->setImageFormat( 'AVIF' );
-			$image->setImageCompressionQuality( $options['quality'] );
 			
 			// Set AVIF-specific options for optimal quality.
-			$image->setOption( 'avif:speed', (string) ( $options['speed'] ?? 0 ) );
+			$image->setOption( 'avif:speed', (string) ( $options['avif_speed'] ) );
 			
-			// Note: avif:crf option not working with ImageMagick 6.9.11
-			// Using setImageCompressionQuality() instead
+			// Get quality value from raw settings
+			$quality = $options['avif_quality'];
 			
-			// Use advanced AVIF settings.
-			$image->setOption( 'avif:colorprim', 'bt709' ); // Color primaries.
-			$image->setOption( 'avif:transfer', 'bt709' ); // Transfer characteristics.
-			$image->setOption( 'avif:colormatrix', 'bt709' ); // Color matrix.
-
+			// Try to use avif:crf for better quality control (ImageMagick 7+)
+			// Convert quality (0-100) to CRF (0-63) for more precise control
+			$crf_value = (int) ( 63 - ( $quality * 0.63 ) );
+			$crf_success = $image->setOption( 'avif:crf', (string) $crf_value );
+			
+			if ( $crf_success ) {
+				// avif:crf is supported, use it for precise quality control
+				$this->logger->debug( "Using avif:crf={$crf_value} for quality control" );
+			} else {
+				// Fallback to setImageCompressionQuality for older ImageMagick versions
+				$image->setImageCompressionQuality( $quality );
+				$this->logger->debug( "avif:crf not supported, using setImageCompressionQuality={$quality}" );
+			}
+			
+			// Adaptive color settings (optional, based on image color space)
+			$colorprim = ( $image->getImageColorspace() === Imagick::COLORSPACE_SRGB ) ? 'bt709' : 'bt2020';
+			$image->setOption( 'avif:colorprim', $colorprim );
+			$image->setOption( 'avif:transfer', $colorprim );
+			$image->setOption( 'avif:colormatrix', $colorprim );
 			// Strip metadata for smaller file size.
 			$image->stripImage();
 

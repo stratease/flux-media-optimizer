@@ -59,6 +59,7 @@ class Settings {
 	 */
 	const DEFAULT_LOG_LEVEL = 'info';
 	const DEFAULT_ENABLE_LOGGING = false;
+	const DEFAULT_LICENSE_KEY = '';
 
 	/**
 	 * WordPress option name.
@@ -96,9 +97,9 @@ class Settings {
 			'bulk_conversion_enabled' => self::DEFAULT_BULK_CONVERSION_ENABLED,
 			'log_level' => self::DEFAULT_LOG_LEVEL,
 			'enable_logging' => self::DEFAULT_ENABLE_LOGGING,
-
-			// License settings.
-			'license_key' => '',
+			
+			// SaaS API settings.
+			'license_key' => self::DEFAULT_LICENSE_KEY,
 		];
 	}
 
@@ -317,5 +318,26 @@ class Settings {
 	 */
 	public static function is_bulk_conversion_enabled() {
 		return (bool) self::get( 'bulk_conversion_enabled', self::DEFAULT_BULK_CONVERSION_ENABLED );
+	}
+
+	/**
+	 * Get the license key for SaaS API authentication.
+	 *
+	 * @since 0.1.0
+	 * @return string License key.
+	 */
+	public static function get_license_key() {
+		return (string) self::get( 'license_key', self::DEFAULT_LICENSE_KEY );
+	}
+
+	/**
+	 * Set the license key for SaaS API authentication.
+	 *
+	 * @since 0.1.0
+	 * @param string $license_key License key.
+	 * @return bool True on success, false on failure.
+	 */
+	public static function set_license_key( $license_key ) {
+		return self::set( 'license_key', sanitize_text_field( $license_key ) );
 	}
 }

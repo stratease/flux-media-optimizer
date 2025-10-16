@@ -24,11 +24,13 @@ Advanced image and video optimization plugin for WordPress. Converts images to W
 - **Batch Processing**: Queue and process multiple videos
 - **Format Support**: Convert from various formats (MP4, AVI, MOV, etc.) to AV1/WebM
 
-### Freemium Model
-- **Free Tier**: 100 image conversions + 20 video conversions per month
-- **Auto-Queue**: Existing media automatically queued for next month
-- **Quota Tracking**: Real-time quota monitoring and progress display
-- **Upgrade Path**: Clear upgrade options for unlimited conversions
+### SaaS API Integration
+- **License Key Authentication**: Secure API integration with license key validation
+- **Remote Quota Management**: Quota tracking handled by SaaS service
+- **Unlimited Conversions**: Currently unlimited until SaaS service is available. Very dependent on the host, where the service will provide optimal conversions and more features.
+- **Future Integration**: Ready for SaaS API integration when service is deployed
+- **Enhanced Conversions**: SaaS API will provide improved conversion quality and performance
+- **Expanded Support**: Additional format support and advanced features via SaaS service
 
 ### Modern Admin Interface
 - **React Router**: Hash-based routing with Link components for seamless navigation
@@ -158,7 +160,7 @@ flux-media/
 │   │   ├── ImageConverter.php          # Image conversion service with hybrid approach
 │   │   ├── VideoConverter.php          # Video conversion service
 │   │   ├── ConversionTracker.php       # Conversion tracking
-│   │   └── QuotaManager.php            # Freemium quota management
+│   │   └── QuotaManager.php            # SaaS API quota management
 │   ├── Converters/                     # Converter interface implementations (integrated into Services)
 │   ├── Processors/
 │   │   ├── GDProcessor.php             # GD image processor
@@ -244,7 +246,7 @@ flux-media/
 ### Admin Interface
 Access the plugin through **WordPress Admin > Flux Media**. The interface includes:
 
-- **Overview**: System status, quota usage, and conversion statistics with skeleton loading
+- **Overview**: System status, conversion status, and conversion statistics with skeleton loading
 - **Settings**: Configure conversion options, hybrid approach, and quality settings with auto-save
 - **Auto-Save**: All settings automatically save as you type with visual feedback
 - **Skeleton Loading**: Professional loading states while data is being fetched
@@ -299,9 +301,9 @@ All endpoints are prefixed with `/wp-json/flux-media/v1/` and require admin auth
 - `POST /conversions/cancel/{jobId}` - Cancel a conversion job
 - `POST /conversions/bulk` - Start bulk conversion
 
-##### Quota Endpoints (`QuotaController`)
-- `GET /quota/progress` - Get quota usage information
-- `GET /quota/plan` - Get current plan information
+##### Quota Endpoints (`StatusController`)
+- `GET /quota` - Get conversion status and SaaS API integration status
+- `GET /quota` - Get current plan information (SaaS API integration pending)
 
 ##### File Endpoints (`FilesController`)
 - `DELETE /files/delete/{attachmentId}/{format}` - Delete converted file
@@ -523,7 +525,7 @@ if ( isset( $converted_files[ Converter::FORMAT_WEBP ] ) ) { // ✅ Do this
   - `converted_size` - Converted file size in bytes
   - `size_savings` - Bytes saved
   - `converted_at` - Conversion timestamp
-- `wp_flux_media_quota_usage` - Quota tracking
+- `wp_flux_media_quota_usage` - SaaS API quota tracking (pending integration)
 - `wp_flux_media_settings` - Plugin settings
 - `wp_flux_media_logs` - Structured logging with pagination support
 
@@ -605,6 +607,11 @@ ls -la assets/js/dist/
 ## 🆕 Recent Updates
 
 ### Latest Improvements (v0.1.0)
+- **SaaS API Integration**: Removed local quota tracking in favor of SaaS API integration with license key authentication
+- **Unlimited Conversions**: Currently unlimited conversions until SaaS service is available
+- **License Key Support**: Added license key configuration for future SaaS API authentication
+- **Enhanced Conversion Quality**: Prepared for SaaS API integration to provide superior conversion quality and performance
+- **Expanded Format Support**: Ready for additional image and video format support via SaaS service
 - **Decoupled Architecture**: Complete separation of business logic from WordPress dependencies
 - **Provider Pattern**: WordPressProvider handles all WordPress integration while services remain pure
 - **Dependency Inversion**: LoggerInterface and NoopLogger for testable, decoupled components
@@ -628,7 +635,6 @@ ls -la assets/js/dist/
 - **PHPUnit Testing**: Migrated from Codeception to PHPUnit for better test isolation
 - **Format Constants**: Centralized format constants for consistency across the codebase
 - **File Size Tracking**: Comprehensive tracking of original and converted file sizes with savings calculations
-- **Quota Management**: Proper quota counting for hybrid conversions (counts each format separately)
 - **Attachment Management**: Convert and disable buttons on attachment details screen with AJAX handling
 - **Bulk Conversion**: Automated cron job for processing existing media with smart skipping
 - **Conversion Statistics**: Detailed savings statistics displayed on overview page and attachment screens
@@ -636,6 +642,20 @@ ls -la assets/js/dist/
 - **WordPress Integration**: Full integration with WordPress media library and attachment management
 
 ## 🎨 Key Features
+
+### SaaS API Integration
+The plugin is designed for SaaS API integration with license key authentication:
+
+- **License Key Authentication**: Secure API integration with license key validation
+- **Remote Quota Management**: Quota tracking handled by SaaS service instead of local tracking
+- **Unlimited Conversions**: Currently unlimited until SaaS service is available
+- **Future-Ready**: Plugin architecture prepared for SaaS API integration
+- **Secure Processing**: Files will be processed via secure SaaS API endpoints
+- **Real-time Validation**: License key validation with SaaS service
+- **Plan Management**: Plan detection and limits managed by SaaS service
+- **Enhanced Quality**: SaaS API will provide superior conversion quality and optimization
+- **Expanded Formats**: Additional image and video format support via SaaS service
+- **Advanced Features**: AI-powered optimization and advanced processing capabilities
 
 ### Hybrid Image Conversion
 The plugin implements a hybrid approach for optimal image performance:
@@ -678,6 +698,7 @@ Professional loading states for all pages:
 ## 🔮 Future Features
 
 ### Planned Enhancements
+- **SaaS API Integration**: Full integration with SaaS service for enhanced conversions and expanded format support
 - **CDN Integration**: CloudFlare, AWS CloudFront support
 - **External Services**: Integration with external conversion APIs
 - **Advanced Analytics**: Detailed conversion metrics and insights
@@ -686,6 +707,8 @@ Professional loading states for all pages:
 - **Snackbar Notifications**: Toast notifications for auto-save feedback
 - **Translation Files**: Complete translation files for multiple languages
 - **Advanced Debugging**: Enhanced debugging tools and logging
+- **AI-Powered Optimization**: Machine learning-based image and video optimization
+- **Extended Format Support**: Additional formats via SaaS API integration
 
 ### Technical Roadmap
 - **Performance**: Further optimization and caching improvements

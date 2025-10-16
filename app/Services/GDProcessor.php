@@ -78,7 +78,7 @@ class GDProcessor implements ImageProcessorInterface {
 			return false;
 		}
 
-		$quality = $options['quality'];
+		$quality = $options['webp_quality'];
 		$result = imagewebp( $image, $destination_path, $quality );
 
 		// Clean up memory.
@@ -112,7 +112,7 @@ class GDProcessor implements ImageProcessorInterface {
 			return false;
 		}
 
-		$quality = $options['quality'];
+		$quality = $options['avif_quality'];
 		$result = imageavif( $image, $destination_path, $quality );
 
 		// Clean up memory.

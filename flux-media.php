@@ -124,6 +124,9 @@ function flux_media_activate() {
 	
 	// Schedule cleanup cron job.
 	wp_schedule_event( time(), 'daily', 'flux_media_cleanup' );
+	
+	// TODO: Initialize SaaS API integration with license key validation
+	// This will be implemented when the SaaS service is available
 }
 
 /**

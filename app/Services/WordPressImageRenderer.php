@@ -8,6 +8,8 @@
 
 namespace FluxMedia\App\Services;
 
+use FluxMedia\Interfaces\Converter;
+
 /**
  * WordPress image renderer for handling image display and optimization.
  *
@@ -90,22 +92,21 @@ class WordPressImageRenderer {
     }
 
     /**
-     * Get converted image URL for specific format.
+     * Get image URL from attachment for specific format.
      *
      * @since 0.1.0
      * @param int    $attachment_id Attachment ID.
      * @param string $format Target format (webp, avif).
-     * @return string|null Converted image URL or null if not available.
+     * @return string|null Image URL or null if not available.
      */
-    public function get_converted_image_url( $attachment_id, $format ) {
+    public static function get_image_url_from_attachment( $attachment_id, $format ) {
         $converted_files = get_post_meta( $attachment_id, '_flux_media_converted_files', true );
         
         if ( empty( $converted_files ) || ! isset( $converted_files[ $format ] ) ) {
             return null;
         }
         
-        $upload_dir = wp_upload_dir();
-        return $upload_dir['baseurl'] . '/' . $converted_files[ $format ];
+        return self::get_image_url_from_file_path( $converted_files[ $format ] );
     }
 
     /**
@@ -126,15 +127,15 @@ class WordPressImageRenderer {
         // Check if hybrid approach is enabled
         $hybrid_approach = \FluxMedia\App\Services\Settings::is_hybrid_approach_enabled();
         
-        if ( $hybrid_approach && isset( $converted_files['avif'] ) && isset( $converted_files['webp'] ) ) {
+        if ( $hybrid_approach && isset( $converted_files[ Converter::FORMAT_AVIF ] ) && isset( $converted_files[ Converter::FORMAT_WEBP ] ) ) {
             // Use picture element for hybrid approach
             $this->add_picture_element_support( $attr, $attachment, $converted_files );
-        } elseif ( isset( $converted_files['webp'] ) ) {
+        } elseif ( isset( $converted_files[ Converter::FORMAT_WEBP ] ) ) {
             // Use WebP as primary format
-            $attr['src'] = $this->get_converted_image_url( $attachment->ID, 'webp' );
-        } elseif ( isset( $converted_files['avif'] ) ) {
+            $attr['src'] = self::get_image_url_from_attachment( $attachment->ID, Converter::FORMAT_WEBP );
+        } elseif ( isset( $converted_files[ Converter::FORMAT_AVIF ] ) ) {
             // Use AVIF as primary format
-            $attr['src'] = $this->get_converted_image_url( $attachment->ID, 'avif' );
+            $attr['src'] = self::get_image_url_from_attachment( $attachment->ID, Converter::FORMAT_AVIF );
         }
 
         return $attr;
@@ -158,16 +159,16 @@ class WordPressImageRenderer {
         // Check if hybrid approach is enabled
         $hybrid_approach = \FluxMedia\App\Services\Settings::is_hybrid_approach_enabled();
         
-        if ( $hybrid_approach && isset( $converted_files['avif'] ) && isset( $converted_files['webp'] ) ) {
+        if ( $hybrid_approach && isset( $converted_files[ Converter::FORMAT_AVIF ] ) && isset( $converted_files[ Converter::FORMAT_WEBP ] ) ) {
             // Replace with picture element
             return $this->create_picture_element( $attachment_id, $converted_files, $filtered_image );
-        } elseif ( isset( $converted_files['webp'] ) ) {
+        } elseif ( isset( $converted_files[ Converter::FORMAT_WEBP ] ) ) {
             // Replace src with WebP version
-            $webp_url = $this->get_converted_image_url( $attachment_id, 'webp' );
+            $webp_url = self::get_image_url_from_attachment( $attachment_id, Converter::FORMAT_WEBP );
             return str_replace( wp_get_attachment_url( $attachment_id ), $webp_url, $filtered_image );
-        } elseif ( isset( $converted_files['avif'] ) ) {
+        } elseif ( isset( $converted_files[ Converter::FORMAT_AVIF ] ) ) {
             // Replace src with AVIF version
-            $avif_url = $this->get_converted_image_url( $attachment_id, 'avif' );
+            $avif_url = self::get_image_url_from_attachment( $attachment_id, Converter::FORMAT_AVIF );
             return str_replace( wp_get_attachment_url( $attachment_id ), $avif_url, $filtered_image );
         }
 
@@ -206,16 +207,16 @@ class WordPressImageRenderer {
             // Check if hybrid approach is enabled
             $hybrid_approach = \FluxMedia\App\Services\Settings::is_hybrid_approach_enabled();
             
-            if ( $hybrid_approach && isset( $converted_files['avif'] ) && isset( $converted_files['webp'] ) ) {
+            if ( $hybrid_approach && isset( $converted_files[ Converter::FORMAT_AVIF ] ) && isset( $converted_files[ Converter::FORMAT_WEBP ] ) ) {
                 // Replace with picture element
                 return $this->create_picture_element( $attachment_id, $converted_files, $full_match );
-            } elseif ( isset( $converted_files['webp'] ) ) {
+            } elseif ( isset( $converted_files[ Converter::FORMAT_WEBP ] ) ) {
                 // Replace src with WebP version
-                $webp_url = $this->get_converted_image_url( $attachment_id, 'webp' );
+                $webp_url = self::get_image_url_from_attachment( $attachment_id, Converter::FORMAT_WEBP );
                 return str_replace( $src_url, $webp_url, $full_match );
-            } elseif ( isset( $converted_files['avif'] ) ) {
+            } elseif ( isset( $converted_files[ Converter::FORMAT_AVIF ] ) ) {
                 // Replace src with AVIF version
-                $avif_url = $this->get_converted_image_url( $attachment_id, 'avif' );
+                $avif_url = self::get_image_url_from_attachment( $attachment_id, Converter::FORMAT_AVIF );
                 return str_replace( $src_url, $avif_url, $full_match );
             }
             
@@ -268,8 +269,8 @@ class WordPressImageRenderer {
     private function add_picture_element_support( $attr, $attachment, $converted_files ) {
         // This would be implemented to add picture element support
         // For now, we'll use WebP as fallback
-        if ( isset( $converted_files['webp'] ) ) {
-            $attr['src'] = $this->get_converted_image_url( $attachment->ID, 'webp' );
+        if ( isset( $converted_files[ Converter::FORMAT_WEBP ] ) ) {
+            $attr['src'] = self::get_image_url_from_attachment( $attachment->ID, Converter::FORMAT_WEBP );
         }
     }
 
@@ -283,8 +284,8 @@ class WordPressImageRenderer {
      * @return string Picture element HTML.
      */
     private function create_picture_element( $attachment_id, $converted_files, $original_html ) {
-        $avif_url = $this->get_converted_image_url( $attachment_id, 'avif' );
-        $webp_url = $this->get_converted_image_url( $attachment_id, 'webp' );
+        $avif_url = self::get_image_url_from_attachment( $attachment_id, Converter::FORMAT_AVIF );
+        $webp_url = self::get_image_url_from_attachment( $attachment_id, Converter::FORMAT_WEBP );
         $original_url = wp_get_attachment_url( $attachment_id );
         
         // Extract attributes from original HTML
@@ -304,6 +305,107 @@ class WordPressImageRenderer {
             esc_url( $webp_url ),
             $attributes
         );
+    }
+
+    /**
+     * Get image URL from file path - the standard static method for URL generation.
+     *
+     * This is the centralized method used throughout the plugin for converting
+     * file paths to URLs. It handles various path formats and provides proper
+     * validation and error handling.
+     *
+     * @since TBD
+     * @param string $file_path The file path to convert. Can be absolute or relative.
+     * @param bool   $validate_exists Whether to validate that the file exists. Default true.
+     * @return string|null The generated URL or null if conversion fails.
+     * 
+     * @example
+     * // Convert absolute path
+     * $url = WordPressImageRenderer::get_image_url_from_file_path('/var/www/uploads/2024/01/image.webp');
+     * // Returns: 'https://example.com/wp-content/uploads/2024/01/image.webp'
+     * 
+     * @example
+     * // Convert relative path
+     * $url = WordPressImageRenderer::get_image_url_from_file_path('2024/01/image.webp');
+     * // Returns: 'https://example.com/wp-content/uploads/2024/01/image.webp'
+     * 
+     * @example
+     * // Skip file existence validation
+     * $url = WordPressImageRenderer::get_image_url_from_file_path('/path/to/file.webp', false);
+     * // Returns URL even if file doesn't exist yet
+     */
+    public static function get_image_url_from_file_path( $file_path, $validate_exists = true ) {
+        // Validate input
+        if ( empty( $file_path ) || ! is_string( $file_path ) ) {
+            return null;
+        }
+        
+        // Get WordPress upload directory information
+        $upload_dir = wp_upload_dir();
+        
+        // Handle different path formats
+        $relative_path = $this->normalize_file_path( $file_path, $upload_dir );
+        
+        if ( $relative_path === null ) {
+            return null;
+        }
+        
+        // Validate file exists if requested
+        if ( $validate_exists ) {
+            $full_path = $upload_dir['basedir'] . '/' . $relative_path;
+            if ( ! file_exists( $full_path ) ) {
+                return null;
+            }
+        }
+        
+        // Generate and return URL
+        return $upload_dir['baseurl'] . '/' . $relative_path;
+    }
+
+    /**
+     * Normalize file path to relative path from uploads directory.
+     *
+     * @since TBD
+     * @param string $file_path The file path to normalize.
+     * @param array  $upload_dir WordPress upload directory array.
+     * @return string|null Normalized relative path or null if invalid.
+     */
+    private function normalize_file_path( $file_path, $upload_dir ) {
+        // Handle absolute paths
+        if ( strpos( $file_path, $upload_dir['basedir'] ) === 0 ) {
+            // Remove the upload directory base path
+            $relative_path = str_replace( $upload_dir['basedir'] . '/', '', $file_path );
+            return $relative_path;
+        }
+        
+        // Handle relative paths that start with uploads directory name
+        $uploads_dir_name = basename( $upload_dir['basedir'] );
+        if ( strpos( $file_path, $uploads_dir_name . '/' ) === 0 ) {
+            // Remove the uploads directory name prefix
+            return str_replace( $uploads_dir_name . '/', '', $file_path );
+        }
+        
+        // Handle paths that are already relative to uploads directory
+        if ( strpos( $file_path, '/' ) !== 0 && ! strpos( $file_path, '://' ) ) {
+            // Path doesn't start with / and doesn't contain protocol, assume it's relative
+            return $file_path;
+        }
+        
+        // Handle full URLs (extract path component)
+        if ( strpos( $file_path, '://' ) !== false ) {
+            $parsed_url = wp_parse_url( $file_path );
+            if ( isset( $parsed_url['path'] ) ) {
+                $path = $parsed_url['path'];
+                // Remove leading slash and check if it's in uploads directory
+                $path = ltrim( $path, '/' );
+                if ( strpos( $path, $uploads_dir_name . '/' ) === 0 ) {
+                    return str_replace( $uploads_dir_name . '/', '', $path );
+                }
+            }
+        }
+        
+        // If we can't normalize the path, return null
+        return null;
     }
 
     /**
@@ -366,12 +468,11 @@ class WordPressImageRenderer {
                 $file_size = file_exists( $file_path ) ? filesize( $file_path ) : 0;
                 $savings = $original_size > 0 ? ( ( $original_size - $file_size ) / $original_size ) * 100 : 0;
                 
-                // Convert absolute path to relative path from uploads directory
-                $relative_path = str_replace( $upload_dir['basedir'] . '/', '', $file_path );
-                $converted_url = $upload_dir['baseurl'] . '/' . $relative_path;
+                // Use centralized URL generation
+                $converted_url = self::get_image_url_from_file_path( $file_path );
                 
                 // Format-specific styling
-                $format_color = $format === 'webp' ? '#4285f4' : ( $format === 'avif' ? '#ea4335' : '#34a853' );
+                $format_color = $format === Converter::FORMAT_WEBP ? '#4285f4' : ( $format === Converter::FORMAT_AVIF ? '#ea4335' : '#34a853' );
                 
                 $html .= '<div style="background: white; border: 1px solid #e1e1e1; border-radius: 3px; padding: 12px; margin-bottom: 8px;">';
                 $html .= '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">';

@@ -5,7 +5,7 @@ export { default as FluxMediaIcon } from './common/FluxMediaIcon';
 
 // Feature components
 export { default as SystemStatusCard } from './features/SystemStatusCard';
-export { default as QuotaProgressCard } from './features/QuotaProgressCard';
+export { default as ConversionStatusCard } from './features/ConversionStatusCard';
 
 // Page components
 export { default as LogsPage } from './pages/LogsPage';

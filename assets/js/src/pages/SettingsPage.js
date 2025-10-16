@@ -297,8 +297,8 @@ const SettingsPage = () => {
                   </Typography>
                   <input
                     type="range"
-                    min="50"
-                    max="90"
+                    min="0"
+                    max="100"
                     value={settings?.image_avif_quality}
                     disabled={isLoading || !isAVIFSupported()}
                     onChange={handleSettingChange('image_avif_quality')}

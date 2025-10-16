@@ -145,7 +145,7 @@ class Plugin {
         $processor_detector = new ProcessorDetector();
         $format_detector = new FormatSupportDetector( $processor_detector );
         $quota_manager = new QuotaManager( $this->logger );
-        $conversion_tracker = new ConversionTracker( $this->logger, $quota_manager );
+        $conversion_tracker = new ConversionTracker( $this->logger );
         $logs_service = new LogsService();
 
         // Register controllers

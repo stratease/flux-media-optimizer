@@ -134,7 +134,6 @@ class VideoConverter implements Converter {
             }
 
             if ( ! empty( $supported_formats ) ) {
-                $this->logger->log_operation( 'info', 'video_processor_initialization', 'FFmpeg with ' . implode( ' and ', $supported_formats ) . ' support detected', ['component' => 'video_processor'] );
                 return $processor;
             } else {
                 $this->logger->log_format_unsupported( 'FFmpeg', 'All', 'No supported video formats available' );

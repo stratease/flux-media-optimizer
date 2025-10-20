@@ -256,7 +256,7 @@ const SettingsPage = () => {
                 </Typography>
                 <input
                   type="range"
-                  min="60"
+                  min="1"
                   max="100"
                   value={settings?.image_webp_quality}
                   disabled={isLoading || !isWebPSupported()}

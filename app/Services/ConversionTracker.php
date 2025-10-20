@@ -84,8 +84,6 @@ class ConversionTracker {
 			current_time( 'mysql' )
 		) );
 
-		// TODO: SaaS API integration will handle quota tracking
-		// Local quota tracking has been removed in favor of SaaS API integration
 		if ( $result !== false ) {
 			$this->logger->info( "Conversion recorded for attachment {$attachment_id}, type {$file_type} - SaaS API integration pending" );
 		}

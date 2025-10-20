@@ -114,6 +114,7 @@ class WordPressProvider {
      * @return void
      */
     public function register_hooks() {
+        // ===== CONVERT IMAGE =====
         // Image upload hooks
         add_action( 'add_attachment', [ $this, 'handle_image_upload' ] );
         add_action( 'wp_generate_attachment_metadata', [ $this, 'handle_image_metadata_generation' ], 10, 2 );
@@ -121,17 +122,10 @@ class WordPressProvider {
         // Video upload hooks
         add_action( 'add_attachment', [ $this, 'handle_video_upload' ] );
         
-        // Cleanup hooks
-        add_action( 'delete_attachment', [ $this, 'handle_attachment_deletion' ] );
-        
-        // Image rendering hooks - all hooks are registered, hybrid approach is checked inside each callback
-        add_filter( 'wp_get_attachment_url', [ $this, 'handle_attachment_url_filter' ], 10, 2 );
-        add_filter( 'wp_content_img_tag', [ $this, 'handle_content_images_filter' ], 10, 3 );
-        add_filter( 'the_content', [ $this, 'handle_post_content_images_filter' ], 20 );
-        add_filter( 'render_block', [ $this, 'handle_render_block_filter' ], 10, 2 );
-        
-        // Always add attachment fields for admin display
-        add_filter( 'attachment_fields_to_edit', [ $this, 'handle_attachment_fields_filter' ], 10, 2 );
+        // Ensure conversions run when attachments are edited or files are replaced
+        add_filter( 'wp_update_attachment_metadata', [ $this, 'handle_update_attachment_metadata' ], 10, 2 );
+        add_filter( 'update_attached_file', [ $this, 'handle_update_attached_file' ], 10, 2 );
+        add_filter( 'wp_save_image_editor_file', [ $this, 'handle_wp_save_image_editor_file' ], 10, 5 );
         
         // AJAX handlers for attachment actions
         add_action( 'wp_ajax_flux_media_convert_attachment', [ $this, 'handle_ajax_convert_attachment' ] );
@@ -146,7 +140,24 @@ class WordPressProvider {
             if ( ! wp_next_scheduled( 'flux_media_bulk_conversion' ) ) {
                 wp_schedule_event( time(), 'hourly', 'flux_media_bulk_conversion' );
             }
-        } else {
+        }
+
+        // ===== RENDER IMAGE =====
+        // Image rendering hooks - all hooks are registered, hybrid approach is checked inside each callback
+        if( ! is_admin() ) {
+            add_filter( 'wp_get_attachment_url', [ $this, 'handle_attachment_url_filter' ], 10, 2 );
+        }
+        add_filter( 'wp_content_img_tag', [ $this, 'handle_content_images_filter' ], 10, 3 );
+        add_filter( 'the_content', [ $this, 'handle_post_content_images_filter' ], 20 );
+        add_filter( 'render_block', [ $this, 'handle_render_block_filter' ], 10, 2 );
+        
+        // Always add attachment fields for admin display
+        add_filter( 'attachment_fields_to_edit', [ $this, 'handle_attachment_fields_filter' ], 10, 2 );
+
+        // ===== CLEANUP =====
+        // Cleanup hooks
+        add_action( 'delete_attachment', [ $this, 'handle_attachment_deletion' ] );
+        if ( ! Settings::is_bulk_conversion_enabled() ) {
             // Unschedule cron job if bulk conversion is disabled
             $timestamp = wp_next_scheduled( 'flux_media_bulk_conversion' );
             if ( $timestamp ) {
@@ -244,6 +255,8 @@ class WordPressProvider {
 
     /**
      * Process image conversion.
+     *
+     * Do not check our disabled flag here - sometimes we run this from explicit image conversions which should override.
      *
      * @since 0.1.0
      * @param int    $attachment_id Attachment ID.
@@ -681,4 +694,97 @@ class WordPressProvider {
         $this->logger->info( 'Bulk conversion cron completed. Processed: ' . $results['processed'] . ', Converted: ' . $results['converted'] . ', Errors: ' . $results['errors'] );
     }
 
+    /**
+     * Handle image editor file save to reconvert edited images.
+     *
+     * This runs when the WP image editor saves a file (e.g., crop/rotate/scale).
+     * Do not override core behavior; just trigger conversion and return $override.
+     *
+     * @since TBD
+     * @param mixed       $override   Override value from other filters (usually null).
+     * @param string      $filename   Saved filename for the edited image.
+     * @param object      $image      Image editor instance.
+     * @param string      $mime_type  MIME type of the saved image.
+     * @param int|false   $post_id    Attachment ID if available, otherwise false.
+     * @return mixed Original $override value.
+     */
+    public function handle_wp_save_image_editor_file( $override, $filename, $image, $mime_type, $post_id ) {
+        if ( empty( $post_id ) ) {
+            return $override;
+        }
+
+        // Bail if conversion disabled for this attachment
+        if ( get_post_meta( $post_id, '_flux_media_conversion_disabled', true ) ) {
+            return $override;
+        }
+
+        if ( ! $filename || ! file_exists( $filename ) ) {
+            return $override;
+        }
+
+        // Only process supported images
+        if ( $this->image_converter->is_supported_image( $filename ) ) {
+            $this->process_image_conversion( (int) $post_id, $filename );
+        }
+
+        return $override;
+    }
+
+    /**
+     * Handle attachment metadata updates to reconvert edited images.
+     *
+     * Runs when image metadata is updated, including after edits like crop/rotate.
+     *
+     * @since TBD
+     * @param array $data Attachment metadata.
+     * @param int   $attachment_id Attachment ID.
+     * @return array Unmodified metadata array.
+     */
+    public function handle_update_attachment_metadata( $data, $attachment_id ) {
+        // Bail if conversion disabled for this attachment
+        if ( get_post_meta( $attachment_id, '_flux_media_conversion_disabled', true ) ) {
+            return $data;
+        }
+
+        $file_path = get_attached_file( $attachment_id );
+        if ( ! $file_path || ! file_exists( $file_path ) ) {
+            return $data;
+        }
+
+        // Only process supported images
+        if ( $this->image_converter->is_supported_image( $file_path ) ) {
+            $this->process_image_conversion( $attachment_id, $file_path );
+        }
+
+        return $data;
+    }
+
+    /**
+     * Handle file updates for attachments to trigger reconversion.
+     *
+     * Fires when the attached file path is updated (e.g., replace media or edit creates a new file).
+     * Must return the (possibly unchanged) file path per filter contract.
+     *
+     * @since TBD
+     * @param string $file New file path for the attachment.
+     * @param int    $attachment_id Attachment ID.
+     * @return string File path (unmodified).
+     */
+    public function handle_update_attached_file( $file, $attachment_id ) {
+        // Bail if conversion disabled for this attachment
+        if ( get_post_meta( $attachment_id, '_flux_media_conversion_disabled', true ) ) {
+            return $file;
+        }
+
+        if ( ! $file || ! file_exists( $file ) ) {
+            return $file;
+        }
+
+        // Only process supported images
+        if ( $this->image_converter->is_supported_image( $file ) ) {
+            $this->process_image_conversion( $attachment_id, $file );
+        }
+
+        return $file;
+    }
 }

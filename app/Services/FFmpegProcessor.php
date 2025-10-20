@@ -10,12 +10,12 @@ namespace FluxMedia\App\Services;
 
 use FluxMedia\App\Services\VideoProcessorInterface;
 use FluxMedia\App\Services\LoggerInterface;
-use FFMpeg\FFMpeg;
-use FFMpeg\FFProbe;
-use FFMpeg\Format\Video\WebM;
-use FFMpeg\Format\Video\X264;
-use FFMpeg\Exception\RuntimeException;
-use Symfony\Component\Process\Process;
+use FluxMedia\FFMpeg\FFMpeg;
+use FluxMedia\FFMpeg\FFProbe;
+use FluxMedia\FFMpeg\Format\Video\WebM;
+use FluxMedia\FFMpeg\Format\Video\X264;
+use FluxMedia\FFMpeg\Exception\RuntimeException;
+use FluxMedia\Symfony\Component\Process\Process;
 
 /**
  * FFmpeg-based video processor with high-quality conversion settings using PHP-FFmpeg.
@@ -215,7 +215,7 @@ class FFmpegProcessor implements VideoProcessorInterface {
 	 */
 	private function can_convert_to_av1() {
 		// Check if PHP-FFmpeg library is available
-		if ( ! class_exists( 'FFMpeg\FFMpeg' ) ) {
+		if ( ! class_exists( 'FluxMedia\FFMpeg\FFMpeg' ) ) {
 			return false;
 		}
 		
@@ -236,7 +236,7 @@ class FFmpegProcessor implements VideoProcessorInterface {
 	 */
 	private function can_convert_to_webm() {
 		// Check if PHP-FFmpeg library is available
-		if ( ! class_exists( 'FFMpeg\FFMpeg' ) ) {
+		if ( ! class_exists( 'FluxMedia\FFMpeg\FFMpeg' ) ) {
 			return false;
 		}
 		

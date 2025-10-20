@@ -1,6 +1,8 @@
 # Dependencies
 node_modules/
 vendor/
+vendor-prefixed/
+bin/strauss.phar
 
 # Build outputs
 assets/js/dist/

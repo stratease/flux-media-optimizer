@@ -12,8 +12,8 @@ use FluxMedia\App\Services\LoggerInterface;
 use FluxMedia\App\Services\Converter;
 use FluxMedia\App\Services\VideoProcessorInterface;
 use FluxMedia\App\Services\FFmpegProcessor;
-use Symfony\Component\Process\Process;
-use Symfony\Component\Process\Exception\ProcessFailedException;
+use FluxMedia\Symfony\Component\Process\Process;
+use FluxMedia\Symfony\Component\Process\Exception\ProcessFailedException;
 
 /**
  * Video conversion service that handles AV1 and WebM conversion.
@@ -107,7 +107,7 @@ class VideoConverter implements Converter {
      */
     private function get_available_processor() {
         // Check if PHP-FFmpeg library is available
-        if ( ! class_exists( 'FFMpeg\FFMpeg' ) ) {
+        if ( ! class_exists( 'FluxMedia\FFMpeg\FFMpeg' ) ) {
             $this->logger->log_processor_unavailable( 'PHP-FFmpeg', 'PHP-FFmpeg library not found' );
             return null;
         }

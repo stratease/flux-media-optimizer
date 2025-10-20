@@ -60,8 +60,10 @@ function flux_media_php_version_notice() {
 }
 
 // Load Composer autoloader.
-if ( file_exists( FLUX_MEDIA_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
+if ( file_exists( FLUX_MEDIA_PLUGIN_DIR . 'vendor/autoload.php' )
+	&& file_exists( FLUX_MEDIA_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
 	require_once FLUX_MEDIA_PLUGIN_DIR . 'vendor/autoload.php';
+	require_once FLUX_MEDIA_PLUGIN_DIR . 'vendor-prefixed/autoload.php';	
 } else {
 	add_action( 'admin_notices', 'flux_media_composer_notice' );
 	return;

@@ -8,7 +8,7 @@
 
 namespace FluxMedia\App\Services;
 
-use Monolog\Logger as MonologLogger;
+use FluxMedia\Monolog\Logger as MonologLogger;
 use FluxMedia\App\Services\DatabaseHandler;
 use FluxMedia\App\Services\LoggerInterface;
 

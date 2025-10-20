@@ -8,8 +8,8 @@
 
 namespace FluxMedia\App\Services;
 
-use Monolog\Handler\AbstractProcessingHandler;
-use Monolog\LogRecord;
+use FluxMedia\Monolog\Handler\AbstractProcessingHandler;
+use FluxMedia\Monolog\LogRecord;
 
 /**
  * Database handler for storing logs in WordPress database.
@@ -33,7 +33,7 @@ class DatabaseHandler extends AbstractProcessingHandler {
 	 * @param int    $level  The minimum logging level at which this handler will be triggered.
 	 * @param bool   $bubble Whether the messages that are handled can bubble up the stack or not.
 	 */
-	public function __construct( $level = \Monolog\Logger::DEBUG, $bubble = true ) {
+	public function __construct( $level = \FluxMedia\Monolog\Logger::DEBUG, $bubble = true ) {
 		global $wpdb;
 		$this->table_name = $wpdb->prefix . 'flux_media_logs';
 		parent::__construct( $level, $bubble );

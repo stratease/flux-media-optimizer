@@ -9,6 +9,7 @@
 namespace FluxMedia\App\Services;
 
 use FluxMedia\App\Services\ProcessorTypes;
+use FluxMedia\Symfony\Component\Process\Process;
 
 /**
  * Detects available PHP processors (GD, Imagick, FFmpeg, etc.).
@@ -186,7 +187,7 @@ class ProcessorDetector {
      */
     private function is_executable( $path ) {
         try {
-            $process = new \Symfony\Component\Process\Process( [ $path, '-version' ] );
+            $process = new Process( [ $path, '-version' ] );
             $process->run();
             return $process->isSuccessful();
         } catch ( \Exception $e ) {
@@ -237,7 +238,7 @@ class ProcessorDetector {
      */
     private function get_ffmpeg_version() {
         try {
-            $process = new \Symfony\Component\Process\Process( [ 'ffmpeg', '-version' ] );
+            $process = new Process( [ 'ffmpeg', '-version' ] );
             $process->run();
             
             if ( $process->isSuccessful() ) {
@@ -355,7 +356,7 @@ class ProcessorDetector {
      */
     private function ffmpeg_supports_codec( $codec ) {
         try {
-            $process = new \Symfony\Component\Process\Process( [ 'ffmpeg', '-encoders' ] );
+            $process = new Process( [ 'ffmpeg', '-encoders' ] );
             $process->run();
             
             if ( $process->isSuccessful() ) {

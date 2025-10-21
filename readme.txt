@@ -1,18 +1,18 @@
 === Flux Media ===
 Contributors: fluxmedia
-Tags: images, optimization, webp, avif, video, performance, compression, core web vitals, seo
+Tags: images, optimization, webp, avif, compression
 Requires at least: 5.0
-Tested up to: 6.4
+Tested up to: 6.8
 Requires PHP: 7.4
 Stable tag: 0.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Compress images to AVIF/WebP for 50-70% faster loads. Boost Core Web Vitals, improve SEO rankings, and enhance user experience with automatic image optimization.
+Compress images to AVIF/WebP for 50-70% faster loads. Boost Core Web Vitals and improve SEO with automatic image optimization.
 
 == Description ==
 
-Transform your WordPress site's performance with Flux Media - the smart image optimization plugin that automatically converts your images to modern formats like WebP and AVIF.
+Transform your WordPress site's image performance. Flux Media automatically converts your images to modern formats like WebP and AVIF.
 
 **🚀 Key Benefits:**
 * **50-70% smaller file sizes** - Dramatically reduce image file sizes without quality loss
@@ -58,6 +58,17 @@ Users typically see:
 * PHP 7.4+ with GD or ImageMagick extension. Some versions do not support optimized AVIF files.
 * WordPress 5.0+
 * No additional server configuration required
+
+== Dependencies ==
+
+This plugin uses the following third-party libraries:
+
+**Production Dependencies:**
+* **Monolog** (monolog/monolog) - Logging library for error tracking and debugging
+* **Symfony Process** (symfony/process) - Process execution utilities for running external commands
+* **PHP-FFmpeg** (php-ffmpeg/php-ffmpeg) - Video processing and conversion library
+
+All production dependencies are included in the plugin package and do not require separate installation. Development dependencies are excluded from the production build to minimize file size.
 
 **🎨 Works with any theme** - Flux Media integrates seamlessly with WordPress's image system, so it works with any theme without modifications.
 

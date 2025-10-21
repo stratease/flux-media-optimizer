@@ -164,11 +164,12 @@ class BulkConverter {
 			 LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_flux_media_converted_formats'
 			 LEFT JOIN {$wpdb->postmeta} pm_disabled ON p.ID = pm_disabled.post_id AND pm_disabled.meta_key = '_flux_media_conversion_disabled'
 			 WHERE p.post_type = 'attachment' 
-			 AND p.post_mime_type LIKE 'image/%'
+			 AND p.post_mime_type LIKE %s
 			 AND (pm.meta_value IS NULL OR pm.meta_value = '')
 			 AND (pm_disabled.meta_value IS NULL OR pm_disabled.meta_value = '')
 			 ORDER BY p.post_date DESC
 			 LIMIT %d",
+			'image/%',
 			$limit
 		) );
 
@@ -179,11 +180,12 @@ class BulkConverter {
 			 LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_flux_media_converted_formats'
 			 LEFT JOIN {$wpdb->postmeta} pm_disabled ON p.ID = pm_disabled.post_id AND pm_disabled.meta_key = '_flux_media_conversion_disabled'
 			 WHERE p.post_type = 'attachment' 
-			 AND p.post_mime_type LIKE 'video/%'
+			 AND p.post_mime_type LIKE %s
 			 AND (pm.meta_value IS NULL OR pm.meta_value = '')
 			 AND (pm_disabled.meta_value IS NULL OR pm_disabled.meta_value = '')
 			 ORDER BY p.post_date DESC
 			 LIMIT %d",
+			'video/%',
 			$limit
 		) );
 

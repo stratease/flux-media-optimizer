@@ -16,6 +16,7 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 
 // Load WordPress functions.
 require_once ABSPATH . 'wp-admin/includes/file.php';
+require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
 /**
  * Clean up plugin data on uninstall.
@@ -25,6 +26,13 @@ require_once ABSPATH . 'wp-admin/includes/file.php';
 function flux_media_uninstall() {
 	global $wpdb;
 
+	// Initialize WordPress filesystem.
+	$wp_filesystem = null;
+	if ( ! function_exists( 'WP_Filesystem' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+	}
+	WP_Filesystem();
+
 	// Remove custom database tables.
 	$tables = [
 		$wpdb->prefix . 'flux_media_conversions',
@@ -33,7 +41,7 @@ function flux_media_uninstall() {
 	];
 
 	foreach ( $tables as $table ) {
-		$wpdb->query( "DROP TABLE IF EXISTS {$table}" );
+		$wpdb->query( $wpdb->prepare( "DROP TABLE IF EXISTS %s", $table ) );
 	}
 
 	// Remove plugin options.
@@ -53,20 +61,24 @@ function flux_media_uninstall() {
 		"DELETE FROM {$wpdb->postmeta} WHERE meta_key LIKE '_flux_media_%'"
 	);
 
-	// Remove converted files from uploads directory.
+	// Remove converted files from uploads directory using WordPress filesystem.
 	$upload_dir = wp_upload_dir();
 	$flux_media_dir = $upload_dir['basedir'] . '/flux-media-converted';
 
 	if ( is_dir( $flux_media_dir ) ) {
-		// Remove all files in the converted directory.
-		$files = glob( $flux_media_dir . '/*' );
-		foreach ( $files as $file ) {
-			if ( is_file( $file ) ) {
-				unlink( $file );
+		// Use WordPress filesystem to remove directory and all contents.
+		global $wp_filesystem;
+		if ( $wp_filesystem && $wp_filesystem->is_dir( $flux_media_dir ) ) {
+			$wp_filesystem->rmdir( $flux_media_dir, true );
+		} else {
+			// Fallback: Remove files individually using wp_delete_file().
+			$files = glob( $flux_media_dir . '/*' );
+			foreach ( $files as $file ) {
+				if ( is_file( $file ) ) {
+					wp_delete_file( $file );
+				}
 			}
 		}
-		// Remove the directory itself.
-		rmdir( $flux_media_dir );
 	}
 
 	// Clear any scheduled cron jobs.

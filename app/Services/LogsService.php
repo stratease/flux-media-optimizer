@@ -75,9 +75,10 @@ class LogsService {
 		// Get total count
 		$count_query = "SELECT COUNT(*) FROM {$this->table_name} {$where_clause}";
 		if ( ! empty( $where_values ) ) {
-			$count_query = $wpdb->prepare( $count_query, $where_values );
+			$total = (int) $wpdb->get_var( $wpdb->prepare( $count_query, $where_values ) );
+		} else {
+			$total = (int) $wpdb->get_var( $count_query );
 		}
-		$total = (int) $wpdb->get_var( $count_query );
 
 		// Calculate pagination
 		$offset = ( $args['page'] - 1 ) * $args['per_page'];
@@ -127,7 +128,7 @@ class LogsService {
 	public function clear_old_logs( $days = 30 ) {
 		global $wpdb;
 
-		$cutoff_date = date( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 		
 		$deleted = $wpdb->query( $wpdb->prepare(
 			"DELETE FROM {$this->table_name} WHERE created_at < %s",

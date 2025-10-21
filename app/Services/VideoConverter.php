@@ -343,7 +343,7 @@ class VideoConverter implements Converter {
 
         foreach ( $files as $file ) {
             if ( is_file( $file ) ) {
-                if ( ! unlink( $file ) ) {
+                if ( ! wp_delete_file( $file ) ) {
                     $this->logger->warning( "Failed to delete temporary file: {$file}" );
                     $success = false;
                 }
@@ -392,14 +392,21 @@ class VideoConverter implements Converter {
                 continue;
             }
             
-            if ( ! is_writable( $destination_dir ) ) {
+            // Initialize WordPress filesystem
+            if ( ! function_exists( 'WP_Filesystem' ) ) {
+                require_once ABSPATH . 'wp-admin/includes/file.php';
+            }
+            WP_Filesystem();
+            
+            global $wp_filesystem;
+            if ( ! $wp_filesystem || ! $wp_filesystem->is_writable( $destination_dir ) ) {
                 $results['errors'][] = "Destination directory is not writable: {$destination_dir}";
                 continue;
             }
             
             // If file already exists, check if we can write to it
             if ( file_exists( $destination_path ) ) {
-                if ( ! is_writable( $destination_path ) ) {
+                if ( ! $wp_filesystem->is_writable( $destination_path ) ) {
                     $results['errors'][] = "Destination file exists but is not writable: {$destination_path}";
                     continue;
                 }
@@ -621,7 +628,14 @@ class VideoConverter implements Converter {
             return false;
         }
 
-        if ( ! is_writable( $destination_dir ) ) {
+        // Initialize WordPress filesystem
+        if ( ! function_exists( 'WP_Filesystem' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+        }
+        WP_Filesystem();
+        
+        global $wp_filesystem;
+        if ( ! $wp_filesystem || ! $wp_filesystem->is_writable( $destination_dir ) ) {
             $this->add_error( "Destination directory is not writable: {$destination_dir}" );
             return false;
         }

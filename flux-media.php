@@ -13,7 +13,6 @@
  * Requires at least: 5.0
  * Tested up to: 6.4
  * Requires PHP: 7.4
- * Network: false
  *
  * @package FluxMedia
  * @since 0.1.0
@@ -96,9 +95,6 @@ add_action( 'admin_init', 'flux_media_activation_redirect' );
  * @since 0.1.0
  */
 function flux_media_init() {
-	// Load text domain for internationalization.
-	load_plugin_textdomain( 'flux-media', false, dirname( FLUX_MEDIA_PLUGIN_BASENAME ) . '/languages' );
-
 	// Initialize the main plugin class.
 	$flux_media = new FluxMedia\App\Plugin();
 	$flux_media->init();

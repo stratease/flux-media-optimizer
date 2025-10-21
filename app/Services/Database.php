@@ -75,8 +75,8 @@ class Database {
 		$conversions_table = $wpdb->prefix . 'flux_media_conversions';
 		$logs_table = $wpdb->prefix . 'flux_media_logs';
 
-		$wpdb->query( "DROP TABLE IF EXISTS $conversions_table" );
-		$wpdb->query( "DROP TABLE IF EXISTS $logs_table" );
+		$wpdb->query( $wpdb->prepare( "DROP TABLE IF EXISTS %s", $conversions_table ) );
+		$wpdb->query( $wpdb->prepare( "DROP TABLE IF EXISTS %s", $logs_table ) );
 
 		// Remove database version option
 		delete_option( 'flux_media_db_version' );
@@ -94,8 +94,8 @@ class Database {
 		$conversions_table = $wpdb->prefix . 'flux_media_conversions';
 		$logs_table = $wpdb->prefix . 'flux_media_logs';
 
-		$conversions_exists = $wpdb->get_var( "SHOW TABLES LIKE '$conversions_table'" ) === $conversions_table;
-		$logs_exists = $wpdb->get_var( "SHOW TABLES LIKE '$logs_table'" ) === $logs_table;
+		$conversions_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $conversions_table ) ) === $conversions_table;
+		$logs_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $logs_table ) ) === $logs_table;
 
 		return $conversions_exists && $logs_exists;
 	}

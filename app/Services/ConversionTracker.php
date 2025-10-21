@@ -261,7 +261,7 @@ class ConversionTracker {
 		$recent_savings = $wpdb->get_row( $wpdb->prepare(
 			"SELECT SUM(original_size) as total_original, SUM(converted_size) as total_converted, SUM(size_savings) as total_savings, COUNT(*) as count 
 			 FROM {$this->table_name} WHERE converted_at >= %s",
-			date( 'Y-m-d H:i:s', strtotime( '-30 days' ) )
+			gmdate( 'Y-m-d H:i:s', strtotime( '-30 days' ) )
 		), ARRAY_A );
 
 		$stats['recent'] = [

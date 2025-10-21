@@ -244,7 +244,7 @@ class Plugin {
             'flux-media-attachment',
             plugin_dir_url( dirname( __FILE__ ) ) . 'assets/js/dist/attachment.bundle.js',
             [],
-            '1.0.0',
+            FLUX_MEDIA_VERSION,
             true
         );
 

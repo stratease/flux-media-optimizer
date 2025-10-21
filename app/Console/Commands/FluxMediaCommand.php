@@ -146,7 +146,7 @@ class FluxMediaCommand extends WP_CLI_Command {
     }
 
     /**
-     * Recursively delete a directory.
+     * Recursively delete a directory using WordPress filesystem.
      *
      * @since 0.1.0
      * @param string $dir Directory path.
@@ -157,13 +157,28 @@ class FluxMediaCommand extends WP_CLI_Command {
             return;
         }
         
-        $files = array_diff( scandir( $dir ), [ '.', '..' ] );
-        
-        foreach ( $files as $file ) {
-            $path = $dir . '/' . $file;
-            is_dir( $path ) ? $this->delete_directory( $path ) : unlink( $path );
+        // Initialize WordPress filesystem.
+        if ( ! function_exists( 'WP_Filesystem' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
         }
+        WP_Filesystem();
         
-        rmdir( $dir );
+        global $wp_filesystem;
+        if ( $wp_filesystem ) {
+            // Use WordPress filesystem to remove directory and all contents.
+            $wp_filesystem->rmdir( $dir, true );
+        } else {
+            // Fallback: Remove files individually using wp_delete_file().
+            $files = array_diff( scandir( $dir ), [ '.', '..' ] );
+            
+            foreach ( $files as $file ) {
+                $path = $dir . '/' . $file;
+                if ( is_dir( $path ) ) {
+                    $this->delete_directory( $path );
+                } else {
+                    wp_delete_file( $path );
+                }
+            }
+        }
     }
 }

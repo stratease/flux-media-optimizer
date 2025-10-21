@@ -389,7 +389,7 @@ class WordPressProvider {
         $total_count = count( $converted_files );
 
         foreach ( $converted_files as $format => $file_path ) {
-            if ( file_exists( $file_path ) && unlink( $file_path ) ) {
+            if ( file_exists( $file_path ) && wp_delete_file( $file_path ) ) {
                 $deleted_count++;
                 $this->logger->info( "Deleted converted file: {$file_path} (format: {$format})" );
             } else {
@@ -459,7 +459,7 @@ class WordPressProvider {
         $total_count = count( $converted_files );
 
         foreach ( $converted_files as $format => $file_path ) {
-            if ( file_exists( $file_path ) && unlink( $file_path ) ) {
+            if ( file_exists( $file_path ) && wp_delete_file( $file_path ) ) {
                 $deleted_count++;
                 $this->logger->info( "Deleted converted file: {$file_path} (format: {$format})" );
             } else {
@@ -586,7 +586,8 @@ class WordPressProvider {
      */
     public function handle_ajax_convert_attachment() {
         // Verify nonce
-        if ( ! wp_verify_nonce( $_POST['nonce'] ?? '', 'flux_media_convert_attachment' ) ) {
+        $nonce = sanitize_text_field( wp_unslash( $_POST['nonce'] ?? '' ) );
+        if ( ! wp_verify_nonce( $nonce, 'flux_media_convert_attachment' ) ) {
             wp_die( 'Security check failed' );
         }
 
@@ -595,7 +596,7 @@ class WordPressProvider {
             wp_die( 'Insufficient permissions' );
         }
 
-        $attachment_id = (int) ( $_POST['attachment_id'] ?? 0 );
+        $attachment_id = (int) sanitize_text_field( wp_unslash( $_POST['attachment_id'] ?? 0 ) );
         if ( ! $attachment_id ) {
             wp_send_json_error( 'Invalid attachment ID' );
         }
@@ -617,7 +618,8 @@ class WordPressProvider {
      */
     public function handle_ajax_disable_conversion() {
         // Verify nonce
-        if ( ! wp_verify_nonce( $_POST['nonce'] ?? '', 'flux_media_disable_conversion' ) ) {
+        $nonce = sanitize_text_field( wp_unslash( $_POST['nonce'] ?? '' ) );
+        if ( ! wp_verify_nonce( $nonce, 'flux_media_disable_conversion' ) ) {
             wp_die( 'Security check failed' );
         }
 
@@ -626,7 +628,7 @@ class WordPressProvider {
             wp_die( 'Insufficient permissions' );
         }
 
-        $attachment_id = (int) ( $_POST['attachment_id'] ?? 0 );
+        $attachment_id = (int) sanitize_text_field( wp_unslash( $_POST['attachment_id'] ?? 0 ) );
         if ( ! $attachment_id ) {
             wp_send_json_error( 'Invalid attachment ID' );
         }
@@ -651,7 +653,8 @@ class WordPressProvider {
      */
     public function handle_ajax_enable_conversion() {
         // Verify nonce
-        if ( ! wp_verify_nonce( $_POST['nonce'] ?? '', 'flux_media_enable_conversion' ) ) {
+        $nonce = sanitize_text_field( wp_unslash( $_POST['nonce'] ?? '' ) );
+        if ( ! wp_verify_nonce( $nonce, 'flux_media_enable_conversion' ) ) {
             wp_die( 'Security check failed' );
         }
 
@@ -660,7 +663,7 @@ class WordPressProvider {
             wp_die( 'Insufficient permissions' );
         }
 
-        $attachment_id = (int) ( $_POST['attachment_id'] ?? 0 );
+        $attachment_id = (int) sanitize_text_field( wp_unslash( $_POST['attachment_id'] ?? 0 ) );
         if ( ! $attachment_id ) {
             wp_send_json_error( 'Invalid attachment ID' );
         }

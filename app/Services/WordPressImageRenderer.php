@@ -96,7 +96,7 @@ class WordPressImageRenderer {
      */
     private function add_picture_css_inline( $css ) {
         // Method 2: Try to add to common WordPress stylesheets
-        $common_handles = [ 'wp-block-library', 'wp-includes', 'common', 'admin-bar' ];
+        $common_handles = [ 'wp-block-library', 'wp-includes', 'common' ];
         foreach ( $common_handles as $handle ) {
             if ( wp_style_is( $handle, 'enqueued' ) || wp_style_is( $handle, 'done' ) ) {
                 wp_add_inline_style( $handle, $css );
@@ -105,14 +105,14 @@ class WordPressImageRenderer {
         }
         
         // Method 3: Create a custom handle and enqueue it
-        wp_register_style( 'flux-media-picture-styles', false );
+        wp_register_style( 'flux-media-picture-styles', false, [], FLUX_MEDIA_VERSION );
         wp_enqueue_style( 'flux-media-picture-styles' );
         wp_add_inline_style( 'flux-media-picture-styles', $css );
-        
+
         // Method 4: Fallback - add directly to head if we're in the right context
         if ( ! is_admin() && ! did_action( 'wp_head' ) ) {
             add_action( 'wp_head', function() use ( $css ) {
-                echo '<style type="text/css" id="flux-media-picture-styles">' . $css . '</style>';
+                echo '<style type="text/css" id="flux-media-picture-styles">' . esc_html( $css ) . '</style>';
             }, 20 );
         }
     }
@@ -639,7 +639,7 @@ class WordPressImageRenderer {
         $html .= '<h4 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">' . __( 'Converted Files', 'flux-media' ) . '</h4>';
         
         if ( empty( $converted_files ) ) {
-            $html .= '<p style="color: #666; font-style: italic; margin: 0;">' . __( 'No conversions available', 'flux-media' ) . '</p>';
+            $html .= '<p style="color: #666; font-style: italic; margin: 0;">' . esc_html( __( 'No conversions available', 'flux-media' ) ) . '</p>';
         } else {
             foreach ( $converted_files as $format => $file_path ) {
                 $file_size = file_exists( $file_path ) ? filesize( $file_path ) : 0;
@@ -700,16 +700,16 @@ class WordPressImageRenderer {
                 '<button type="button" class="button button-primary" onclick="fluxMediaConvertAttachment(%d)" style="background: #0073aa; border-color: #0073aa; color: white; padding: 6px 12px; border-radius: 3px; cursor: pointer;">
                     %s
                 </button>',
-                $attachment_id,
-                $button_text
+                esc_attr( $attachment_id ),
+                esc_html( $button_text )
             );
             
             $html .= sprintf(
                 '<button type="button" class="button button-secondary" onclick="fluxMediaDisableConversion(%d)" style="background: #f0f0f1; border-color: #c3c4c7; color: #2c3338; padding: 6px 12px; border-radius: 3px; cursor: pointer;">
                     %s
                 </button>',
-                $attachment_id,
-                __( 'Disable Conversion', 'flux-media' )
+                esc_attr( $attachment_id ),
+                esc_html( __( 'Disable Conversion', 'flux-media' ) )
             );
             $html .= '</div>';
         }

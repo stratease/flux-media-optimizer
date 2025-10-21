@@ -15,7 +15,6 @@ use FluxMedia\FFMpeg\FFProbe;
 use FluxMedia\FFMpeg\Format\Video\WebM;
 use FluxMedia\FFMpeg\Format\Video\X264;
 use FluxMedia\FFMpeg\Exception\RuntimeException;
-use FluxMedia\Symfony\Component\Process\Process;
 
 /**
  * FFmpeg-based video processor with high-quality conversion settings using PHP-FFmpeg.
@@ -164,13 +163,17 @@ class FFmpegProcessor implements VideoProcessorInterface {
 	 * @return bool True if executable, false otherwise.
 	 */
 	private function is_executable( $path ) {
-		try {
-			$process = new Process( [ $path, '-version' ] );
-			$process->run();
-			return $process->isSuccessful();
-		} catch ( \Exception $e ) {
+		// Check if file exists and is executable
+		if ( ! file_exists( $path ) || ! is_executable( $path ) ) {
 			return false;
 		}
+		
+		// Use WordPress-compatible method to check if command works
+		$output = [];
+		$return_var = 0;
+		$result = @exec( escapeshellarg( $path ) . ' -version 2>&1', $output, $return_var );
+		
+		return $return_var === 0;
 	}
 
 	/**

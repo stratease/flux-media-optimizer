@@ -73,11 +73,13 @@ class LogsService {
 		$where_clause = ! empty( $where_conditions ) ? 'WHERE ' . implode( ' AND ', $where_conditions ) : '';
 
 		// Get total count
-		$count_query = "SELECT COUNT(*) FROM {$this->table_name} {$where_clause}";
 		if ( ! empty( $where_values ) ) {
-			$total = (int) $wpdb->get_var( $wpdb->prepare( $count_query, $where_values ) );
+			$total = (int) $wpdb->get_var( $wpdb->prepare( 
+				"SELECT COUNT(*) FROM `".esc_sql($this->table_name)."` {$where_clause}", 
+				$where_values 
+			) );
 		} else {
-			$total = (int) $wpdb->get_var( $count_query );
+			$total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `".esc_sql($this->table_name)."`" );
 		}
 
 		// Calculate pagination
@@ -86,10 +88,11 @@ class LogsService {
 
 		// Get logs
 		$orderby = sanitize_sql_orderby( $args['orderby'] . ' ' . $args['order'] );
-		$query = "SELECT id, level, message, context, created_at FROM {$this->table_name} {$where_clause} ORDER BY {$orderby} LIMIT %d OFFSET %d";
-		
 		$query_values = array_merge( $where_values, [ $args['per_page'], $offset ] );
-		$logs = $wpdb->get_results( $wpdb->prepare( $query, $query_values ), ARRAY_A );
+		$logs = $wpdb->get_results( $wpdb->prepare( 
+			"SELECT id, level, message, context, created_at FROM `".esc_sql($this->table_name)."` {$where_clause} ORDER BY {$orderby} LIMIT %d OFFSET %d", 
+			$query_values 
+		), ARRAY_A );
 
 		// Process logs
 		foreach ( $logs as &$log ) {
@@ -114,7 +117,7 @@ class LogsService {
 	public function get_log_levels() {
 		global $wpdb;
 
-		$levels = $wpdb->get_col( "SELECT DISTINCT level FROM {$this->table_name} ORDER BY level" );
+		$levels = $wpdb->get_col( "SELECT DISTINCT level FROM `".esc_sql($this->table_name)."` ORDER BY level" );
 		return $levels ?: [];
 	}
 
@@ -131,7 +134,7 @@ class LogsService {
 		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 		
 		$deleted = $wpdb->query( $wpdb->prepare(
-			"DELETE FROM {$this->table_name} WHERE created_at < %s",
+			"DELETE FROM `".esc_sql($this->table_name)."` WHERE created_at < %s",
 			$cutoff_date
 		) );
 

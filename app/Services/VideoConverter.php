@@ -12,8 +12,6 @@ use FluxMedia\App\Services\LoggerInterface;
 use FluxMedia\App\Services\Converter;
 use FluxMedia\App\Services\VideoProcessorInterface;
 use FluxMedia\App\Services\FFmpegProcessor;
-use FluxMedia\Symfony\Component\Process\Process;
-use FluxMedia\Symfony\Component\Process\Exception\ProcessFailedException;
 
 /**
  * Video conversion service that handles AV1 and WebM conversion.
@@ -152,14 +150,15 @@ class VideoConverter implements Converter {
      * @return bool True if FFmpeg is available, false otherwise.
      */
     private function is_ffmpeg_available() {
-        try {
-            $process = new Process( [ 'ffmpeg', '-version' ] );
-            $process->run();
-            return $process->isSuccessful();
-        } catch ( \Exception $e ) {
-            $this->logger->debug( 'FFmpeg availability check failed: ' . $e->getMessage() );
+        $output = [];
+        $return_var = 0;
+        $result = @exec( 'ffmpeg -version 2>&1', $output, $return_var );
+        
+        if ( $return_var !== 0 ) {
             return false;
         }
+        
+        return true;
     }
 
     /**

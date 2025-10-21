@@ -38,7 +38,7 @@ cd "$PLUGIN_DIR"
 
 # Install production-only dependencies
 echo "🔧 Installing production-only dependencies..."
-composer install --no-dev --optimize-autoloader --no-interaction
+composer install --ignore-platform-reqs --no-dev --optimize-autoloader --no-interaction
 
 # Build frontend assets
 echo "🏗️ Building frontend assets..."
@@ -93,7 +93,7 @@ cd "$PLUGIN_DIR"
 # Restore full development environment
 echo "🔄 Restoring development environment..."
 
-composer install --optimize-autoloader --no-interaction
+composer install --ignore-platform-reqs --optimize-autoloader --no-interaction
 
 echo "✅ Plugin built successfully: $ZIP_FILE"
 echo "📦 File size: $(du -h "$ZIP_FILE" | cut -f1)"

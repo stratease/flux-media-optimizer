@@ -3,7 +3,7 @@ Contributors: fluxmedia
 Tags: images, optimization, webp, avif, compression
 Requires at least: 5.0
 Tested up to: 6.8
-Requires PHP: 7.4
+Requires PHP: 8.0
 Stable tag: 0.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -55,7 +55,7 @@ Users typically see:
 * Better Core Web Vitals metrics (LCP, FID, CLS)
 
 **🛠️ Technical Requirements:**
-* PHP 7.4+ with GD or ImageMagick extension. Some versions do not support optimized AVIF files.
+* PHP 8.0+ with GD or ImageMagick extension. Some versions do not support optimized AVIF files.
 * WordPress 5.0+
 * No additional server configuration required
 
@@ -65,7 +65,6 @@ This plugin uses the following third-party libraries:
 
 **Production Dependencies:**
 * **Monolog** (monolog/monolog) - Logging library for error tracking and debugging
-* **Symfony Process** (symfony/process) - Process execution utilities for running external commands
 * **PHP-FFmpeg** (php-ffmpeg/php-ffmpeg) - Video processing and conversion library
 
 All production dependencies are included in the plugin package and do not require separate installation. Development dependencies are excluded from the production build to minimize file size.

@@ -9,7 +9,6 @@
 namespace FluxMedia\App\Services;
 
 use FluxMedia\Monolog\Handler\AbstractProcessingHandler;
-use FluxMedia\Monolog\LogRecord;
 
 /**
  * Database handler for storing logs in WordPress database.
@@ -43,9 +42,9 @@ class DatabaseHandler extends AbstractProcessingHandler {
 	 * Write the log record to the database.
 	 *
 	 * @since 0.1.0
-	 * @param LogRecord $record The log record to write.
+	 * @param array $record The log record to write.
 	 */
-	protected function write( LogRecord $record ): void {
+	protected function write( array $record ): void {
 		global $wpdb;
 
 		// Check if logging is disabled
@@ -57,10 +56,10 @@ class DatabaseHandler extends AbstractProcessingHandler {
 		$wpdb->insert(
 			$this->table_name,
 			[
-				'level'     => $record->level->name,
-				'message'   => $record->message,
-				'context'   => ! empty( $record->context ) ? wp_json_encode( $record->context ) : null,
-				'created_at' => $record->datetime->format( 'Y-m-d H:i:s' ),
+				'level'     => $record['level_name'],
+				'message'   => $record['message'],
+				'context'   => ! empty( $record['context'] ) ? wp_json_encode( $record['context'] ) : null,
+				'created_at' => $record['datetime']->format( 'Y-m-d H:i:s' ),
 			],
 			[
 				'%s',

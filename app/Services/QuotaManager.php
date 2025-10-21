@@ -63,9 +63,7 @@ class QuotaManager {
 	 * @return bool True if conversion is allowed, false otherwise.
 	 */
 	public function can_convert( $type ) {
-		// TODO: Implement SaaS API quota validation
-		// For now, allow all conversions until SaaS service is available
-		$this->logger->info( "Quota check for {$type} conversion - SaaS API integration pending" );
+		// TODO: 
 		return true;
 	}
 
@@ -78,9 +76,7 @@ class QuotaManager {
 	 * @return bool True on success, false on failure.
 	 */
 	public function record_usage( $type ) {
-		// TODO: Implement SaaS API usage recording
-		// For now, just log the usage until SaaS service is available
-		$this->logger->info( "Usage recorded for {$type} conversion - SaaS API integration pending" );
+		// TODO:
 		return true;
 	}
 

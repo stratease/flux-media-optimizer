@@ -85,7 +85,11 @@ class ConversionTracker {
 		) );
 
 		if ( $result !== false ) {
-			$this->logger->info( "Conversion recorded for attachment {$attachment_id}, type {$file_type} - SaaS API integration pending" );
+			$this->logger->info( "Conversion recorded for attachment {$attachment_id}, type {$file_type}" );
+			
+			// Clear related caches
+			wp_cache_delete( 'flux_media_conversion_stats', 'flux_media' );
+			wp_cache_delete( 'flux_media_savings_stats', 'flux_media' );
 		}
 
 		return $result !== false;
@@ -197,6 +201,14 @@ class ConversionTracker {
 	 * @return array Statistics array.
 	 */
 	public function get_conversion_stats() {
+		// Check cache first
+		$cache_key = 'flux_media_conversion_stats';
+		$stats = wp_cache_get( $cache_key, 'flux_media' );
+		
+		if ( false !== $stats ) {
+			return $stats;
+		}
+
 		global $wpdb;
 
 		$stats = [];
@@ -215,6 +227,9 @@ class ConversionTracker {
 			$stats['by_type'][ $stat['file_type'] ] = (int) $stat['count'];
 		}
 
+		// Cache the results for 5 minutes
+		wp_cache_set( $cache_key, $stats, 'flux_media', 300 );
+
 		return $stats;
 	}
 
@@ -225,6 +240,14 @@ class ConversionTracker {
 	 * @return array Savings statistics array.
 	 */
 	public function get_savings_stats() {
+		// Check cache first
+		$cache_key = 'flux_media_savings_stats';
+		$stats = wp_cache_get( $cache_key, 'flux_media' );
+		
+		if ( false !== $stats ) {
+			return $stats;
+		}
+
 		global $wpdb;
 
 		$stats = [];
@@ -271,6 +294,9 @@ class ConversionTracker {
 			'total_savings_bytes' => (int) $recent_savings['total_savings'],
 			'savings_percentage' => $recent_savings['total_original'] > 0 ? round( ( $recent_savings['total_savings'] / $recent_savings['total_original'] ) * 100, 2 ) : 0,
 		];
+
+		// Cache the results for 5 minutes
+		wp_cache_set( $cache_key, $stats, 'flux_media', 300 );
 
 		return $stats;
 	}

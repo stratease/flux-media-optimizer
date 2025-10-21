@@ -107,7 +107,7 @@ class FluxMediaCommand extends WP_CLI_Command {
         
         // Clear all post meta
         global $wpdb;
-        $deleted_meta = $wpdb->query( "DELETE FROM {$wpdb->postmeta} WHERE meta_key LIKE '_flux_media_%'" );
+        $deleted_meta = $wpdb->query( "DELETE FROM `".esc_sql($wpdb->postmeta)."` WHERE meta_key LIKE '_flux_media_%'" );
         
         // Clear all converted files
         $upload_dir = wp_upload_dir();
@@ -132,13 +132,31 @@ class FluxMediaCommand extends WP_CLI_Command {
      * @param array $assoc_args Associative arguments.
      */
     public function stats( $args, $assoc_args ) {
+        // Check cache first
+        $cache_key = 'flux_media_cli_stats';
+        $stats = wp_cache_get( $cache_key, 'flux_media' );
+        
+        if ( false !== $stats ) {
+            WP_CLI::log( "Conversion Statistics (cached):" );
+            WP_CLI::log( "Total converted files: {$stats['total_converted']}" );
+            WP_CLI::log( "Total file size savings: " . size_format( $stats['total_savings'] ?: 0 ) );
+            return;
+        }
+
         global $wpdb;
         
         // Get total converted files
-        $total_converted = $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = '_flux_media_converted_formats'" );
+        $total_converted = $wpdb->get_var( "SELECT COUNT(*) FROM `".esc_sql($wpdb->postmeta)."` WHERE meta_key = '_flux_media_converted_formats'" );
         
         // Get total file size savings
-        $total_savings = $wpdb->get_var( "SELECT SUM(meta_value) FROM {$wpdb->postmeta} WHERE meta_key = '_flux_media_file_size_savings'" );
+        $total_savings = $wpdb->get_var( "SELECT SUM(meta_value) FROM `".esc_sql($wpdb->postmeta)."` WHERE meta_key = '_flux_media_file_size_savings'" );
+        
+        // Cache the results for 5 minutes
+        $stats = [
+            'total_converted' => $total_converted,
+            'total_savings' => $total_savings
+        ];
+        wp_cache_set( $cache_key, $stats, 'flux_media', 300 );
         
         WP_CLI::log( "Conversion Statistics:" );
         WP_CLI::log( "Total converted files: {$total_converted}" );

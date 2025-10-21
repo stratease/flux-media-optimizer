@@ -9,7 +9,6 @@
 namespace FluxMedia\App\Services;
 
 use FluxMedia\App\Services\ProcessorTypes;
-use FluxMedia\Symfony\Component\Process\Process;
 
 /**
  * Detects available PHP processors (GD, Imagick, FFmpeg, etc.).
@@ -186,13 +185,17 @@ class ProcessorDetector {
      * @return bool True if executable, false otherwise.
      */
     private function is_executable( $path ) {
-        try {
-            $process = new Process( [ $path, '-version' ] );
-            $process->run();
-            return $process->isSuccessful();
-        } catch ( \Exception $e ) {
+        // Check if file exists and is executable
+        if ( ! file_exists( $path ) || ! is_executable( $path ) ) {
             return false;
         }
+        
+        // Use WordPress-compatible method to check if command works
+        $output = [];
+        $return_var = 0;
+        $result = @exec( escapeshellarg( $path ) . ' -version 2>&1', $output, $return_var );
+        
+        return $return_var === 0;
     }
 
     /**
@@ -237,20 +240,17 @@ class ProcessorDetector {
      * @return string FFmpeg version or 'Unknown'.
      */
     private function get_ffmpeg_version() {
-        try {
-            $process = new Process( [ 'ffmpeg', '-version' ] );
-            $process->run();
-            
-            if ( $process->isSuccessful() ) {
-                $output = $process->getOutput();
-                if ( preg_match( '/ffmpeg version ([^\s]+)/', $output, $matches ) ) {
-                    return $matches[1];
-                }
+        $output = [];
+        $return_var = 0;
+        $result = @exec( 'ffmpeg -version 2>&1', $output, $return_var );
+        
+        if ( $return_var === 0 && ! empty( $output ) ) {
+            $version_output = implode( ' ', $output );
+            if ( preg_match( '/ffmpeg version ([^\s]+)/', $version_output, $matches ) ) {
+                return $matches[1];
             }
-        } catch ( \Exception $e ) {
-            // Process execution failed
         }
-
+        
         return 'Unknown';
     }
 
@@ -355,16 +355,13 @@ class ProcessorDetector {
      * @return bool True if codec is supported, false otherwise.
      */
     private function ffmpeg_supports_codec( $codec ) {
-        try {
-            $process = new Process( [ 'ffmpeg', '-encoders' ] );
-            $process->run();
-            
-            if ( $process->isSuccessful() ) {
-                $output = $process->getOutput();
-                return strpos( $output, $codec ) !== false;
-            }
-        } catch ( \Exception $e ) {
-            // Process execution failed
+        $output = [];
+        $return_var = 0;
+        $result = @exec( 'ffmpeg -encoders 2>&1', $output, $return_var );
+        
+        if ( $return_var === 0 && ! empty( $output ) ) {
+            $encoders_output = implode( ' ', $output );
+            return strpos( $encoders_output, $codec ) !== false;
         }
 
         return false;

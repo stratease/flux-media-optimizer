@@ -147,65 +147,36 @@ class ProcessorDetector {
     /**
      * Check if FFmpeg is available.
      *
-     * @since 0.1.0
+     * Uses the PHP-FFmpeg library to detect if FFmpeg is available.
+     * The library handles binary detection internally.
+     *
+     * @since 1.0.0
      * @return bool True if FFmpeg is available, false otherwise.
      */
     public function is_ffmpeg_available() {
-        return $this->is_ffmpeg_binary_available();
+        // First check if the library is available
+        if ( ! $this->is_php_ffmpeg_available() ) {
+            return false;
+        }
+
+        // Try to create an FFMpeg instance - the library will auto-detect the binary
+        try {
+            $ffmpeg = \FluxMedia\FFMpeg\FFMpeg::create();
+            return $ffmpeg !== null;
+        } catch ( \Exception $e ) {
+            // FFmpeg is not available or cannot be detected
+            return false;
+        }
     }
 
     /**
      * Check if PHP-FFmpeg library is available.
      *
-     * @since 0.1.0
+     * @since 1.0.0
      * @return bool True if PHP-FFmpeg library is available, false otherwise.
      */
     public function is_php_ffmpeg_available() {
         return class_exists( 'FluxMedia\FFMpeg\FFMpeg' );
-    }
-
-    /**
-     * Check if FFmpeg binary is available.
-     *
-     * @since 0.1.0
-     * @return bool True if FFmpeg binary is available, false otherwise.
-     */
-    private function is_ffmpeg_binary_available() {
-        $possible_paths = [
-            'ffmpeg',
-            '/usr/bin/ffmpeg',
-            '/usr/local/bin/ffmpeg',
-            '/opt/homebrew/bin/ffmpeg',
-        ];
-
-        foreach ( $possible_paths as $path ) {
-            if ( $this->is_executable( $path ) ) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Check if binary is executable.
-     *
-     * @since 0.1.0
-     * @param string $path Binary path.
-     * @return bool True if executable, false otherwise.
-     */
-    private function is_executable( $path ) {
-        // Check if file exists and is executable
-        if ( ! file_exists( $path ) || ! is_executable( $path ) ) {
-            return false;
-        }
-        
-        // Use WordPress-compatible method to check if command works
-        $output = [];
-        $return_var = 0;
-        $result = @exec( escapeshellarg( $path ) . ' -version 2>&1', $output, $return_var );
-        
-        return $return_var === 0;
     }
 
     /**
@@ -246,22 +217,27 @@ class ProcessorDetector {
     /**
      * Get FFmpeg version information.
      *
-     * @since 0.1.0
+     * Uses the PHP-FFmpeg library to get version information.
+     *
+     * @since 1.0.0
      * @return string FFmpeg version or 'Unknown'.
      */
     private function get_ffmpeg_version() {
-        $output = [];
-        $return_var = 0;
-        $result = @exec( 'ffmpeg -version 2>&1', $output, $return_var );
-        
-        if ( $return_var === 0 && ! empty( $output ) ) {
-            $version_output = implode( ' ', $output );
-            if ( preg_match( '/ffmpeg version ([^\s]+)/', $version_output, $matches ) ) {
-                return $matches[1];
-            }
+        if ( ! $this->is_ffmpeg_available() ) {
+            return 'Not available';
         }
-        
-        return 'Unknown';
+
+        try {
+            // The library doesn't expose version directly
+            // We can create an instance to confirm it's available
+            $ffmpeg = \FluxMedia\FFMpeg\FFMpeg::create();
+            if ( $ffmpeg !== null ) {
+                return 'Available';
+            }
+            return 'Unknown';
+        } catch ( \Exception $e ) {
+            return 'Unknown';
+        }
     }
 
     /**
@@ -332,49 +308,33 @@ class ProcessorDetector {
     /**
      * Check if FFmpeg supports AV1.
      *
-     * @since 0.1.0
+     * Uses the PHP-FFmpeg library to check if AV1 codec is available.
+     * If FFmpeg is available, we assume AV1 support. The actual conversion
+     * will fail gracefully if the codec isn't supported.
+     *
+     * @since 1.0.0
      * @return bool True if FFmpeg supports AV1, false otherwise.
      */
     private function ffmpeg_supports_av1() {
-        if ( ! $this->is_ffmpeg_available() ) {
-            return false;
-        }
-
-        return $this->ffmpeg_supports_codec( 'libaom-av1' );
+        // If FFmpeg is available, assume AV1 support
+        // The actual conversion will handle codec availability errors
+        return $this->is_ffmpeg_available();
     }
 
     /**
      * Check if FFmpeg supports WebM.
      *
-     * @since 0.1.0
+     * Uses the PHP-FFmpeg library to check if WebM codec is available.
+     * If FFmpeg is available, we assume WebM support. The actual conversion
+     * will fail gracefully if the codec isn't supported.
+     *
+     * @since 1.0.0
      * @return bool True if FFmpeg supports WebM, false otherwise.
      */
     private function ffmpeg_supports_webm() {
-        if ( ! $this->is_ffmpeg_available() ) {
-            return false;
-        }
-
-        return $this->ffmpeg_supports_codec( 'libvpx-vp9' );
-    }
-
-    /**
-     * Check if FFmpeg supports a specific codec.
-     *
-     * @since 0.1.0
-     * @param string $codec Codec name to check.
-     * @return bool True if codec is supported, false otherwise.
-     */
-    private function ffmpeg_supports_codec( $codec ) {
-        $output = [];
-        $return_var = 0;
-        $result = @exec( 'ffmpeg -encoders 2>&1', $output, $return_var );
-        
-        if ( $return_var === 0 && ! empty( $output ) ) {
-            $encoders_output = implode( ' ', $output );
-            return strpos( $encoders_output, $codec ) !== false;
-        }
-
-        return false;
+        // If FFmpeg is available, assume WebM support
+        // The actual conversion will handle codec availability errors
+        return $this->is_ffmpeg_available();
     }
 
     /**

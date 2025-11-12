@@ -1,12 +1,12 @@
 /**
- * API service for Flux Media WordPress plugin using WordPress apiFetch
+ * API service for Flux Media Optimizer WordPress plugin using WordPress apiFetch
  */
 
 import apiFetch from '@wordpress/api-fetch';
 
 class ApiService {
   constructor() {
-    this.namespace = 'flux-media/v1';
+    this.namespace = 'flux-media-optimizer/v1';
     
     // Configure apiFetch with proper API root
     const apiRoot = window.fluxMediaAdmin?.apiUrl || '/wp-json/';

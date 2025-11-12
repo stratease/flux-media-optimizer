@@ -72,7 +72,7 @@ const ImageStatusCard = ({ status, loading, error }) => {
   if (error) {
     return (
       <Alert severity="error" sx={{ mb: 3 }}>
-        {__('Error loading image status:', 'flux-media')} {error?.message || __('Unknown error occurred', 'flux-media')}
+        {__('Error loading image status:', 'flux-media-optimizer')} {error?.message || __('Unknown error occurred', 'flux-media-optimizer')}
       </Alert>
     );
   }
@@ -81,7 +81,7 @@ const ImageStatusCard = ({ status, loading, error }) => {
   if (!status) {
     return (
       <Alert severity="warning" sx={{ mb: 3 }}>
-        {__('No image status data available', 'flux-media')}
+        {__('No image status data available', 'flux-media-optimizer')}
       </Alert>
     );
   }
@@ -98,7 +98,7 @@ const ImageStatusCard = ({ status, loading, error }) => {
     return (
       <Chip
         icon={getStatusIcon(available)}
-        label={available ? `${type} ${__('Available', 'flux-media')}` : `${type} ${__('Not Available', 'flux-media')}`}
+        label={available ? `${type} ${__('Available', 'flux-media-optimizer')}` : `${type} ${__('Not Available', 'flux-media-optimizer')}`}
         color={available ? 'success' : 'error'}
         size="small"
       />
@@ -115,10 +115,10 @@ const ImageStatusCard = ({ status, loading, error }) => {
     <Box>
       <Box sx={{ mb: 3 }}>
         <Typography variant="h5" gutterBottom>
-          {__('Image Processing Status', 'flux-media')}
+          {__('Image Processing Status', 'flux-media-optimizer')}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          {__('Current image processing capabilities and requirements', 'flux-media')}
+          {__('Current image processing capabilities and requirements', 'flux-media-optimizer')}
         </Typography>
       </Box>
       <Divider sx={{ mb: 3 }} />
@@ -128,12 +128,12 @@ const ImageStatusCard = ({ status, loading, error }) => {
         <Grid item xs={12} md={6}>
           <Box>
             <Typography variant="h6" gutterBottom>
-              {__('Image Processing', 'flux-media')}
+              {__('Image Processing', 'flux-media-optimizer')}
             </Typography>
             
             {/* Overall Image Support Status */}
             <Box sx={{ mb: 2 }}>
-              {getStatusChip(imageProcessor.available, __('Image Processing', 'flux-media'))}
+              {getStatusChip(imageProcessor.available, __('Image Processing', 'flux-media-optimizer'))}
             </Box>
 
             {/* Individual Processors */}
@@ -145,7 +145,7 @@ const ImageStatusCard = ({ status, loading, error }) => {
                       {processor.type?.toUpperCase() || processorType.toUpperCase()}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      {__('Version:', 'flux-media')} {processor.version || __('Unknown', 'flux-media')}
+                      {__('Version:', 'flux-media-optimizer')} {processor.version || __('Unknown', 'flux-media-optimizer')}
                     </Typography>
                     <Grid container spacing={1}>
                       <Grid item>
@@ -175,9 +175,9 @@ const ImageStatusCard = ({ status, loading, error }) => {
         {!hasImageSupport && (
           <Grid item xs={12}>
             <Alert severity="warning">
-              <AlertTitle>{__('Image Processing Not Available', 'flux-media')}</AlertTitle>
+              <AlertTitle>{__('Image Processing Not Available', 'flux-media-optimizer')}</AlertTitle>
               <Typography variant="body2">
-                {__('Image processing is not available. Please install Imagick or GD with WebP/AVIF support.', 'flux-media')}
+                {__('Image processing is not available. Please install Imagick or GD with WebP/AVIF support.', 'flux-media-optimizer')}
               </Typography>
             </Alert>
           </Grid>
@@ -186,9 +186,9 @@ const ImageStatusCard = ({ status, loading, error }) => {
         {hasImageSupport && (
           <Grid item xs={12}>
             <Alert severity="success">
-              <AlertTitle>{__('Image Processing Ready', 'flux-media')}</AlertTitle>
+              <AlertTitle>{__('Image Processing Ready', 'flux-media-optimizer')}</AlertTitle>
               <Typography variant="body2">
-                {__('Image processing components are available. Flux Media can optimize images.', 'flux-media')}
+                {__('Image processing components are available. Flux Media Optimizer can optimize images.', 'flux-media-optimizer')}
               </Typography>
             </Alert>
           </Grid>

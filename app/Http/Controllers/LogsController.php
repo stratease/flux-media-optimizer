@@ -1,6 +1,6 @@
 <?php
 /**
- * Logs REST API controller for Flux Media plugin.
+ * Logs REST API controller for Flux Media Optimizer plugin.
  *
  * @package FluxMedia
  * @since 0.1.0
@@ -44,7 +44,7 @@ class LogsController extends BaseController {
 	 * @since 0.1.0
 	 */
 	public function register_routes() {
-		register_rest_route( 'flux-media/v1', '/logs', [
+		register_rest_route( 'flux-media-optimizer/v1', '/logs', [
 			[
 				'methods' => 'GET',
 				'callback' => [ $this, 'get_logs' ],

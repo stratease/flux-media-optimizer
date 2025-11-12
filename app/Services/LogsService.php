@@ -30,7 +30,7 @@ class LogsService {
 	 */
 	public function __construct() {
 		global $wpdb;
-		$this->table_name = $wpdb->prefix . 'flux_media_logs';
+		$this->table_name = $wpdb->prefix . 'flux_media_optimizer_logs';
 	}
 
 	/**

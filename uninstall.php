@@ -1,6 +1,6 @@
 <?php
 /**
- * Uninstall script for Flux Media plugin.
+ * Uninstall script for Flux Media Optimizer plugin.
  *
  * This file is executed when the plugin is uninstalled (deleted) from WordPress.
  * It cleans up all plugin data including custom tables, options, and files.
@@ -23,7 +23,7 @@ require_once ABSPATH . 'wp-admin/includes/plugin.php';
  *
  * @since 0.1.0
  */
-function flux_media_uninstall() {
+function flux_media_optimizer_uninstall() {
 	global $wpdb;
 
 	// Initialize WordPress filesystem.
@@ -35,9 +35,9 @@ function flux_media_uninstall() {
 
 	// Remove custom database tables.
 	$tables = [
-		$wpdb->prefix . 'flux_media_conversions',
-		$wpdb->prefix . 'flux_media_logs',
-		$wpdb->prefix . 'flux_media_settings',
+		$wpdb->prefix . 'flux_media_optimizer_conversions',
+		$wpdb->prefix . 'flux_media_optimizer_logs',
+		$wpdb->prefix . 'flux_media_optimizer_settings',
 	];
 
 	foreach ( $tables as $table ) {
@@ -46,9 +46,9 @@ function flux_media_uninstall() {
 
 	// Remove plugin options.
 	$options = [
-		'flux_media_settings',
-		'flux_media_version',
-		'flux_media_activation_redirect',
+		'flux_media_optimizer_settings',
+		'flux_media_optimizer_version',
+		'flux_media_optimizer_activation_redirect',
 	];
 
 	foreach ( $options as $option ) {
@@ -58,21 +58,22 @@ function flux_media_uninstall() {
 
 	// Remove post meta for all attachments.
 	$wpdb->query(
-		"DELETE FROM {$wpdb->postmeta} WHERE meta_key LIKE '_flux_media_%'"
+		"DELETE FROM {$wpdb->postmeta} WHERE meta_key LIKE '_flux_media_optimizer_%'"
 	);
 
 	// Remove converted files from uploads directory using WordPress filesystem.
 	$upload_dir = wp_upload_dir();
-	$flux_media_dir = $upload_dir['basedir'] . '/flux-media-converted';
+	$flux_media_optimizer_dir = $upload_dir['basedir'] . '/flux-media-optimizer-converted';
 
-	if ( is_dir( $flux_media_dir ) ) {
+	if ( is_dir( $flux_media_optimizer_dir ) ) {
+
 		// Use WordPress filesystem to remove directory and all contents.
 		global $wp_filesystem;
-		if ( $wp_filesystem && $wp_filesystem->is_dir( $flux_media_dir ) ) {
-			$wp_filesystem->rmdir( $flux_media_dir, true );
+		if ( $wp_filesystem && $wp_filesystem->is_dir( $flux_media_optimizer_dir ) ) {
+			$wp_filesystem->rmdir( $flux_media_optimizer_dir, true );
 		} else {
 			// Fallback: Remove files individually using wp_delete_file().
-			$files = glob( $flux_media_dir . '/*' );
+			$files = glob( $flux_media_optimizer_dir . '/*' );
 			foreach ( $files as $file ) {
 				if ( is_file( $file ) ) {
 					wp_delete_file( $file );
@@ -82,14 +83,14 @@ function flux_media_uninstall() {
 	}
 
 	// Clear any scheduled cron jobs.
-	wp_clear_scheduled_hook( 'flux_media_cleanup' );
-	wp_clear_scheduled_hook( 'flux_media_bulk_convert' );
+	wp_clear_scheduled_hook( 'flux_media_optimizer_cleanup' );
+	wp_clear_scheduled_hook( 'flux_media_optimizer_bulk_convert' );
 
 	// Remove any transients.
 	$wpdb->query(
-		"DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_flux_media_%' OR option_name LIKE '_transient_timeout_flux_media_%'"
+		"DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_flux_media_optimizer_%' OR option_name LIKE '_transient_timeout_flux_media_optimizer_%'"
 	);
 }
 
 // Run the uninstall function.
-flux_media_uninstall();
+flux_media_optimizer_uninstall();

@@ -1,6 +1,6 @@
 <?php
 /**
- * WP-CLI command for Flux Media plugin.
+ * WP-CLI command for Flux Media Optimizer plugin.
  *
  * @package FluxMedia
  * @since 0.1.0
@@ -15,7 +15,7 @@ use FluxMedia\App\Services\BulkConverter;
 use FluxMedia\App\Services\Settings;
 
 /**
- * WP-CLI command for managing Flux Media conversions.
+ * WP-CLI command for managing Flux Media Optimizer conversions.
  *
  * @since 0.1.0
  */
@@ -69,8 +69,8 @@ class FluxMediaCommand extends WP_CLI_Command {
      *
      * ## EXAMPLES
      *
-     *     wp flux-media convert-all
-     *     wp flux-media convert-all --batch-size=20
+     *     wp flux-media-optimizer convert-all
+     *     wp flux-media-optimizer convert-all --batch-size=20
      *
      * @since 0.1.0
      * @param array $args Positional arguments.
@@ -92,32 +92,32 @@ class FluxMediaCommand extends WP_CLI_Command {
     }
 
     /**
-     * Clear all Flux Media data and converted files.
+     * Clear all Flux Media Optimizer data and converted files.
      *
      * ## EXAMPLES
      *
-     *     wp flux-media clear-all
+     *     wp flux-media-optimizer clear-all
      *
      * @since 0.1.0
      * @param array $args Positional arguments.
      * @param array $assoc_args Associative arguments.
      */
     public function clear_all( $args, $assoc_args ) {
-        WP_CLI::confirm( 'Are you sure you want to clear all Flux Media data? This will delete all converted files and metadata.' );
+        WP_CLI::confirm( 'Are you sure you want to clear all Flux Media Optimizer data? This will delete all converted files and metadata.' );
         
         // Clear all post meta
         global $wpdb;
-        $deleted_meta = $wpdb->query( "DELETE FROM `".esc_sql($wpdb->postmeta)."` WHERE meta_key LIKE '_flux_media_%'" );
+        $deleted_meta = $wpdb->query( "DELETE FROM `".esc_sql($wpdb->postmeta)."` WHERE meta_key LIKE '_flux_media_optimizer_%'" );
         
         // Clear all converted files
         $upload_dir = wp_upload_dir();
-        $flux_media_dir = $upload_dir['basedir'] . '/flux-media/';
+        $flux_media_optimizer_dir = $upload_dir['basedir'] . '/flux-media-optimizer/';
         
-        if ( is_dir( $flux_media_dir ) ) {
-            $this->delete_directory( $flux_media_dir );
+        if ( is_dir( $flux_media_optimizer_dir ) ) {
+            $this->delete_directory( $flux_media_optimizer_dir );
         }
         
-        WP_CLI::success( "Cleared all Flux Media data. Deleted {$deleted_meta} meta entries and converted files." );
+        WP_CLI::success( "Cleared all Flux Media Optimizer data. Deleted {$deleted_meta} meta entries and converted files." );
     }
 
     /**
@@ -125,7 +125,7 @@ class FluxMediaCommand extends WP_CLI_Command {
      *
      * ## EXAMPLES
      *
-     *     wp flux-media stats
+     *     wp flux-media-optimizer stats
      *
      * @since 0.1.0
      * @param array $args Positional arguments.
@@ -133,8 +133,8 @@ class FluxMediaCommand extends WP_CLI_Command {
      */
     public function stats( $args, $assoc_args ) {
         // Check cache first
-        $cache_key = 'flux_media_cli_stats';
-        $stats = wp_cache_get( $cache_key, 'flux_media' );
+        $cache_key = 'flux_media_optimizer_cli_stats';
+        $stats = wp_cache_get( $cache_key, 'flux_media_optimizer' );
         
         if ( false !== $stats ) {
             WP_CLI::log( "Conversion Statistics (cached):" );
@@ -146,17 +146,17 @@ class FluxMediaCommand extends WP_CLI_Command {
         global $wpdb;
         
         // Get total converted files
-        $total_converted = $wpdb->get_var( "SELECT COUNT(*) FROM `".esc_sql($wpdb->postmeta)."` WHERE meta_key = '_flux_media_converted_formats'" );
+        $total_converted = $wpdb->get_var( "SELECT COUNT(*) FROM `".esc_sql($wpdb->postmeta)."` WHERE meta_key = '_flux_media_optimizer_converted_formats'" );
         
         // Get total file size savings
-        $total_savings = $wpdb->get_var( "SELECT SUM(meta_value) FROM `".esc_sql($wpdb->postmeta)."` WHERE meta_key = '_flux_media_file_size_savings'" );
+        $total_savings = $wpdb->get_var( "SELECT SUM(meta_value) FROM `".esc_sql($wpdb->postmeta)."` WHERE meta_key = '_flux_media_optimizer_file_size_savings'" );
         
         // Cache the results for 5 minutes
         $stats = [
             'total_converted' => $total_converted,
             'total_savings' => $total_savings
         ];
-        wp_cache_set( $cache_key, $stats, 'flux_media', 300 );
+        wp_cache_set( $cache_key, $stats, 'flux_media_optimizer', 300 );
         
         WP_CLI::log( "Conversion Statistics:" );
         WP_CLI::log( "Total converted files: {$total_converted}" );

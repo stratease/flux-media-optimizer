@@ -1,6 +1,6 @@
 <?php
 /**
- * WordPress provider for Flux Media plugin.
+ * WordPress provider for Flux Media Optimizer plugin.
  *
  * @package FluxMedia\Providers
  * @since 0.1.0
@@ -125,17 +125,16 @@ class WordPressProvider {
         add_filter( 'wp_save_image_editor_file', [ $this, 'handle_wp_save_image_editor_file' ], 10, 5 );
         
         // AJAX handlers for attachment actions
-        add_action( 'wp_ajax_flux_media_convert_attachment', [ $this, 'handle_ajax_convert_attachment' ] );
-        add_action( 'wp_ajax_flux_media_disable_conversion', [ $this, 'handle_ajax_disable_conversion' ] );
-        add_action( 'wp_ajax_flux_media_enable_conversion', [ $this, 'handle_ajax_enable_conversion' ] );
-        
+        add_action( 'wp_ajax_flux_media_optimizer_convert_attachment', [ $this, 'handle_ajax_convert_attachment' ] );
+        add_action( 'wp_ajax_flux_media_optimizer_disable_conversion', [ $this, 'handle_ajax_disable_conversion' ] );
+        add_action( 'wp_ajax_flux_media_optimizer_enable_conversion', [ $this, 'handle_ajax_enable_conversion' ] );
         // Cron job for bulk conversion (only if enabled)
         if ( Settings::is_bulk_conversion_enabled() ) {
-            add_action( 'flux_media_bulk_conversion', [ $this, 'handle_bulk_conversion_cron' ] );
+            add_action( 'flux_media_optimizer_bulk_conversion', [ $this, 'handle_bulk_conversion_cron' ] );
             
             // Schedule cron job if not already scheduled
-            if ( ! wp_next_scheduled( 'flux_media_bulk_conversion' ) ) {
-                wp_schedule_event( time(), 'hourly', 'flux_media_bulk_conversion' );
+            if ( ! wp_next_scheduled( 'flux_media_optimizer_bulk_conversion' ) ) {
+                wp_schedule_event( time(), 'hourly', 'flux_media_optimizer_bulk_conversion' );
             }
         }
 
@@ -156,9 +155,9 @@ class WordPressProvider {
         add_action( 'delete_attachment', [ $this, 'handle_attachment_deletion' ] );
         if ( ! Settings::is_bulk_conversion_enabled() ) {
             // Unschedule cron job if bulk conversion is disabled
-            $timestamp = wp_next_scheduled( 'flux_media_bulk_conversion' );
+            $timestamp = wp_next_scheduled( 'flux_media_optimizer_bulk_conversion' );
             if ( $timestamp ) {
-                wp_unschedule_event( $timestamp, 'flux_media_bulk_conversion' );
+                wp_unschedule_event( $timestamp, 'flux_media_optimizer_bulk_conversion' );
             }
         }
     }
@@ -172,7 +171,7 @@ class WordPressProvider {
      */
     public function handle_media_upload( $attachment_id ) {
         // Check if conversion is disabled for this attachment
-        if ( get_post_meta( $attachment_id, '_flux_media_conversion_disabled', true ) ) {
+        if ( get_post_meta( $attachment_id, '_flux_media_optimizer_conversion_disabled', true ) ) {
             return;
         }
 
@@ -279,9 +278,9 @@ class WordPressProvider {
             }
 
             // Update WordPress meta
-            update_post_meta( $attachment_id, '_flux_media_converted_formats', $results['converted_formats'] );
-            update_post_meta( $attachment_id, '_flux_media_conversion_date', current_time( 'mysql' ) );
-            update_post_meta( $attachment_id, '_flux_media_converted_files', $results['converted_files'] );
+            update_post_meta( $attachment_id, '_flux_media_optimizer_converted_formats', $results['converted_formats'] );
+            update_post_meta( $attachment_id, '_flux_media_optimizer_conversion_date', current_time( 'mysql' ) );
+            update_post_meta( $attachment_id, '_flux_media_optimizer_converted_files', $results['converted_files'] );
 
             // Image conversion completed
         } else {
@@ -344,9 +343,9 @@ class WordPressProvider {
             }
 
             // Update WordPress meta
-            update_post_meta( $attachment_id, '_flux_media_converted_formats', $results['converted_formats'] );
-            update_post_meta( $attachment_id, '_flux_media_conversion_date', current_time( 'mysql' ) );
-            update_post_meta( $attachment_id, '_flux_media_converted_files', $results['converted_files'] );
+            update_post_meta( $attachment_id, '_flux_media_optimizer_converted_formats', $results['converted_formats'] );
+            update_post_meta( $attachment_id, '_flux_media_optimizer_conversion_date', current_time( 'mysql' ) );
+            update_post_meta( $attachment_id, '_flux_media_optimizer_converted_files', $results['converted_files'] );
 
             // Video conversion completed
         } else {
@@ -362,7 +361,7 @@ class WordPressProvider {
      * @return void
      */
     private function cleanup_converted_files( $attachment_id ) {
-        $converted_files = get_post_meta( $attachment_id, '_flux_media_converted_files', true );
+        $converted_files = get_post_meta( $attachment_id, '_flux_media_optimizer_converted_files', true );
         
         if ( empty( $converted_files ) ) {
             return;
@@ -389,9 +388,9 @@ class WordPressProvider {
         }
 
         // Clear post meta data
-        delete_post_meta( $attachment_id, '_flux_media_converted_files' );
-        delete_post_meta( $attachment_id, '_flux_media_converted_formats' );
-        delete_post_meta( $attachment_id, '_flux_media_conversion_date' );
+        delete_post_meta( $attachment_id, '_flux_media_optimizer_converted_files' );
+        delete_post_meta( $attachment_id, '_flux_media_optimizer_converted_formats' );
+        delete_post_meta( $attachment_id, '_flux_media_optimizer_conversion_date' );
 
         $this->logger->info( "Deleted {$deleted_count}/{$total_count} converted files for attachment {$attachment_id}" );
     }
@@ -404,7 +403,7 @@ class WordPressProvider {
      * @return array Array of format => file_path mappings.
      */
     public function get_converted_files( $attachment_id ) {
-        return get_post_meta( $attachment_id, '_flux_media_converted_files', true ) ?: [];
+        return get_post_meta( $attachment_id, '_flux_media_optimizer_converted_files', true ) ?: [];
     }
 
     /**
@@ -467,9 +466,9 @@ class WordPressProvider {
         }
 
         // Clear post meta data
-        delete_post_meta( $attachment_id, '_flux_media_converted_files' );
-        delete_post_meta( $attachment_id, '_flux_media_converted_formats' );
-        delete_post_meta( $attachment_id, '_flux_media_conversion_date' );
+        delete_post_meta( $attachment_id, '_flux_media_optimizer_converted_files' );
+        delete_post_meta( $attachment_id, '_flux_media_optimizer_converted_formats' );
+        delete_post_meta( $attachment_id, '_flux_media_optimizer_conversion_date' );
 
         $this->logger->info( "Deleted {$deleted_count}/{$total_count} converted files for attachment {$attachment_id}" );
 
@@ -586,7 +585,7 @@ class WordPressProvider {
     public function handle_ajax_convert_attachment() {
         // Verify nonce
         $nonce = sanitize_text_field( wp_unslash( $_POST['nonce'] ?? '' ) );
-        if ( ! wp_verify_nonce( $nonce, 'flux_media_convert_attachment' ) ) {
+        if ( ! wp_verify_nonce( $nonce, 'flux_media_optimizer_convert_attachment' ) ) {
             wp_die( 'Security check failed' );
         }
 
@@ -618,7 +617,7 @@ class WordPressProvider {
     public function handle_ajax_disable_conversion() {
         // Verify nonce
         $nonce = sanitize_text_field( wp_unslash( $_POST['nonce'] ?? '' ) );
-        if ( ! wp_verify_nonce( $nonce, 'flux_media_disable_conversion' ) ) {
+        if ( ! wp_verify_nonce( $nonce, 'flux_media_optimizer_disable_conversion' ) ) {
             wp_die( 'Security check failed' );
         }
 
@@ -636,7 +635,7 @@ class WordPressProvider {
         $this->delete_converted_files( $attachment_id );
 
         // Mark as conversion disabled
-        update_post_meta( $attachment_id, '_flux_media_conversion_disabled', true );
+        update_post_meta( $attachment_id, '_flux_media_optimizer_conversion_disabled', true );
 
         // Remove from conversion tracking
         $this->conversion_tracker->delete_attachment_conversions( $attachment_id );
@@ -653,7 +652,7 @@ class WordPressProvider {
     public function handle_ajax_enable_conversion() {
         // Verify nonce
         $nonce = sanitize_text_field( wp_unslash( $_POST['nonce'] ?? '' ) );
-        if ( ! wp_verify_nonce( $nonce, 'flux_media_enable_conversion' ) ) {
+        if ( ! wp_verify_nonce( $nonce, 'flux_media_optimizer_enable_conversion' ) ) {
             wp_die( 'Security check failed' );
         }
 
@@ -668,7 +667,7 @@ class WordPressProvider {
         }
 
         // Remove conversion disabled flag
-        delete_post_meta( $attachment_id, '_flux_media_conversion_disabled' );
+        delete_post_meta( $attachment_id, '_flux_media_optimizer_conversion_disabled' );
 
         wp_send_json_success( 'Conversion enabled successfully' );
     }
@@ -716,7 +715,7 @@ class WordPressProvider {
         }
 
         // Bail if conversion disabled for this attachment
-        if ( get_post_meta( $post_id, '_flux_media_conversion_disabled', true ) ) {
+        if ( get_post_meta( $post_id, '_flux_media_optimizer_conversion_disabled', true ) ) {
             return $override;
         }
 
@@ -744,7 +743,7 @@ class WordPressProvider {
      */
     public function handle_update_attachment_metadata( $data, $attachment_id ) {
         // Bail if conversion disabled for this attachment
-        if ( get_post_meta( $attachment_id, '_flux_media_conversion_disabled', true ) ) {
+        if ( get_post_meta( $attachment_id, '_flux_media_optimizer_conversion_disabled', true ) ) {
             return $data;
         }
 
@@ -780,7 +779,7 @@ class WordPressProvider {
      */
     public function handle_update_attached_file( $file, $attachment_id ) {
         // Bail if conversion disabled for this attachment
-        if ( get_post_meta( $attachment_id, '_flux_media_conversion_disabled', true ) ) {
+        if ( get_post_meta( $attachment_id, '_flux_media_optimizer_conversion_disabled', true ) ) {
             return $file;
         }
 

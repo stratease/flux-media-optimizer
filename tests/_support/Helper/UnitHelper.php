@@ -1,6 +1,6 @@
 <?php
 /**
- * Unit test helper for Flux Media plugin.
+ * Unit test helper for Flux Media Optimizer plugin.
  *
  * @package FluxMedia\Tests\Support\Helper
  * @since 0.1.0

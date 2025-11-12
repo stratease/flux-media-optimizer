@@ -1,5 +1,5 @@
 /**
- * Attachment page JavaScript functionality for Flux Media plugin.
+ * Attachment page JavaScript functionality for Flux Media Optimizer plugin.
  *
  * @package FluxMedia
  * @since 0.1.0
@@ -25,7 +25,7 @@ function fluxMediaConvertAttachment(attachmentId) {
 
     // Make AJAX request
     const data = {
-        action: 'flux_media_convert_attachment',
+        action: 'flux_media_optimizer_convert_attachment',
         attachment_id: attachmentId,
         nonce: fluxMediaAdmin.convertNonce
     };
@@ -86,7 +86,7 @@ function fluxMediaDisableConversion(attachmentId) {
 
     // Make AJAX request
     const data = {
-        action: 'flux_media_disable_conversion',
+        action: 'flux_media_optimizer_disable_conversion',
         attachment_id: attachmentId,
         nonce: fluxMediaAdmin.disableNonce
     };
@@ -143,7 +143,7 @@ function fluxMediaEnableConversion(attachmentId) {
 
     // Make AJAX request
     const data = {
-        action: 'flux_media_enable_conversion',
+        action: 'flux_media_optimizer_enable_conversion',
         attachment_id: attachmentId,
         nonce: fluxMediaAdmin.enableNonce
     };
@@ -189,12 +189,12 @@ function fluxMediaEnableConversion(attachmentId) {
  */
 function showNotice(message, type = 'info') {
     // Remove any existing notices
-    const existingNotices = document.querySelectorAll('.flux-media-notice');
+    const existingNotices = document.querySelectorAll('.flux-media-optimizer-notice');
     existingNotices.forEach(notice => notice.remove());
 
     // Create notice element
     const notice = document.createElement('div');
-    notice.className = `flux-media-notice notice notice-${type} is-dismissible`;
+    notice.className = `flux-media-optimizer-notice notice notice-${type} is-dismissible`;
     notice.style.cssText = 'position: fixed; top: 32px; right: 20px; z-index: 999999; max-width: 400px;';
     
     const noticeContent = document.createElement('p');
@@ -228,8 +228,8 @@ window.fluxMediaEnableConversion = fluxMediaEnableConversion;
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('Flux Media attachment functionality loaded');
+        console.log('Flux Media Optimizer attachment functionality loaded');
     });
 } else {
-    console.log('Flux Media attachment functionality loaded');
+    console.log('Flux Media Optimizer attachment functionality loaded');
 }

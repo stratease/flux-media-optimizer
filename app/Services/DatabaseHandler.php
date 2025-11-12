@@ -34,7 +34,7 @@ class DatabaseHandler extends AbstractProcessingHandler {
 	 */
 	public function __construct( $level = \FluxMedia\Monolog\Logger::DEBUG, $bubble = true ) {
 		global $wpdb;
-		$this->table_name = $wpdb->prefix . 'flux_media_logs';
+		$this->table_name = $wpdb->prefix . 'flux_media_optimizer_logs';
 		parent::__construct( $level, $bubble );
 	}
 
@@ -48,7 +48,7 @@ class DatabaseHandler extends AbstractProcessingHandler {
 		global $wpdb;
 
 		// Check if logging is disabled
-		$options = get_option( 'flux_media_options', [] );
+		$options = get_option( 'flux_media_optimizer_options', [] );
 		if ( ! ( $options['enable_logging'] ?? true ) ) {
 			return;
 		}

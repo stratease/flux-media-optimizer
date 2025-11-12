@@ -1,6 +1,6 @@
 <?php
 /**
- * Centralized settings management for Flux Media plugin.
+ * Centralized settings management for Flux Media Optimizer plugin.
  *
  * @package FluxMedia
  * @since 0.1.0
@@ -67,7 +67,7 @@ class Settings {
 	 * @since 0.1.0
 	 * @var string
 	 */
-	private static $option_name = 'flux_media_options';
+	private static $option_name = 'flux_media_optimizer_options';
 
 	/**
 	 * Get all default settings.

@@ -21,7 +21,7 @@ class FFmpegAutoloader {
 	 * @since 0.1.0
 	 */
 	public static function init() {
-		if ( ! defined( 'FLUX_MEDIA_PLUGIN_DIR' ) ) {
+		if ( ! defined( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR' ) ) {
 			return;
 		}
 
@@ -41,15 +41,15 @@ class FFmpegAutoloader {
 	 */
 	public static function autoload( $class_name ) {
 
-		if(self::load_class( $class_name , 'FluxMedia\\FFMpeg\\', FLUX_MEDIA_PLUGIN_DIR . 'vendor-prefixed/php-ffmpeg/php-ffmpeg/src/' )) {
+		if(self::load_class( $class_name , 'FluxMedia\\FFMpeg\\', FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR . 'vendor-prefixed/php-ffmpeg/php-ffmpeg/src/' )) {
             return;
         }
 
-        if(self::load_class( $class_name , 'FluxMedia\\', FLUX_MEDIA_PLUGIN_DIR . 'vendor-prefixed/alchemy/binary-driver/src/' )) {
+        if(self::load_class( $class_name , 'FluxMedia\\', FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR . 'vendor-prefixed/alchemy/binary-driver/src/' )) {
             return;
         }
 
-        if(self::load_class( $class_name , 'FluxMedia\\', FLUX_MEDIA_PLUGIN_DIR . 'vendor-prefixed/neutron/temporary-filesystem/src/' )) {
+        if(self::load_class( $class_name , 'FluxMedia\\', FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR . 'vendor-prefixed/neutron/temporary-filesystem/src/' )) {
             return;
         }
 	}

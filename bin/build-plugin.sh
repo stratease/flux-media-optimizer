@@ -1,17 +1,17 @@
 #!/bin/bash
 
-# Build script for Flux Media WordPress plugin
+# Build script for Flux Media Optimizer WordPress plugin
 # Creates a zip file excluding development files and directories
 
 set -e
 
 # Get the plugin directory (parent of scripts directory)
 PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PLUGIN_NAME="flux-media"
+PLUGIN_NAME="flux-media-optimizer"
 
 # Try to extract version from main plugin file, fallback to timestamp
-if [ -f "$PLUGIN_DIR/flux-media.php" ]; then
-    VERSION=$(grep "Version:" "$PLUGIN_DIR/flux-media.php" | sed 's/.*Version:[[:space:]]*//' | tr -d '\r\n' | tr -d ' ')
+if [ -f "$PLUGIN_DIR/flux-media-optimizer.php" ]; then
+    VERSION=$(grep "Version:" "$PLUGIN_DIR/flux-media-optimizer.php" | sed 's/.*Version:[[:space:]]*//' | tr -d '\r\n' | tr -d ' ')
 else
     VERSION="$(date +%Y%m%d-%H%M%S)"
 fi
@@ -45,7 +45,7 @@ echo "🏗️ Building frontend assets..."
 npm run build
 
 # Create temporary directory for WordPress.org structure
-TEMP_BUILD_DIR="/tmp/flux-media-build-$$"
+TEMP_BUILD_DIR="/tmp/flux-media-optimizer-build-$$"
 mkdir -p "$TEMP_BUILD_DIR/$PLUGIN_NAME"
 
 # Copy all files to temp directory with proper structure

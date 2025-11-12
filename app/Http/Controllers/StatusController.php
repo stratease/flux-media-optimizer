@@ -1,6 +1,6 @@
 <?php
 /**
- * Status REST API controller for Flux Media plugin.
+ * Status REST API controller for Flux Media Optimizer plugin.
  *
  * @package FluxMedia
  * @since 0.1.0
@@ -68,7 +68,7 @@ class StatusController extends BaseController {
 	 * @since 0.1.0
 	 */
 	public function register_routes() {
-		register_rest_route( 'flux-media/v1', '/status', [
+		register_rest_route( 'flux-media-optimizer/v1', '/status', [
 			[
 				'methods' => 'GET',
 				'callback' => [ $this, 'get_status' ],
@@ -76,7 +76,7 @@ class StatusController extends BaseController {
 			],
 		] );
 
-		register_rest_route( 'flux-media/v1', '/quota', [
+		register_rest_route( 'flux-media-optimizer/v1', '/quota', [
 			[
 				'methods' => 'GET',
 				'callback' => [ $this, 'get_quota' ],

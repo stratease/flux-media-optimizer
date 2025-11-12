@@ -1,8 +1,8 @@
-# Flux Media
+# Flux Media Optimizer by Flux Plugins
 
-Advanced image and video optimization plugin for WordPress with modern architecture, React-based admin interface, and comprehensive SaaS API integration.
+One-click AVIF/WebP image optimization today, with built-in video compression.
 
-**Source Code**: [https://github.com/stratease/flux-media](https://github.com/stratease/flux-media)
+**Source Code**: [https://github.com/stratease/flux-media-optimizer](https://github.com/stratease/flux-media-optimizer)
 
 ## 🚀 Features
 
@@ -12,6 +12,11 @@ Advanced image and video optimization plugin for WordPress with modern architect
 - **Quality Control**: Configurable quality settings with version-specific AVIF optimization
 - **Automatic Processing**: Convert on upload and bulk process existing media
 - **WordPress Integration**: Seamless integration with Gutenberg blocks and responsive images
+
+### Video Optimization
+- **FFmpeg-Powered**: Uses PHP-FFmpeg for efficient MP4/WebM generation
+- **Size & Quality Controls**: Configure bitrate and presets to balance clarity and savings
+- **Bulk & On-Upload Support**: Convert existing library items or new uploads automatically
 
 ### SaaS API Integration
 - **License Key Authentication**: Secure API integration with license key validation
@@ -82,7 +87,7 @@ This plugin uses a modern, decoupled architecture that separates business logic 
 ## 📁 Project Structure
 
 ```
-flux-media/
+flux-media-optimizer/
 ├── app/                          # Main application code
 │   ├── Services/                 # Business logic services
 │   ├── Http/Controllers/         # REST API controllers
@@ -97,7 +102,7 @@ flux-media/
 
 ## 🚀 API Endpoints
 
-All endpoints are prefixed with `/wp-json/flux-media/v1/`:
+All endpoints are prefixed with `/wp-json/flux-media-optimizer/v1/`:
 
 - `GET /system/status` - System status and capabilities
 - `GET /options` - Plugin options
@@ -133,7 +138,7 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 
 ## 📄 License
 
-GPL-2.0-or-later - See [LICENSE](LICENSE) file for details.
+GPL-2.0+ - See [LICENSE](LICENSE) file for details.
 
 ## 🆘 Support
 
@@ -151,7 +156,7 @@ GPL-2.0-or-later - See [LICENSE](LICENSE) file for details.
 ### Contact
 - **Email**: support@fluxplugins.com
 - **Website**: https://fluxplugins.com
-- **GitHub**: https://github.com/stratease/flux-media
+- **GitHub**: https://github.com/stratease/flux-media-optimizer
 
 ---
 

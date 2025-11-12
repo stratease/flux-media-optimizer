@@ -43,7 +43,7 @@ class ConversionTracker {
 	public function __construct( Logger $logger ) {
 		$this->logger = $logger;
 		global $wpdb;
-		$this->table_name = $wpdb->prefix . 'flux_media_conversions';
+		$this->table_name = $wpdb->prefix . 'flux_media_optimizer_conversions';
 	}
 
 	/**
@@ -88,8 +88,8 @@ class ConversionTracker {
 			$this->logger->info( "Conversion recorded for attachment {$attachment_id}, type {$file_type}" );
 			
 			// Clear related caches
-			wp_cache_delete( 'flux_media_conversion_stats', 'flux_media' );
-			wp_cache_delete( 'flux_media_savings_stats', 'flux_media' );
+			wp_cache_delete( 'flux_media_optimizer_conversion_stats', 'flux_media_optimizer' );
+			wp_cache_delete( 'flux_media_optimizer_savings_stats', 'flux_media_optimizer' );
 		}
 
 		return $result !== false;
@@ -202,8 +202,8 @@ class ConversionTracker {
 	 */
 	public function get_conversion_stats() {
 		// Check cache first
-		$cache_key = 'flux_media_conversion_stats';
-		$stats = wp_cache_get( $cache_key, 'flux_media' );
+		$cache_key = 'flux_media_optimizer_conversion_stats';
+		$stats = wp_cache_get( $cache_key, 'flux_media_optimizer' );
 		
 		if ( false !== $stats ) {
 			return $stats;
@@ -228,7 +228,7 @@ class ConversionTracker {
 		}
 
 		// Cache the results for 5 minutes
-		wp_cache_set( $cache_key, $stats, 'flux_media', 300 );
+		wp_cache_set( $cache_key, $stats, 'flux_media_optimizer', 300 );
 
 		return $stats;
 	}
@@ -241,8 +241,8 @@ class ConversionTracker {
 	 */
 	public function get_savings_stats() {
 		// Check cache first
-		$cache_key = 'flux_media_savings_stats';
-		$stats = wp_cache_get( $cache_key, 'flux_media' );
+		$cache_key = 'flux_media_optimizer_savings_stats';
+		$stats = wp_cache_get( $cache_key, 'flux_media_optimizer' );
 		
 		if ( false !== $stats ) {
 			return $stats;
@@ -296,7 +296,7 @@ class ConversionTracker {
 		];
 
 		// Cache the results for 5 minutes
-		wp_cache_set( $cache_key, $stats, 'flux_media', 300 );
+		wp_cache_set( $cache_key, $stats, 'flux_media_optimizer', 300 );
 
 		return $stats;
 	}

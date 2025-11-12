@@ -81,10 +81,10 @@ const ConversionStatusCard = ({ conversionStats, loading, error }) => {
       <Grid container justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Grid item>
           <Typography variant="h5" gutterBottom>
-            {__('Conversion Status', 'flux-media')}
+            {__('Conversion Status', 'flux-media-optimizer')}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {__('Image and video optimization statistics', 'flux-media')}
+            {__('Image and video optimization statistics', 'flux-media-optimizer')}
           </Typography>
         </Grid>
       </Grid>
@@ -100,7 +100,7 @@ const ConversionStatusCard = ({ conversionStats, loading, error }) => {
               </Grid>
               <Grid item>
                 <Typography variant="h6">
-                  {__('Total Conversions', 'flux-media')}
+                  {__('Total Conversions', 'flux-media-optimizer')}
                 </Typography>
               </Grid>
             </Grid>
@@ -110,7 +110,7 @@ const ConversionStatusCard = ({ conversionStats, loading, error }) => {
                 {totalConversions.toLocaleString()}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {__('Files optimized', 'flux-media')}
+                {__('Files optimized', 'flux-media-optimizer')}
               </Typography>
             </Box>
           </Box>
@@ -125,7 +125,7 @@ const ConversionStatusCard = ({ conversionStats, loading, error }) => {
               </Grid>
               <Grid item>
                 <Typography variant="h6">
-                  {__('Storage Savings', 'flux-media')}
+                  {__('Storage Savings', 'flux-media-optimizer')}
                 </Typography>
               </Grid>
             </Grid>
@@ -135,7 +135,7 @@ const ConversionStatusCard = ({ conversionStats, loading, error }) => {
                 {totalSavingsPercentage.toFixed(1)}%
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {__('Space saved', 'flux-media')}
+                {__('Space saved', 'flux-media-optimizer')}
               </Typography>
             </Box>
           </Box>
@@ -144,11 +144,11 @@ const ConversionStatusCard = ({ conversionStats, loading, error }) => {
         {/* Recent Activity */}
         <Grid item xs={12}>
           <Alert severity="info">
-            <AlertTitle>{__('Recent Activity', 'flux-media')}</AlertTitle>
+            <AlertTitle>{__('Recent Activity', 'flux-media-optimizer')}</AlertTitle>
             <Typography variant="body2">
               {recentConversions > 0 
-                ? __('%d conversions completed in the last 30 days', 'flux-media').replace('%d', recentConversions)
-                : __('No recent conversions', 'flux-media')
+                ? __('%d conversions completed in the last 30 days', 'flux-media-optimizer').replace('%d', recentConversions)
+                : __('No recent conversions', 'flux-media-optimizer')
               }
             </Typography>
           </Alert>

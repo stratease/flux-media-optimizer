@@ -1,18 +1,18 @@
-=== Flux Media ===
-Contributors: fluxmedia
-Tags: images, optimization, webp, avif, compression
-Requires at least: 5.0
+=== Flux Media Optimizer by Flux Plugins ===
+Contributors: fluxplugins
+Tags: image optimization, video compression, webp, avif, flux plugins
+Requires at least: 6.2
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 0.1.0
-License: GPLv2 or later
+Stable tag: 1.0.0
+License: GPL-2.0+
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Compress images to AVIF/WebP for 50-70% faster loads. Boost Core Web Vitals and improve SEO with automatic image optimization.
 
 == Description ==
 
-Transform your WordPress site's image performance. Flux Media automatically converts your images to modern formats like WebP and AVIF.
+Transform your WordPress site's media performance. Flux Media Optimizer by Flux Plugins automatically converts your images to modern formats like WebP and AVIF, with native video compression.
 
 **🚀 Key Benefits:**
 * **50-70% smaller file sizes** - Dramatically reduce image file sizes without quality loss
@@ -23,6 +23,7 @@ Transform your WordPress site's image performance. Flux Media automatically conv
 
 **✨ Smart Features:**
 * **Hybrid approach** - Creates both WebP and AVIF formats for maximum browser compatibility
+* **Video pipeline (in final testing)** - Built-in MP4/WebM conversion powered by FFmpeg
 * **Automatic conversion** - Optimizes images on upload and processes existing media
 * **WordPress integration** - Works with Gutenberg blocks, galleries, and responsive images
 * **Quality control** - Adjustable compression settings (60-100% quality)
@@ -69,26 +70,26 @@ This plugin uses the following third-party libraries:
 
 All production dependencies are included in the plugin package and do not require separate installation. Development dependencies are excluded from the production build to minimize file size.
 
-**🎨 Works with any theme** - Flux Media integrates seamlessly with WordPress's image system, so it works with any theme without modifications.
+**🎨 Works with any theme** - Flux Media Optimizer integrates seamlessly with WordPress's image system, so it works with any theme without modifications.
 
 **📱 Mobile optimized** - Smaller images mean faster mobile loading, crucial for mobile-first indexing and user experience.
 
 **⚡ Performance focused** - Built specifically for WordPress performance optimization, helping you achieve those coveted green scores in Google PageSpeed Insights.
 
-Ready to supercharge your site's performance? Install Flux Media today and watch your Core Web Vitals improve!
+Ready to supercharge your site's performance? Install Flux Media Optimizer by Flux Plugins today for instant image optimization, and get built-in video compression and watch your Core Web Vitals improve!
 
 == Installation ==
 
-1. Upload the plugin files to the `/wp-content/plugins/flux-media` directory, or install the plugin through the WordPress plugins screen directly.
+1. Upload the plugin files to the `/wp-content/plugins/flux-media-optimizer` directory, or install the plugin through the WordPress plugins screen directly.
 2. Activate the plugin through the 'Plugins' screen in WordPress
-3. Navigate to the Flux Media settings page to configure your optimization preferences
+3. Navigate to the Flux Media Optimizer by Flux Plugins settings page to configure your optimization preferences
 4. The plugin will automatically start optimizing new uploads based on your settings
 
 == Frequently Asked Questions ==
 
 = Does this plugin work with any WordPress theme? =
 
-Yes, Flux Media works with any WordPress theme. It integrates seamlessly with WordPress's image rendering system and doesn't require any theme modifications.
+Yes, Flux Media Optimizer works with any WordPress theme. It integrates seamlessly with WordPress's image rendering system and doesn't require any theme modifications.
 
 = What image formats are supported? =
 
@@ -104,7 +105,7 @@ Yes, in a positive way! Faster loading images improve your Core Web Vitals score
 
 = Do I need to configure anything? =
 
-No, Flux Media works out of the box with sensible defaults. You can optionally adjust quality settings, but the plugin will start optimizing images immediately after activation.
+No, Flux Media Optimizer works out of the box with sensible defaults. You can optionally adjust quality settings, but the plugin will start optimizing images immediately after activation.
 
 = Is my data secure? =
 
@@ -116,15 +117,15 @@ The free version provides excellent local optimization. The Pro version (coming 
 
 = Does this work with existing images? =
 
-Yes! Flux Media can bulk process all your existing images. Just go to the settings page and enable "Bulk Convert" to optimize your entire media library with WP Cron.
+Yes! Flux Media Optimizer can bulk process all your existing images. Just go to the settings page and enable "Bulk Convert" to optimize your entire media library with WP Cron.
 
 = Will this break my existing images? =
 
-No, Flux Media creates new optimized versions while keeping your original images as fallbacks. If anything goes wrong, your original images remain untouched.
+No, Flux Media Optimizer creates new optimized versions while keeping your original images as fallbacks. If anything goes wrong, your original images remain untouched.
 
 = What if my server doesn't support WebP or AVIF? =
 
-Flux Media automatically detects your server's capabilities and only creates formats that are supported. If your server doesn't support modern formats, the plugin will gracefully fall back to your original images.
+Flux Media Optimizer automatically detects your server's capabilities and only creates formats that are supported. If your server doesn't support modern formats, the plugin will gracefully fall back to your original images.
 
 == Screenshots ==
 
@@ -136,7 +137,7 @@ Flux Media automatically detects your server's capabilities and only creates for
 
 == Changelog ==
 
-= 0.1.0 =
+= 1.0.0 =
 * Initial release
 * Automatic WebP and AVIF image conversion
 * Hybrid approach for maximum browser compatibility
@@ -149,12 +150,12 @@ Flux Media automatically detects your server's capabilities and only creates for
 
 == Upgrade Notice ==
 
-= 0.1.0 =
-Initial release of Flux Media with comprehensive image optimization features. Perfect for improving your site's Core Web Vitals and SEO performance.
+= 1.0.0 =
+Initial release of Flux Media Optimizer by Flux Plugins with comprehensive media optimization features. Perfect for improving your site's Core Web Vitals and SEO performance.
 
 == Privacy Policy ==
 
-Flux Media is committed to protecting your privacy. By default, all image processing happens locally on your server - your images never leave your WordPress installation.
+Flux Media Optimizer is committed to protecting your privacy. By default, all image processing happens locally on your server - your images never leave your WordPress installation.
 
 **View our full privacy policy**: [https://fluxplugins.com/privacy-policy/](https://fluxplugins.com/privacy-policy/)
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * Options REST API controller for Flux Media plugin.
+ * Options REST API controller for Flux Media Optimizer plugin.
  *
  * @package FluxMedia
  * @since 0.1.0
@@ -44,7 +44,7 @@ class OptionsController extends BaseController {
 	 * @since 0.1.0
 	 */
 	public function register_routes() {
-		register_rest_route( 'flux-media/v1', '/options', [
+		register_rest_route( 'flux-media-optimizer/v1', '/options', [
 			[
 				'methods' => 'GET',
 				'callback' => [ $this, 'get_options' ],

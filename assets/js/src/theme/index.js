@@ -1,7 +1,7 @@
 import { createTheme } from '@mui/material/styles';
 
 /**
- * Flux Media theme configuration
+ * Flux Media Optimizer theme configuration
  * 
  * @since 0.1.0
  */

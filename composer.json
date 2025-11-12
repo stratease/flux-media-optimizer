@@ -1,12 +1,13 @@
 {
-    "name": "flux-media/wp-plugin",
-    "description": "Advanced image and video optimization plugin for WordPress",
+    "name": "flux-plugins/flux-media-optimizer",
+    "description": "One-click AVIF/WebP image optimization with built-in video compression for WordPress.",
     "type": "wordpress-plugin",
     "license": "GPL-2.0-or-later",
     "authors": [
         {
-            "name": "Your Name",
-            "email": "your.email@example.com"
+            "name": "Flux Plugins",
+            "email": "eddie@fluxplugins.com",
+            "homepage": "https://fluxplugins.com"
         }
     ],
     "require": {

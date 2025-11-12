@@ -11,7 +11,7 @@ import {
   Divider,
 } from '@mui/material';
 import { __ } from '@wordpress/i18n';
-import { useSubscribeNewsletter } from '@flux-media/hooks';
+import { useSubscribeNewsletter } from '@flux-media-optimizer/hooks';
 
 /**
  * SubscribeForm component for newsletter subscription
@@ -62,10 +62,10 @@ const SubscribeForm = () => {
   return (
     <Box>
       <Typography variant="h5" gutterBottom>
-        {__('Stay Updated', 'flux-media')}
+        {__('Stay Updated', 'flux-media-optimizer')}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        {__('Subscribe to our newsletter for updates on Flux Media features, tips, and announcements.', 'flux-media')}
+        {__('Subscribe to our newsletter for updates on Flux Media Optimizer features, tips, and announcements.', 'flux-media-optimizer')}
       </Typography>
 
       <Box component="form" onSubmit={handleSubmit}>
@@ -73,8 +73,8 @@ const SubscribeForm = () => {
           <TextField
             fullWidth
             type="email"
-            label={__('Email Address', 'flux-media')}
-            placeholder={__('Enter your email address', 'flux-media')}
+            label={__('Email Address', 'flux-media-optimizer')}
+            placeholder={__('Enter your email address', 'flux-media-optimizer')}
             value={formData.email}
             onChange={handleInputChange('email')}
             required
@@ -96,14 +96,14 @@ const SubscribeForm = () => {
             }
             label={
               <Typography component="span" variant="body2">
-                {__('I accept the', 'flux-media')}{' '}
+                {__('I accept the', 'flux-media-optimizer')}{' '}
                 <a 
                   href="https://fluxplugins.com/privacy-policy" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   style={{ color: 'inherit', textDecoration: 'underline' }}
                 >
-                  {__('privacy policy', 'flux-media')}
+                  {__('privacy policy', 'flux-media-optimizer')}
                 </a>
               </Typography>
             } 
@@ -116,19 +116,19 @@ const SubscribeForm = () => {
               disabled={newsletterMutation.isPending || !formData.email || !formData.privacyAccepted}
               sx={{ minWidth: 120 }}
             >
-              {newsletterMutation.isPending ? __('Subscribing...', 'flux-media') : __('Subscribe', 'flux-media')}
+              {newsletterMutation.isPending ? __('Subscribing...', 'flux-media-optimizer') : __('Subscribe', 'flux-media-optimizer')}
             </Button>
           </Box>
 
           {submitStatus === 'success' && (
             <Alert severity="success" sx={{ mt: 2 }}>
-              {__('Thank you for subscribing! You will receive updates about Flux Media.', 'flux-media')}
+              {__('Thank you for subscribing! You will receive updates about Flux Media Optimizer.', 'flux-media-optimizer')}
             </Alert>
           )}
 
           {submitStatus === 'error' && (
             <Alert severity="error" sx={{ mt: 2 }}>
-              {__('There was an error subscribing. Please check your email address and try again.', 'flux-media')}
+              {__('There was an error subscribing. Please check your email address and try again.', 'flux-media-optimizer')}
             </Alert>
           )}
         </Stack>
@@ -137,7 +137,7 @@ const SubscribeForm = () => {
       <Divider sx={{ my: 2 }} />
       
       <Typography variant="caption" color="text.secondary">
-        {__('By subscribing, you agree to receive emails from Flux Media. You can unsubscribe at any time.', 'flux-media')}
+        {__('By subscribing, you agree to receive emails from Flux Media Optimizer. You can unsubscribe at any time.', 'flux-media-optimizer')}
       </Typography>
     </Box>
   );

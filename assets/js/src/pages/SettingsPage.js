@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Box, Grid, Switch, FormControlLabel, Alert, Divider, TextField, Stack, FormHelperText, Skeleton } from '@mui/material';
 import { __, _x } from '@wordpress/i18n';
-import { useAutoSaveForm } from '@flux-media/hooks/useAutoSaveForm';
-import { useOptions } from '@flux-media/hooks/useOptions';
-import { useSystemStatus } from '@flux-media/hooks/useSystemStatus';
-import { SubscribeForm, SettingsSkeleton } from '@flux-media/components';
+import { useAutoSaveForm } from '@flux-media-optimizer/hooks/useAutoSaveForm';
+import { useOptions } from '@flux-media-optimizer/hooks/useOptions';
+import { useSystemStatus } from '@flux-media-optimizer/hooks/useSystemStatus';
+import { SubscribeForm, SettingsSkeleton } from '@flux-media-optimizer/components';
 
 /**
  * Settings page component with auto-save functionality
@@ -69,7 +69,7 @@ const SettingsPage = () => {
 
   // Determine if there are any errors
   const hasError = optionsError || systemError;
-  const errorMessage = optionsError?.message || systemError?.message || __('Failed to load settings', 'flux-media');
+  const errorMessage = optionsError?.message || systemError?.message || __('Failed to load settings', 'flux-media-optimizer');
   
   // Check if data is still loading
   const isLoading = optionsLoading || systemLoading;
@@ -92,10 +92,10 @@ const SettingsPage = () => {
             <Alert severity="warning" sx={{ mb: 3 }}>
               <Typography variant="body2">
                 {!isWebPSupported() && !isAVIFSupported() 
-                  ? __('Neither WebP nor AVIF conversion is supported by your server. Please install the required PHP extensions (GD or Imagick with WebP/AVIF support) to enable image optimization.', 'flux-media')
+                  ? __('Neither WebP nor AVIF conversion is supported by your server. Please install the required PHP extensions (GD or Imagick with WebP/AVIF support) to enable image optimization.', 'flux-media-optimizer')
                   : !isWebPSupported() 
-                    ? __('WebP conversion is not supported by your server. Please install the required PHP extensions (GD or Imagick with WebP support) to enable WebP optimization.', 'flux-media')
-                    : __('AVIF conversion is not supported by your server. Please install Imagick with AVIF support to enable AVIF optimization.', 'flux-media')
+                    ? __('WebP conversion is not supported by your server. Please install the required PHP extensions (GD or Imagick with WebP support) to enable WebP optimization.', 'flux-media-optimizer')
+                    : __('AVIF conversion is not supported by your server. Please install Imagick with AVIF support to enable AVIF optimization.', 'flux-media-optimizer')
                 }
               </Typography>
             </Alert>
@@ -106,7 +106,7 @@ const SettingsPage = () => {
         <Grid item xs={12} md={6}>
           <Box>
             <Typography variant="h5" gutterBottom>
-              {__('General Settings', 'flux-media')}
+              {__('General Settings', 'flux-media-optimizer')}
             </Typography>
             <Stack spacing={2}>
               <FormControlLabel
@@ -117,7 +117,7 @@ const SettingsPage = () => {
                     onChange={handleSettingChange('image_auto_convert')}
                   />
                 }
-                label={__('Auto-convert on upload', 'flux-media')}
+                label={__('Auto-convert on upload', 'flux-media-optimizer')}
               />
               
               <FormControlLabel
@@ -128,11 +128,11 @@ const SettingsPage = () => {
                     onChange={handleSettingChange('bulk_conversion_enabled')}
                   />
                 }
-                label={__('Enable bulk conversion', 'flux-media')}
+                label={__('Enable bulk conversion', 'flux-media-optimizer')}
               /> 
               <FormHelperText>
               
-                {__('Automatically convert existing media files in the background using WordPress cron.', 'flux-media')}
+                {__('Automatically convert existing media files in the background using WordPress cron.', 'flux-media-optimizer')}
             
             </FormHelperText>
          
@@ -144,11 +144,11 @@ const SettingsPage = () => {
                       onChange={handleSettingChange('hybrid_approach')}
                     />
                   }
-                  label={__('Hybrid approach (experimental - use with caution)', 'flux-media')}
+                  label={__('Hybrid approach (experimental - use with caution)', 'flux-media-optimizer')}
                 />
                             <FormHelperText>
               {
-              __('Creates both WebP and AVIF formats when supported by your server. Serves AVIF where supported (via <picture> tags or server detection), with WebP and the original image as fallback. This is the recommended approach for maximum performance and device compatibility. This is more dependent on theme and plugin compatibility than the native approach.', 'flux-media')
+              __('Creates both WebP and AVIF formats when supported by your server. Serves AVIF where supported (via <picture> tags or server detection), with WebP and the original image as fallback. This is the recommended approach for maximum performance and device compatibility. This is more dependent on theme and plugin compatibility than the native approach.', 'flux-media-optimizer')
               }
             </FormHelperText>
 
@@ -170,7 +170,7 @@ const SettingsPage = () => {
                         }}
                       />
                     }
-                    label={__('Enable WebP conversion', 'flux-media')}
+                    label={__('Enable WebP conversion', 'flux-media-optimizer')}
                   />
                   
                   <FormControlLabel
@@ -189,7 +189,7 @@ const SettingsPage = () => {
                         }}
                       />
                     }
-                    label={__('Enable AVIF conversion', 'flux-media')}
+                    label={__('Enable AVIF conversion', 'flux-media-optimizer')}
                   />
                 </>
               )}
@@ -203,7 +203,7 @@ const SettingsPage = () => {
         <Grid item xs={12} md={6}>
           <Box>
             <Typography variant="h5" gutterBottom>
-              {__('Video Settings', 'flux-media')}
+              {__('Video Settings', 'flux-media-optimizer')}
             </Typography>
             <Stack spacing={2}>
               <FormControlLabel
@@ -214,7 +214,7 @@ const SettingsPage = () => {
                     onChange={handleSettingChange('video_auto_convert')}
                   />
                 }
-                label={__('Auto-convert videos on upload', 'flux-media')}
+                label={__('Auto-convert videos on upload', 'flux-media-optimizer')}
               />
               
               <FormControlLabel
@@ -232,7 +232,7 @@ const SettingsPage = () => {
                     }}
                   />
                 }
-                label={__('Enable AV1 conversion', 'flux-media')}
+                label={__('Enable AV1 conversion', 'flux-media-optimizer')}
               />
               
               <FormControlLabel
@@ -250,7 +250,7 @@ const SettingsPage = () => {
                     }}
                   />
                 }
-                label={__('Enable WebM conversion', 'flux-media')}
+                label={__('Enable WebM conversion', 'flux-media-optimizer')}
               />
             </Stack>
           </Box>
@@ -260,16 +260,16 @@ const SettingsPage = () => {
         <Grid item xs={12} md={6}>
           <Box>
             <Typography variant="h5" gutterBottom>
-              {__('Image Quality Settings', 'flux-media')}
+              {__('Image Quality Settings', 'flux-media-optimizer')}
             </Typography>
             <Stack spacing={3}>
               {/* WebP Quality */}
               <Box sx={{ opacity: isWebPSupported() ? 1 : 0.5 }}>
                 <Typography variant="subtitle1" gutterBottom>
-                  {__('WebP Quality', 'flux-media')}
+                  {__('WebP Quality', 'flux-media-optimizer')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  {__('Current:', 'flux-media')} {settings?.image_webp_quality}% ({__('Higher values produce larger files with better quality', 'flux-media')})
+                  {__('Current:', 'flux-media-optimizer')} {settings?.image_webp_quality}% ({__('Higher values produce larger files with better quality', 'flux-media-optimizer')})
                 </Typography>
                 <input
                   type="range"
@@ -285,10 +285,10 @@ const SettingsPage = () => {
               {/* AVIF Quality */}
               <Box sx={{ opacity: isAVIFSupported() ? 1 : 0.5 }}>
                 <Typography variant="subtitle1" gutterBottom>
-                  {__('AVIF Quality', 'flux-media')}
+                  {__('AVIF Quality', 'flux-media-optimizer')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  {__('Current:', 'flux-media')} {settings?.image_avif_quality}% ({__('AVIF typically needs lower quality for similar file size', 'flux-media')})
+                  {__('Current:', 'flux-media-optimizer')} {settings?.image_avif_quality}% ({__('AVIF typically needs lower quality for similar file size', 'flux-media-optimizer')})
                 </Typography>
                 <input
                   type="range"
@@ -304,10 +304,10 @@ const SettingsPage = () => {
               {/* AVIF Speed */}
               <Box sx={{ opacity: isAVIFSupported() ? 1 : 0.5 }}>
                 <Typography variant="subtitle1" gutterBottom>
-                  {__('AVIF Speed', 'flux-media')}
+                  {__('AVIF Speed', 'flux-media-optimizer')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  {__('Current:', 'flux-media')} {settings?.image_avif_speed} ({__('Lower values = slower encoding but better compression', 'flux-media')})
+                  {__('Current:', 'flux-media-optimizer')} {settings?.image_avif_speed} ({__('Lower values = slower encoding but better compression', 'flux-media-optimizer')})
                 </Typography>
                 <input
                   type="range"
@@ -328,15 +328,15 @@ const SettingsPage = () => {
           <Divider sx={{ my: 2 }} />
           <Box>
             <Typography variant="h5" gutterBottom>
-              {__('Video Quality Settings', 'flux-media')}
+              {__('Video Quality Settings', 'flux-media-optimizer')}
             </Typography>
             <Stack spacing={3}>
               <Box>
                 <Typography variant="subtitle1" gutterBottom>
-                  {__('AV1 CRF (Constant Rate Factor)', 'flux-media')}
+                  {__('AV1 CRF (Constant Rate Factor)', 'flux-media-optimizer')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  {__('Current:', 'flux-media')} {settings?.video_av1_crf} ({__('Lower values = higher quality, larger files', 'flux-media')})
+                  {__('Current:', 'flux-media-optimizer')} {settings?.video_av1_crf} ({__('Lower values = higher quality, larger files', 'flux-media-optimizer')})
                 </Typography>
                 <input
                   type="range"
@@ -351,10 +351,10 @@ const SettingsPage = () => {
 
               <Box>
                 <Typography variant="subtitle1" gutterBottom>
-                  {__('WebM CRF (Constant Rate Factor)', 'flux-media')}
+                  {__('WebM CRF (Constant Rate Factor)', 'flux-media-optimizer')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  {__('Current:', 'flux-media')} {settings?.video_webm_crf} ({__('Lower values = higher quality, larger files', 'flux-media')})
+                  {__('Current:', 'flux-media-optimizer')} {settings?.video_webm_crf} ({__('Lower values = higher quality, larger files', 'flux-media-optimizer')})
                 </Typography>
                 <input
                   type="range"
@@ -369,10 +369,10 @@ const SettingsPage = () => {
 
               <Box>
                 <Typography variant="subtitle1" gutterBottom>
-                  {__('AV1 Preset', 'flux-media')}
+                  {__('AV1 Preset', 'flux-media-optimizer')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  {__('Current:', 'flux-media')} {settings?.video_av1_preset} ({__('Faster presets = larger files, slower presets = smaller files', 'flux-media')})
+                  {__('Current:', 'flux-media-optimizer')} {settings?.video_av1_preset} ({__('Faster presets = larger files, slower presets = smaller files', 'flux-media-optimizer')})
                 </Typography>
                 <select
                   value={settings?.video_av1_preset}
@@ -380,24 +380,24 @@ const SettingsPage = () => {
                   onChange={handleSettingChange('video_av1_preset')}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
                 >
-                  <option value="ultrafast">{__('Ultrafast', 'flux-media')}</option>
-                  <option value="superfast">{__('Superfast', 'flux-media')}</option>
-                  <option value="veryfast">{__('Veryfast', 'flux-media')}</option>
-                  <option value="faster">{__('Faster', 'flux-media')}</option>
-                  <option value="fast">{__('Fast', 'flux-media')}</option>
-                  <option value="medium">{__('Medium', 'flux-media')}</option>
-                  <option value="slow">{__('Slow', 'flux-media')}</option>
-                  <option value="slower">{__('Slower', 'flux-media')}</option>
-                  <option value="veryslow">{__('Veryslow', 'flux-media')}</option>
+                  <option value="ultrafast">{__('Ultrafast', 'flux-media-optimizer')}</option>
+                  <option value="superfast">{__('Superfast', 'flux-media-optimizer')}</option>
+                  <option value="veryfast">{__('Veryfast', 'flux-media-optimizer')}</option>
+                  <option value="faster">{__('Faster', 'flux-media-optimizer')}</option>
+                  <option value="fast">{__('Fast', 'flux-media-optimizer')}</option>
+                  <option value="medium">{__('Medium', 'flux-media-optimizer')}</option>
+                  <option value="slow">{__('Slow', 'flux-media-optimizer')}</option>
+                  <option value="slower">{__('Slower', 'flux-media-optimizer')}</option>
+                  <option value="veryslow">{__('Veryslow', 'flux-media-optimizer')}</option>
                 </select>
               </Box>
 
               <Box>
                 <Typography variant="subtitle1" gutterBottom>
-                  {__('WebM Preset', 'flux-media')}
+                  {__('WebM Preset', 'flux-media-optimizer')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  {__('Current:', 'flux-media')} {settings?.video_webm_preset} ({__('Faster presets = larger files, slower presets = smaller files', 'flux-media')})
+                  {__('Current:', 'flux-media-optimizer')} {settings?.video_webm_preset} ({__('Faster presets = larger files, slower presets = smaller files', 'flux-media-optimizer')})
                 </Typography>
                 <select
                   value={settings?.video_webm_preset}
@@ -405,15 +405,15 @@ const SettingsPage = () => {
                   onChange={handleSettingChange('video_webm_preset')}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
                 >
-                  <option value="ultrafast">{__('Ultrafast', 'flux-media')}</option>
-                  <option value="superfast">{__('Superfast', 'flux-media')}</option>
-                  <option value="veryfast">{__('Veryfast', 'flux-media')}</option>
-                  <option value="faster">{__('Faster', 'flux-media')}</option>
-                  <option value="fast">{__('Fast', 'flux-media')}</option>
-                  <option value="medium">{__('Medium', 'flux-media')}</option>
-                  <option value="slow">{__('Slow', 'flux-media')}</option>
-                  <option value="slower">{__('Slower', 'flux-media')}</option>
-                  <option value="veryslow">{__('Veryslow', 'flux-media')}</option>
+                  <option value="ultrafast">{__('Ultrafast', 'flux-media-optimizer')}</option>
+                  <option value="superfast">{__('Superfast', 'flux-media-optimizer')}</option>
+                  <option value="veryfast">{__('Veryfast', 'flux-media-optimizer')}</option>
+                  <option value="faster">{__('Faster', 'flux-media-optimizer')}</option>
+                  <option value="fast">{__('Fast', 'flux-media-optimizer')}</option>
+                  <option value="medium">{__('Medium', 'flux-media-optimizer')}</option>
+                  <option value="slow">{__('Slow', 'flux-media-optimizer')}</option>
+                  <option value="slower">{__('Slower', 'flux-media-optimizer')}</option>
+                  <option value="veryslow">{__('Veryslow', 'flux-media-optimizer')}</option>
                 </select>
               </Box>
             </Stack>
@@ -425,22 +425,22 @@ const SettingsPage = () => {
           <Divider sx={{ my: 2 }} />
           <Box>
             <Typography variant="h5" gutterBottom>
-              {__('License Settings', 'flux-media')}
+              {__('License Settings', 'flux-media-optimizer')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {__('Enter your Flux Media license key to unlock premium features and remove usage limits.', 'flux-media')}
+              {__('Enter your Flux Media Optimizer license key to unlock premium features and remove usage limits.', 'flux-media-optimizer')}
             </Typography>
             <TextField
               fullWidth
-              label={__('License Key', 'flux-media')}
-              placeholder={__('Enter your license key', 'flux-media')}
+              label={__('License Key', 'flux-media-optimizer')}
+              placeholder={__('Enter your license key', 'flux-media-optimizer')}
               value={settings?.license_key}
               disabled={isLoading}
               onChange={handleSettingChange('license_key')}
               variant="outlined"
               size="small"
               sx={{ maxWidth: 400 }}
-              helperText={__('Your license key will be securely stored and used to validate premium features.', 'flux-media')}
+              helperText={__('Your license key will be securely stored and used to validate premium features.', 'flux-media-optimizer')}
             />
           </Box>
         </Grid>

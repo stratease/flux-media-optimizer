@@ -1,6 +1,6 @@
 <?php
 /**
- * Base REST API controller for Flux Media plugin.
+ * Base REST API controller for Flux Media Optimizer plugin.
  *
  * @package FluxMedia
  * @since 0.1.0

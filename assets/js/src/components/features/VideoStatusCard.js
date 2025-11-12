@@ -62,7 +62,7 @@ const VideoStatusCard = ({ status, loading, error }) => {
   if (error) {
     return (
       <Alert severity="error" sx={{ mb: 3 }}>
-        {__('Error loading video status:', 'flux-media')} {error?.message || __('Unknown error occurred', 'flux-media')}
+        {__('Error loading video status:', 'flux-media-optimizer')} {error?.message || __('Unknown error occurred', 'flux-media-optimizer')}
       </Alert>
     );
   }
@@ -71,7 +71,7 @@ const VideoStatusCard = ({ status, loading, error }) => {
   if (!status) {
     return (
       <Alert severity="warning" sx={{ mb: 3 }}>
-        {__('No video status data available', 'flux-media')}
+        {__('No video status data available', 'flux-media-optimizer')}
       </Alert>
     );
   }
@@ -88,7 +88,7 @@ const VideoStatusCard = ({ status, loading, error }) => {
     return (
       <Chip
         icon={getStatusIcon(available)}
-        label={available ? `${type} ${__('Available', 'flux-media')}` : `${type} ${__('Not Available', 'flux-media')}`}
+        label={available ? `${type} ${__('Available', 'flux-media-optimizer')}` : `${type} ${__('Not Available', 'flux-media-optimizer')}`}
         color={available ? 'success' : 'error'}
         size="small"
       />
@@ -104,10 +104,10 @@ const VideoStatusCard = ({ status, loading, error }) => {
   return (
     <Box>
       <Typography variant="h5" gutterBottom>
-        {__('Video Processing Status', 'flux-media')}
+        {__('Video Processing Status', 'flux-media-optimizer')}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        {__('Current video processing capabilities and requirements', 'flux-media')}
+        {__('Current video processing capabilities and requirements', 'flux-media-optimizer')}
       </Typography>
       <Divider sx={{ mb: 3 }} />
       
@@ -116,12 +116,12 @@ const VideoStatusCard = ({ status, loading, error }) => {
         <Grid item xs={12} md={6}>
           <Box>
             <Typography variant="h6" gutterBottom>
-              {__('Video Processing', 'flux-media')}
+              {__('Video Processing', 'flux-media-optimizer')}
             </Typography>
             
             {/* Overall Video Support Status */}
             <Box sx={{ mb: 2 }}>
-              {getStatusChip(videoProcessor.available, __('Video Processing', 'flux-media'))}
+              {getStatusChip(videoProcessor.available, __('Video Processing', 'flux-media-optimizer'))}
             </Box>
 
             {/* Individual Processors */}
@@ -133,7 +133,7 @@ const VideoStatusCard = ({ status, loading, error }) => {
                       {processor.type?.toUpperCase() || processorType.toUpperCase()}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      {__('Version:', 'flux-media')} {processor.version || __('Unknown', 'flux-media')}
+                      {__('Version:', 'flux-media-optimizer')} {processor.version || __('Unknown', 'flux-media-optimizer')}
                     </Typography>
                     <Grid container spacing={1}>
                       <Grid item>
@@ -162,9 +162,9 @@ const VideoStatusCard = ({ status, loading, error }) => {
         {!hasVideoSupport && (
           <Grid item xs={12}>
             <Alert severity="warning">
-              <AlertTitle>{__('Video Processing Not Available', 'flux-media')}</AlertTitle>
+              <AlertTitle>{__('Video Processing Not Available', 'flux-media-optimizer')}</AlertTitle>
               <Typography variant="body2">
-                {__('Video processing is not available. Please install FFmpeg with AV1/WebM support.', 'flux-media')}
+                {__('Video processing is not available. Please install FFmpeg with AV1/WebM support.', 'flux-media-optimizer')}
               </Typography>
             </Alert>
           </Grid>
@@ -173,9 +173,9 @@ const VideoStatusCard = ({ status, loading, error }) => {
         {hasVideoSupport && (
           <Grid item xs={12}>
             <Alert severity="success">
-              <AlertTitle>{__('Video Processing Ready', 'flux-media')}</AlertTitle>
+              <AlertTitle>{__('Video Processing Ready', 'flux-media-optimizer')}</AlertTitle>
               <Typography variant="body2">
-                {__('Video processing components are available. Flux Media can optimize videos.', 'flux-media')}
+                {__('Video processing components are available. Flux Media Optimizer can optimize videos.', 'flux-media-optimizer')}
               </Typography>
             </Alert>
           </Grid>

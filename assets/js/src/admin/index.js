@@ -1,10 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from '@flux-media/App';
+import App from '@flux-media-optimizer/App';
 
 // Mount the React app to the WordPress admin div
 const mountApp = () => {
-  const container = document.getElementById('flux-media-app');
+  const container = document.getElementById('flux-media-optimizer-app');
   if (container) {
     const root = ReactDOM.createRoot(container);
     root.render(<App />);

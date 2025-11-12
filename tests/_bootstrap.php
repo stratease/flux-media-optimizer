@@ -1,6 +1,6 @@
 <?php
 /**
- * Codeception bootstrap file for Flux Media plugin tests.
+ * Codeception bootstrap file for Flux Media Optimizer plugin tests.
  * Focuses on testing pure business logic components without WordPress dependencies.
  *
  * @package FluxMedia
@@ -11,7 +11,7 @@
 require_once dirname( __DIR__ ) . '/vendor/autoload.php';
 
 // Set up test environment for pure business logic testing
-define( 'TEST_TEMP_DIR', sys_get_temp_dir() . '/flux-media-tests' );
+define( 'TEST_TEMP_DIR', sys_get_temp_dir() . '/flux-media-optimizer-tests' );
 
 // Create test temp directory if it doesn't exist
 if ( ! is_dir( TEST_TEMP_DIR ) ) {

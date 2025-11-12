@@ -215,9 +215,9 @@ class Plugin {
      */
     private function init_ajax_handlers() {
         // AJAX handlers for logged-in users
-        add_action( 'wp_ajax_flux_media_convert_attachment', [ $this->wordpress_provider, 'handle_ajax_convert_attachment' ] );
-        add_action( 'wp_ajax_flux_media_disable_conversion', [ $this->wordpress_provider, 'handle_ajax_disable_conversion' ] );
-        add_action( 'wp_ajax_flux_media_enable_conversion', [ $this->wordpress_provider, 'handle_ajax_enable_conversion' ] );
+        add_action( 'wp_ajax_flux_media_optimizer_convert_attachment', [ $this->wordpress_provider, 'handle_ajax_convert_attachment' ] );
+        add_action( 'wp_ajax_flux_media_optimizer_disable_conversion', [ $this->wordpress_provider, 'handle_ajax_disable_conversion' ] );
+        add_action( 'wp_ajax_flux_media_optimizer_enable_conversion', [ $this->wordpress_provider, 'handle_ajax_enable_conversion' ] );
     }
 
     /**
@@ -241,19 +241,19 @@ class Plugin {
 
         // Enqueue attachment-specific JavaScript
         wp_enqueue_script(
-            'flux-media-attachment',
+            'flux-media-optimizer-attachment',
             plugin_dir_url( dirname( __FILE__ ) ) . 'assets/js/dist/attachment.bundle.js',
             [],
-            FLUX_MEDIA_VERSION,
+            FLUX_MEDIA_OPTIMIZER_VERSION,
             true
         );
 
         // Localize script with admin data
-        wp_localize_script( 'flux-media-attachment', 'fluxMediaAdmin', [
+        wp_localize_script( 'flux-media-optimizer-attachment', 'fluxMediaAdmin', [
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-            'convertNonce' => wp_create_nonce( 'flux_media_convert_attachment' ),
-            'disableNonce' => wp_create_nonce( 'flux_media_disable_conversion' ),
-            'enableNonce' => wp_create_nonce( 'flux_media_enable_conversion' ),
+            'convertNonce' => wp_create_nonce( 'flux_media_optimizer_convert_attachment' ),
+            'disableNonce' => wp_create_nonce( 'flux_media_optimizer_disable_conversion' ),
+            'enableNonce' => wp_create_nonce( 'flux_media_optimizer_enable_conversion' ),
         ] );
     }
 }

@@ -1,16 +1,16 @@
 <?php
 /**
- * Plugin Name: Flux Media
- * Plugin URI: https://wordpress.org/plugins/flux-media/
- * Description: Compress images to AVIF/WebP for 50-70% faster loads. Boost Core Web Vitals, improve SEO rankings, and enhance user experience with automatic image optimization.
- * Version: 0.1.0
- * Author: Flux Media
+ * Plugin Name: Flux Media Optimizer by Flux Plugins
+ * Plugin URI: https://fluxplugins.com/media-optimizer
+ * Description: One-click image (AVIF & WebP) and video optimization for WordPress.
+ * Version: 1.0.0
+ * Author: Flux Plugins
  * Author URI: https://fluxplugins.com
- * License: GPL v2 or later
+ * License: GPL-2.0+
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: flux-media
+ * Text Domain: flux-media-optimizer
  * Domain Path: /languages
- * Requires at least: 5.0
+ * Requires at least: 6.2
  * Tested up to: 6.8
  * Requires PHP: 8.0
  *
@@ -26,15 +26,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'FLUX_MEDIA_VERSION', '0.1.0' );
-define( 'FLUX_MEDIA_PLUGIN_FILE', __FILE__ );
-define( 'FLUX_MEDIA_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
-define( 'FLUX_MEDIA_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-define( 'FLUX_MEDIA_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
+define( 'FLUX_MEDIA_OPTIMIZER_VERSION', '1.0.0' );
+define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_FILE', __FILE__ );
+define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
 // Check PHP version compatibility.
 if ( version_compare( PHP_VERSION, '7.4', '<' ) ) {
-	add_action( 'admin_notices', 'flux_media_php_version_notice' );
+	add_action( 'admin_notices', 'flux_media_optimizer_php_version_notice' );
 	return;
 }
 
@@ -43,14 +43,14 @@ if ( version_compare( PHP_VERSION, '7.4', '<' ) ) {
  *
  * @since 0.1.0
  */
-function flux_media_php_version_notice() {
+function flux_media_optimizer_php_version_notice() {
 	?>
 	<div class="notice notice-error">
 		<p>
 			<?php
 			printf(
 				/* translators: 1: Current PHP version, 2: Required PHP version */
-				esc_html__( 'Flux Media requires PHP %2$s or higher. You are running PHP %1$s.', 'flux-media' ),
+				esc_html__( 'Flux Media Optimizer requires PHP %2$s or higher. You are running PHP %1$s.', 'flux-media-optimizer' ),
 				PHP_VERSION,
 				'7.4'
 			);
@@ -61,12 +61,12 @@ function flux_media_php_version_notice() {
 }
 
 // Load Composer autoloader.
-if ( file_exists( FLUX_MEDIA_PLUGIN_DIR . 'vendor/autoload.php' )
-	&& file_exists( FLUX_MEDIA_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
-	require_once FLUX_MEDIA_PLUGIN_DIR . 'vendor/autoload.php';
-	require_once FLUX_MEDIA_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
+if ( file_exists( FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR . 'vendor/autoload.php' )
+	&& file_exists( FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
+	require_once FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR . 'vendor/autoload.php';
+	require_once FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
 } else {
-	add_action( 'admin_notices', 'flux_media_composer_notice' );
+	add_action( 'admin_notices', 'flux_media_optimizer_composer_notice' );
 	return;
 }
 
@@ -78,35 +78,35 @@ FFmpegAutoloader::init();
  *
  * @since 0.1.0
  */
-function flux_media_composer_notice() {
+function flux_media_optimizer_composer_notice() {
 	?>
 	<div class="notice notice-error">
 		<p>
-			<?php esc_html_e( 'Flux Media requires Composer dependencies. Please run "composer install" in the plugin directory.', 'flux-media' ); ?>
+			<?php esc_html_e( 'Flux Media Optimizer requires Composer dependencies. Please run "composer install" in the plugin directory.', 'flux-media-optimizer' ); ?>
 		</p>
 	</div>
 	<?php
 }
 
 // Initialize the plugin.
-add_action( 'plugins_loaded', 'flux_media_init' );
+add_action( 'plugins_loaded', 'flux_media_optimizer_init' );
 
 // Handle activation redirect.
-add_action( 'admin_init', 'flux_media_activation_redirect' );
+add_action( 'admin_init', 'flux_media_optimizer_activation_redirect' );
 
 /**
- * Initialize the Flux Media plugin.
+ * Initialize the Flux Media Optimizer plugin.
  *
  * @since 0.1.0
  */
-function flux_media_init() {
+function flux_media_optimizer_init() {
 	// Initialize the main plugin class.
-	$flux_media = new FluxMedia\App\Plugin();
-	$flux_media->init();
+	$flux_media_optimizer = new FluxMedia\App\Plugin();
+	$flux_media_optimizer->init();
 
 	// Register WP-CLI commands if WP-CLI is available.
 	if ( defined( 'WP_CLI' ) && WP_CLI ) {
-		WP_CLI::add_command( 'flux-media', 'FluxMedia\App\Console\Commands\FluxMediaCommand' );
+		WP_CLI::add_command( 'flux-media-optimizer', 'FluxMedia\App\Console\Commands\FluxMediaCommand' );
 	}
 }
 
@@ -115,29 +115,29 @@ function flux_media_init() {
  *
  * @since 0.1.0
  */
-function flux_media_activation_redirect() {
+function flux_media_optimizer_activation_redirect() {
 	// Only redirect if transient is set and user has proper capabilities
-	if ( get_transient( 'flux_media_activation_redirect' ) && current_user_can( 'manage_options' ) ) {
+	if ( get_transient( 'flux_media_optimizer_activation_redirect' ) && current_user_can( 'manage_options' ) ) {
 		// Delete the transient
-		delete_transient( 'flux_media_activation_redirect' );
+		delete_transient( 'flux_media_optimizer_activation_redirect' );
 		
 		// Redirect to admin page
-		wp_redirect( admin_url( 'admin.php?page=flux-media' ) );
+		wp_redirect( admin_url( 'admin.php?page=flux-media-optimizer' ) );
 		exit;
 	}
 }
 
 // Activation and deactivation hooks.
-register_activation_hook( __FILE__, 'flux_media_activate' );
-register_deactivation_hook( __FILE__, 'flux_media_deactivate' );
-register_uninstall_hook( __FILE__, 'flux_media_uninstall' );
+register_activation_hook( __FILE__, 'flux_media_optimizer_activate' );
+register_deactivation_hook( __FILE__, 'flux_media_optimizer_deactivate' );
+register_uninstall_hook( __FILE__, 'flux_media_optimizer_uninstall' );
 
 /**
  * Plugin activation handler.
  *
  * @since 0.1.0
  */
-function flux_media_activate() {
+function flux_media_optimizer_activate() {
 	// Create database tables
 	FluxMedia\App\Services\Database::create_tables();
 	
@@ -146,10 +146,12 @@ function flux_media_activate() {
 	$settings->initialize_defaults();
 	
 	// Schedule cleanup cron job.
-	wp_schedule_event( time(), 'daily', 'flux_media_cleanup' );
+	if ( ! wp_next_scheduled( 'flux_media_optimizer_cleanup' ) ) {
+		wp_schedule_event( time(), 'daily', 'flux_media_optimizer_cleanup' );
+	}
 	
 	// Set transient to redirect to admin page after activation
-	set_transient( 'flux_media_activation_redirect', true, 60 );
+	set_transient( 'flux_media_optimizer_activation_redirect', true, 60 );
 	
 	// TODO: Initialize SaaS API integration with license key validation
 	// This will be implemented when the SaaS service is available
@@ -160,10 +162,10 @@ function flux_media_activate() {
  *
  * @since 0.1.0
  */
-function flux_media_deactivate() {
+function flux_media_optimizer_deactivate() {
 	// Clear scheduled events.
-	wp_clear_scheduled_hook( 'flux_media_cleanup' );
-	wp_clear_scheduled_hook( 'flux_media_bulk_conversion' );
+	wp_clear_scheduled_hook( 'flux_media_optimizer_cleanup' );
+	wp_clear_scheduled_hook( 'flux_media_optimizer_bulk_conversion' );
 
 	// Note: We don't drop tables on deactivation to preserve data
 	// Tables will only be dropped on uninstall
@@ -174,7 +176,8 @@ function flux_media_deactivate() {
  *
  * @since 0.1.0
  */
-function flux_media_uninstall() {	
+function flux_media_optimizer_uninstall() {	
 	// Clear scheduled events
-	wp_clear_scheduled_hook( 'flux_media_cleanup' );
+	wp_clear_scheduled_hook( 'flux_media_optimizer_cleanup' );
+	wp_clear_scheduled_hook( 'flux_media_optimizer_bulk_conversion' );
 }

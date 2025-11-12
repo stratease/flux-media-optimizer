@@ -9,7 +9,7 @@
 namespace FluxMedia\App\Services;
 
 /**
- * Options management for Flux Media plugin.
+ * Options management for Flux Media Optimizer plugin.
  *
  * @since 0.1.0
  */
@@ -69,9 +69,9 @@ class Options {
 	 * @since 0.1.0
 	 */
 	public static function set_defaults() {
-		$current_options = get_option( 'flux_media_options', [] );
+		$current_options = get_option( 'flux_media_optimizer_options', [] );
 		$merged_options = array_merge( self::$defaults, $current_options );
-		update_option( 'flux_media_options', $merged_options );
+		update_option( 'flux_media_optimizer_options', $merged_options );
 	}
 
 	/**
@@ -83,7 +83,7 @@ class Options {
 	 * @return mixed Option value.
 	 */
 	public static function get( $key, $default = null ) {
-		$options = get_option( 'flux_media_options', [] );
+		$options = get_option( 'flux_media_optimizer_options', [] );
 		
 		if ( isset( $options[ $key ] ) ) {
 			return $options[ $key ];
@@ -105,9 +105,9 @@ class Options {
 	 * @return bool True on success, false on failure.
 	 */
 	public static function set( $key, $value ) {
-		$options = get_option( 'flux_media_options', [] );
+		$options = get_option( 'flux_media_optimizer_options', [] );
 		$options[ $key ] = $value;
-		return update_option( 'flux_media_options', $options );
+		return update_option( 'flux_media_optimizer_options', $options );
 	}
 
 	/**
@@ -117,7 +117,7 @@ class Options {
 	 * @return array All options.
 	 */
 	public static function get_all() {
-		$options = get_option( 'flux_media_options', [] );
+		$options = get_option( 'flux_media_optimizer_options', [] );
 		return array_merge( self::$defaults, $options );
 	}
 
@@ -129,9 +129,9 @@ class Options {
 	 * @return bool True on success, false on failure.
 	 */
 	public static function update( $options ) {
-		$current_options = get_option( 'flux_media_options', [] );
+		$current_options = get_option( 'flux_media_optimizer_options', [] );
 		$merged_options = array_merge( $current_options, $options );
-		return update_option( 'flux_media_options', $merged_options );
+		return update_option( 'flux_media_optimizer_options', $merged_options );
 	}
 
 	/**
@@ -142,9 +142,9 @@ class Options {
 	 * @return bool True on success, false on failure.
 	 */
 	public static function delete( $key ) {
-		$options = get_option( 'flux_media_options', [] );
+		$options = get_option( 'flux_media_optimizer_options', [] );
 		unset( $options[ $key ] );
-		return update_option( 'flux_media_options', $options );
+		return update_option( 'flux_media_optimizer_options', $options );
 	}
 
 	/**
@@ -154,6 +154,6 @@ class Options {
 	 * @return bool True on success, false on failure.
 	 */
 	public static function reset() {
-		return update_option( 'flux_media_options', self::$defaults );
+		return update_option( 'flux_media_optimizer_options', self::$defaults );
 	}
 }

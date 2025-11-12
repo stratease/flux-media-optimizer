@@ -1,6 +1,6 @@
-# Contributing to Flux Media
+# Contributing to Flux Media Optimizer by Flux Plugins
 
-Thank you for your interest in contributing to Flux Media! This document provides comprehensive guidelines and information for contributors, including detailed architecture documentation and coding standards.
+Thank you for your interest in contributing to Flux Media Optimizer by Flux Plugins! This document provides comprehensive guidelines and information for contributors, including detailed architecture documentation and coding standards.
 
 ## 🏗️ Architecture Overview
 
@@ -37,7 +37,7 @@ This plugin has been completely refactored with a modern, decoupled architecture
 ## 📁 Project Structure
 
 ```
-flux-media/
+flux-media-optimizer/
 ├── app/                          # Main application code
 │   ├── Services/                 # Business logic services
 │   │   ├── ImageConverter.php    # Pure image conversion logic
@@ -107,8 +107,8 @@ The plugin implements a sophisticated hybrid approach for optimal image performa
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally:
    ```bash
-   git clone https://github.com/your-username/flux-media.git
-   cd flux-media
+   git clone https://github.com/your-username/flux-media-optimizer.git
+   cd flux-media-optimizer
    ```
 
 3. **Install dependencies**:
@@ -206,7 +206,7 @@ The plugin implements a sophisticated hybrid approach for optimal image performa
 - **WordPress i18n**: Use WordPress translation functions for ALL text strings
 - **MUI Grid**: Use Grid components for responsive layouts (no explicit flex styles)
 - **React Router**: Use Link components for navigation (no manual hash changes)
-- **Path Mapping**: Use `@flux-media` alias for clean imports
+- **Path Mapping**: Use `@flux-media-optimizer` alias for clean imports
 - **Functional Components**: Use React hooks, no class components
 
 #### File Organization
@@ -254,9 +254,9 @@ The plugin implements a sophisticated hybrid approach for optimal image performa
 ## 📊 Database Schema
 
 ### Custom Tables
-- `wp_flux_media_conversions` - Conversion records with file size tracking
-- `wp_flux_media_logs` - Structured logging with pagination
-- `wp_flux_media_settings` - Plugin settings
+- `wp_flux_media_optimizer_conversions` - Conversion records with file size tracking
+- `wp_flux_media_optimizer_logs` - Structured logging with pagination
+- `wp_flux_media_optimizer_settings` - Plugin settings
 
 ### WordPress Integration
 - Uses WordPress options API for configuration
@@ -273,7 +273,7 @@ The plugin implements a sophisticated hybrid approach for optimal image performa
 - **Error Handling**: Consistent error response format
 
 ### API Endpoints
-All endpoints are prefixed with `/wp-json/flux-media/v1/`:
+All endpoints are prefixed with `/wp-json/flux-media-optimizer/v1/`:
 
 - `GET /system/status` - System status and capabilities
 - `GET /options` - Plugin options
@@ -293,7 +293,7 @@ class Settings {
     const DEFAULT_AVIF_SPEED = 5;
     
     public static function get($key, $default = null) {
-        return get_option("flux_media_{$key}", $default);
+        return get_option("flux_media_optimizer_{$key}", $default);
     }
 }
 ```
@@ -468,12 +468,12 @@ Any other context or screenshots about the feature request.
 ### Contact
 - **Email**: support@fluxplugins.com
 - **Website**: https://fluxplugins.com
-- **GitHub**: https://github.com/stratease/flux-media
+- **GitHub**: https://github.com/stratease/flux-media-optimizer
 
 ## 📄 License
 
-By contributing to Flux Media, you agree that your contributions will be licensed under the **GPL v2 or later** license.
+By contributing to Flux Media Optimizer, you agree that your contributions will be licensed under the **GPL v2 or later** license.
 
 ---
 
-Thank you for contributing to Flux Media! 🎉
+Thank you for contributing to Flux Media Optimizer! 🎉

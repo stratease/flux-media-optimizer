@@ -1,6 +1,6 @@
 <?php
 /**
- * Database setup and management for Flux Media plugin.
+ * Database setup and management for Flux Media Optimizer plugin.
  *
  * @package FluxMedia
  * @since 0.1.0
@@ -16,7 +16,7 @@ namespace FluxMedia\App\Services;
 class Database {
 
 	/**
-	 * Create all Flux Media database tables.
+	 * Create all Flux Media Optimizer database tables.
 	 *
 	 * @since 0.1.0
 	 */
@@ -26,7 +26,7 @@ class Database {
 		$charset_collate = $wpdb->get_charset_collate();
 
 		// Create conversions table
-		$conversions_table = $wpdb->prefix . 'flux_media_conversions';
+		$conversions_table = $wpdb->prefix . 'flux_media_optimizer_conversions';
 		$conversions_sql = "CREATE TABLE $conversions_table (
 			id bigint(20) NOT NULL AUTO_INCREMENT,
 			attachment_id bigint(20) NOT NULL,
@@ -43,7 +43,7 @@ class Database {
 		) $charset_collate;";
 
 		// Create logs table
-		$logs_table = $wpdb->prefix . 'flux_media_logs';
+		$logs_table = $wpdb->prefix . 'flux_media_optimizer_logs';
 		$logs_sql = "CREATE TABLE $logs_table (
 			id bigint(20) NOT NULL AUTO_INCREMENT,
 			level varchar(20) NOT NULL,
@@ -61,25 +61,25 @@ class Database {
 		dbDelta( $logs_sql );
 
 		// Store database version for future updates
-		update_option( 'flux_media_db_version', '1.0' );
+		update_option( 'flux_media_optimizer_db_version', '1.0' );
 	}
 
 	/**
-	 * Drop all Flux Media database tables.
+	 * Drop all Flux Media Optimizer database tables.
 	 *
 	 * @since 0.1.0
 	 */
 	public static function drop_tables() {
 		global $wpdb;
 
-		$conversions_table = $wpdb->prefix . 'flux_media_conversions';
-		$logs_table = $wpdb->prefix . 'flux_media_logs';
+		$conversions_table = $wpdb->prefix . 'flux_media_optimizer_conversions';
+		$logs_table = $wpdb->prefix . 'flux_media_optimizer_logs';
 
 		$wpdb->query( $wpdb->prepare( "DROP TABLE IF EXISTS %s", $conversions_table ) );
 		$wpdb->query( $wpdb->prepare( "DROP TABLE IF EXISTS %s", $logs_table ) );
 
 		// Remove database version option
-		delete_option( 'flux_media_db_version' );
+		delete_option( 'flux_media_optimizer_db_version' );
 	}
 
 	/**
@@ -91,8 +91,8 @@ class Database {
 	public static function tables_exist() {
 		global $wpdb;
 
-		$conversions_table = $wpdb->prefix . 'flux_media_conversions';
-		$logs_table = $wpdb->prefix . 'flux_media_logs';
+		$conversions_table = $wpdb->prefix . 'flux_media_optimizer_conversions';
+		$logs_table = $wpdb->prefix . 'flux_media_optimizer_logs';
 
 		$conversions_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $conversions_table ) ) === $conversions_table;
 		$logs_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $logs_table ) ) === $logs_table;
@@ -107,7 +107,7 @@ class Database {
 	 * @return string Database version.
 	 */
 	public static function get_db_version() {
-		return get_option( 'flux_media_db_version', '0.0' );
+		return get_option( 'flux_media_optimizer_db_version', '0.0' );
 	}
 
 	/**

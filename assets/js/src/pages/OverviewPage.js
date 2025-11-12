@@ -1,10 +1,10 @@
 import React from 'react';
 import { Grid, Typography, Box } from '@mui/material';
 import { __ } from '@wordpress/i18n';
-import { ImageStatusCard, VideoStatusCard, PHPConfigurationCard, QuotaProgressCard } from '@flux-media/components';
-import { useSystemStatus } from '@flux-media/hooks/useSystemStatus';
-import { useQuotaProgress } from '@flux-media/hooks/useQuotaProgress';
-import { useConversions } from '@flux-media/hooks/useConversions';
+import { ImageStatusCard, VideoStatusCard, PHPConfigurationCard, QuotaProgressCard } from '@flux-media-optimizer/components';
+import { useSystemStatus } from '@flux-media-optimizer/hooks/useSystemStatus';
+import { useQuotaProgress } from '@flux-media-optimizer/hooks/useQuotaProgress';
+import { useConversions } from '@flux-media-optimizer/hooks/useConversions';
 
 /**
  * Overview page component showing system status, quota, and conversion statistics.
@@ -59,7 +59,7 @@ const OverviewPage = () => {
       {!conversionsLoading && getSavingsStats() && (
         <Box sx={{ mt: 4 }}>
           <Typography variant="h5" component="h2" gutterBottom>
-            {__('Conversion Savings', 'flux-media')}
+            {__('Conversion Savings', 'flux-media-optimizer')}
           </Typography>
           
           <Grid container spacing={3}>
@@ -69,7 +69,7 @@ const OverviewPage = () => {
                   {getSavingsStats().percentage}%
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {__('Space Saved', 'flux-media')}
+                  {__('Space Saved', 'flux-media-optimizer')}
                 </Typography>
               </Box>
             </Grid>
@@ -80,7 +80,7 @@ const OverviewPage = () => {
                   {getSavingsStats().originalSize ? (getSavingsStats().originalSize / 1024 / 1024).toFixed(1) + ' MB' : '0 MB'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {__('Original Size', 'flux-media')}
+                  {__('Original Size', 'flux-media-optimizer')}
                 </Typography>
               </Box>
             </Grid>
@@ -91,7 +91,7 @@ const OverviewPage = () => {
                   {getSavingsStats().convertedSize ? (getSavingsStats().convertedSize / 1024 / 1024).toFixed(1) + ' MB' : '0 MB'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {__('Converted Size', 'flux-media')}
+                  {__('Converted Size', 'flux-media-optimizer')}
                 </Typography>
               </Box>
             </Grid>
@@ -102,7 +102,7 @@ const OverviewPage = () => {
                   {getSavingsStats().savings ? (getSavingsStats().savings / 1024 / 1024).toFixed(1) + ' MB' : '0 MB'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {__('Total Savings', 'flux-media')}
+                  {__('Total Savings', 'flux-media-optimizer')}
                 </Typography>
               </Box>
             </Grid>

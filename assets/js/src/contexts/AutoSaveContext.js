@@ -23,7 +23,7 @@ export const AutoSaveProvider = ({ children }) => {
   const startSave = useCallback((key) => {
     setSnackbar({
       open: true,
-      message: __('Saving...', 'flux-media'),
+      message: __('Saving...', 'flux-media-optimizer'),
       severity: 'info',
       showSpinner: true,
     });
@@ -32,7 +32,7 @@ export const AutoSaveProvider = ({ children }) => {
   const markSaveSuccess = useCallback((key) => {
     setSnackbar({
       open: true,
-      message: __('Settings saved successfully', 'flux-media'),
+      message: __('Settings saved successfully', 'flux-media-optimizer'),
       severity: 'success',
       showSpinner: false,
     });
@@ -41,7 +41,7 @@ export const AutoSaveProvider = ({ children }) => {
   const markSaveError = useCallback((key, error) => {
     setSnackbar({
       open: true,
-      message: error || __('Failed to save settings', 'flux-media'),
+      message: error || __('Failed to save settings', 'flux-media-optimizer'),
       severity: 'error',
       showSpinner: false,
     });

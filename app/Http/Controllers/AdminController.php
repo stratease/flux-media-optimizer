@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin controller for Flux Media plugin.
+ * Admin controller for Flux Media Optimizer plugin.
  *
  * @package FluxMedia
  * @since 0.1.0
@@ -53,10 +53,10 @@ class AdminController {
 	public function add_admin_menu() {
 		// Main menu page
 		add_menu_page(
-			__( 'Flux Media', 'flux-media' ),
-			__( 'Flux Media', 'flux-media' ),
+			__( 'Flux Media Optimizer', 'flux-media-optimizer' ),
+			__( 'Flux Media Optimizer', 'flux-media-optimizer' ),
 			'manage_options',
-			'flux-media',
+			'flux-media-optimizer',
 			[ $this, 'render_main_page' ],
 			'dashicons-images-alt2',
 			30
@@ -71,7 +71,7 @@ class AdminController {
 	 */
 	public function enqueue_admin_scripts( $hook ) {
 		// Only load on our admin pages
-		if ( strpos( $hook, 'flux-media' ) === false ) {
+		if ( strpos( $hook, 'flux-media-optimizer' ) === false ) {
 			return;
 		}
 
@@ -80,10 +80,10 @@ class AdminController {
 
 		// Enqueue the main admin script
 		wp_enqueue_script(
-			'flux-media-admin',
+			'flux-media-optimizer-admin',
 			$script_url,
 			[ 'wp-api-fetch', 'wp-element', 'wp-components', 'wp-i18n' ],
-			FLUX_MEDIA_VERSION,
+			FLUX_MEDIA_OPTIMIZER_VERSION,
 			true
 		);
 
@@ -92,11 +92,11 @@ class AdminController {
 		$user_email = $current_user->ID ? $current_user->user_email : '';
 
 		// Localize script with WordPress data
-		wp_localize_script( 'flux-media-admin', 'fluxMediaAdmin', [
-			'apiUrl' => rest_url( 'flux-media/v1/' ),
+		wp_localize_script( 'flux-media-optimizer-admin', 'fluxMediaAdmin', [
+			'apiUrl' => rest_url( 'flux-media-optimizer/v1/' ),
 			'nonce' => wp_create_nonce( 'wp_rest' ),
 			'adminUrl' => admin_url(),
-			'pluginUrl' => FLUX_MEDIA_PLUGIN_URL,
+			'pluginUrl' => FLUX_MEDIA_OPTIMIZER_PLUGIN_URL,
 			'userEmail' => $user_email,
 		] );
 
@@ -117,7 +117,7 @@ class AdminController {
 		}
 
 		// Use built asset
-		return FLUX_MEDIA_PLUGIN_URL . 'assets/js/dist/admin.bundle.js';
+		return FLUX_MEDIA_OPTIMIZER_PLUGIN_URL . 'assets/js/dist/admin.bundle.js';
 	}
 
 	/**
@@ -128,7 +128,7 @@ class AdminController {
 	public function render_main_page() {
 		?>
 		<div class="wrap">
-			<div id="flux-media-app">
+			<div id="flux-media-optimizer-app">
 			</div>
 		</div>
 		<?php

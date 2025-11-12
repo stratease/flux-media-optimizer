@@ -1,7 +1,7 @@
 {
-  "name": "flux-media-admin",
-  "version": "0.1.0",
-  "description": "Flux Media WordPress plugin admin interface",
+  "name": "flux-media-optimizer-admin",
+  "version": "1.0.0",
+  "description": "Flux Media Optimizer by Flux Plugins WordPress plugin",
   "private": true,
   "scripts": {
     "build": "webpack --mode=production",

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiService } from '@flux-media/services/api';
+import { apiService } from '@flux-media-optimizer/services/api';
 
 /**
  * React Query hook for cleaning up temp files

@@ -116,7 +116,7 @@ class BulkConverter {
 				}
 
 				// Check if conversion is disabled for this attachment
-				if ( get_post_meta( $attachment_id, '_flux_media_conversion_disabled', true ) ) {
+				if ( get_post_meta( $attachment_id, '_flux_media_optimizer_conversion_disabled', true ) ) {
 					continue;
 				}
 
@@ -161,8 +161,8 @@ class BulkConverter {
 		$image_attachments = $wpdb->get_col( $wpdb->prepare(
 			"SELECT p.ID 
 			 FROM {$wpdb->posts} p 
-			 LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_flux_media_converted_formats'
-			 LEFT JOIN {$wpdb->postmeta} pm_disabled ON p.ID = pm_disabled.post_id AND pm_disabled.meta_key = '_flux_media_conversion_disabled'
+			 LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_flux_media_optimizer_converted_formats'
+			 LEFT JOIN {$wpdb->postmeta} pm_disabled ON p.ID = pm_disabled.post_id AND pm_disabled.meta_key = '_flux_media_optimizer_conversion_disabled'
 			 WHERE p.post_type = 'attachment' 
 			 AND p.post_mime_type LIKE %s
 			 AND (pm.meta_value IS NULL OR pm.meta_value = '')
@@ -177,8 +177,8 @@ class BulkConverter {
 		$video_attachments = $wpdb->get_col( $wpdb->prepare(
 			"SELECT p.ID 
 			 FROM {$wpdb->posts} p 
-			 LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_flux_media_converted_formats'
-			 LEFT JOIN {$wpdb->postmeta} pm_disabled ON p.ID = pm_disabled.post_id AND pm_disabled.meta_key = '_flux_media_conversion_disabled'
+			 LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_flux_media_optimizer_converted_formats'
+			 LEFT JOIN {$wpdb->postmeta} pm_disabled ON p.ID = pm_disabled.post_id AND pm_disabled.meta_key = '_flux_media_optimizer_conversion_disabled'
 			 WHERE p.post_type = 'attachment' 
 			 AND p.post_mime_type LIKE %s
 			 AND (pm.meta_value IS NULL OR pm.meta_value = '')
@@ -242,9 +242,9 @@ class BulkConverter {
 			}
 
 			// Update WordPress meta
-			update_post_meta( $attachment_id, '_flux_media_converted_formats', $results['converted_formats'] );
-			update_post_meta( $attachment_id, '_flux_media_conversion_date', current_time( 'mysql' ) );
-			update_post_meta( $attachment_id, '_flux_media_converted_files', $results['converted_files'] );
+			update_post_meta( $attachment_id, '_flux_media_optimizer_converted_formats', $results['converted_formats'] );
+			update_post_meta( $attachment_id, '_flux_media_optimizer_conversion_date', current_time( 'mysql' ) );
+			update_post_meta( $attachment_id, '_flux_media_optimizer_converted_files', $results['converted_files'] );
 		}
 
 		return $results;
@@ -296,9 +296,9 @@ class BulkConverter {
 			}
 
 			// Update WordPress meta
-			update_post_meta( $attachment_id, '_flux_media_converted_formats', $results['converted_formats'] );
-			update_post_meta( $attachment_id, '_flux_media_conversion_date', current_time( 'mysql' ) );
-			update_post_meta( $attachment_id, '_flux_media_converted_files', $results['converted_files'] );
+			update_post_meta( $attachment_id, '_flux_media_optimizer_converted_formats', $results['converted_formats'] );
+			update_post_meta( $attachment_id, '_flux_media_optimizer_conversion_date', current_time( 'mysql' ) );
+			update_post_meta( $attachment_id, '_flux_media_optimizer_converted_files', $results['converted_files'] );
 		}
 
 		return $results;

@@ -105,14 +105,14 @@ class WordPressImageRenderer {
         }
         
         // Method 3: Create a custom handle and enqueue it
-        wp_register_style( 'flux-media-picture-styles', false, [], FLUX_MEDIA_VERSION );
-        wp_enqueue_style( 'flux-media-picture-styles' );
-        wp_add_inline_style( 'flux-media-picture-styles', $css );
+        wp_register_style( 'flux-media-optimizer-picture-styles', false, [], FLUX_MEDIA_OPTIMIZER_VERSION );
+        wp_enqueue_style( 'flux-media-optimizer-picture-styles' );
+        wp_add_inline_style( 'flux-media-optimizer-picture-styles', $css );
 
         // Method 4: Fallback - add directly to head if we're in the right context
         if ( ! is_admin() && ! did_action( 'wp_head' ) ) {
             add_action( 'wp_head', function() use ( $css ) {
-                echo '<style type="text/css" id="flux-media-picture-styles">' . esc_html( $css ) . '</style>';
+                echo '<style type="text/css" id="flux-media-optimizer-picture-styles">' . esc_html( $css ) . '</style>';
             }, 20 );
         }
     }
@@ -159,7 +159,7 @@ class WordPressImageRenderer {
      * @return bool True if converted, false otherwise.
      */
     public function is_image_converted( $attachment_id ) {
-        $converted_formats = get_post_meta( $attachment_id, '_flux_media_converted_formats', true );
+        $converted_formats = get_post_meta( $attachment_id, '_flux_media_optimizer_converted_formats', true );
         return ! empty( $converted_formats );
     }
 
@@ -172,7 +172,7 @@ class WordPressImageRenderer {
      * @return string|null Image URL or null if not available.
      */
     public static function get_image_url_from_attachment( $attachment_id, $format ) {
-        $converted_files = get_post_meta( $attachment_id, '_flux_media_converted_files', true );
+        $converted_files = get_post_meta( $attachment_id, '_flux_media_optimizer_converted_files', true );
         
         if ( empty( $converted_files ) || ! isset( $converted_files[ $format ] ) ) {
             return null;
@@ -269,7 +269,7 @@ class WordPressImageRenderer {
         }
 
         // Get converted files
-        $converted_files = get_post_meta( $attachment_id, '_flux_media_converted_files', true );
+        $converted_files = get_post_meta( $attachment_id, '_flux_media_optimizer_converted_files', true );
         if ( empty( $converted_files ) ) {
             return $block_content;
         }
@@ -313,7 +313,7 @@ class WordPressImageRenderer {
             }
             
             // Get converted files
-            $converted_files = get_post_meta( $attachment_id, '_flux_media_converted_files', true );
+            $converted_files = get_post_meta( $attachment_id, '_flux_media_optimizer_converted_files', true );
             if ( empty( $converted_files ) ) {
                 return $full_match;
             }
@@ -343,10 +343,10 @@ class WordPressImageRenderer {
      * @return array Modified form fields.
      */
     public function modify_attachment_fields( $form_fields, $post ) {
-        $converted_files = get_post_meta( $post->ID, '_flux_media_converted_files', true );
-        $conversion_disabled = get_post_meta( $post->ID, '_flux_media_conversion_disabled', true );
+        $converted_files = get_post_meta( $post->ID, '_flux_media_optimizer_converted_files', true );
+        $conversion_disabled = get_post_meta( $post->ID, '_flux_media_optimizer_conversion_disabled', true );
         
-        // Combine all sections under one "Flux Media" label
+        // Combine all sections under one "Flux Media Optimizer" label
         $html_content = '';
         
         // Add conversion status if files exist
@@ -357,9 +357,9 @@ class WordPressImageRenderer {
         // Always add conversion actions
         $html_content .= $this->get_conversion_actions_html( $post->ID, $conversion_disabled );
         
-        // Single Flux Media section with all content
-        $form_fields['flux_media'] = [
-            'label' => __( 'Flux Media', 'flux-media' ),
+        // Single Flux Media Optimizer section with all content
+        $form_fields['flux_media_optimizer'] = [
+            'label' => __( 'Flux Media Optimizer', 'flux-media-optimizer' ),
             'input' => 'html',
             'html' => $html_content,
         ];
@@ -624,22 +624,22 @@ class WordPressImageRenderer {
         $original_size = file_exists( $original_file ) ? filesize( $original_file ) : 0;
         $original_url = wp_get_attachment_url( $attachment_id );
         
-        $html = '<div class="flux-media-conversion-status" style="background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; padding: 15px; margin: 10px 0;">';
+        $html = '<div class="flux-media-optimizer-conversion-status" style="background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; padding: 15px; margin: 10px 0;">';
         
         // Original file info
         $html .= '<div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #ddd;">';
-        $html .= '<h4 style="margin: 0 0 8px 0; color: #333; font-size: 14px;">' . __( 'Original File', 'flux-media' ) . '</h4>';
+        $html .= '<h4 style="margin: 0 0 8px 0; color: #333; font-size: 14px;">' . __( 'Original File', 'flux-media-optimizer' ) . '</h4>';
         $html .= '<div style="font-size: 12px; color: #666;">';
-        $html .= '<strong>' . __( 'Size:', 'flux-media' ) . '</strong> ' . size_format( $original_size ) . '<br>';
-        $html .= '<strong>' . __( 'URL:', 'flux-media' ) . '</strong> <a href="' . esc_url( $original_url ) . '" target="_blank" style="color: #0073aa; text-decoration: none;">' . esc_html( $original_url ) . '</a>';
+        $html .= '<strong>' . __( 'Size:', 'flux-media-optimizer' ) . '</strong> ' . size_format( $original_size ) . '<br>';
+        $html .= '<strong>' . __( 'URL:', 'flux-media-optimizer' ) . '</strong> <a href="' . esc_url( $original_url ) . '" target="_blank" style="color: #0073aa; text-decoration: none;">' . esc_html( $original_url ) . '</a>';
         $html .= '</div>';
         $html .= '</div>';
         
         // Converted files
-        $html .= '<h4 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">' . __( 'Converted Files', 'flux-media' ) . '</h4>';
+        $html .= '<h4 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">' . __( 'Converted Files', 'flux-media-optimizer' ) . '</h4>';
         
         if ( empty( $converted_files ) ) {
-            $html .= '<p style="color: #666; font-style: italic; margin: 0;">' . esc_html( __( 'No conversions available', 'flux-media' ) ) . '</p>';
+            $html .= '<p style="color: #666; font-style: italic; margin: 0;">' . esc_html( __( 'No conversions available', 'flux-media-optimizer' ) ) . '</p>';
         } else {
             foreach ( $converted_files as $format => $file_path ) {
                 $file_size = file_exists( $file_path ) ? filesize( $file_path ) : 0;
@@ -654,12 +654,12 @@ class WordPressImageRenderer {
                 $html .= '<div style="background: white; border: 1px solid #e1e1e1; border-radius: 3px; padding: 12px; margin-bottom: 8px;">';
                 $html .= '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">';
                 $html .= '<span style="font-weight: bold; color: ' . $format_color . '; text-transform: uppercase; font-size: 12px;">' . esc_html( $format ) . '</span>';
-                $html .= '<span style="background: #e8f5e8; color: #2e7d32; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold;">' . round( $savings, 1 ) . '% ' . __( 'smaller', 'flux-media' ) . '</span>';
+                $html .= '<span style="background: #e8f5e8; color: #2e7d32; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold;">' . round( $savings, 1 ) . '% ' . __( 'smaller', 'flux-media-optimizer' ) . '</span>';
                 $html .= '</div>';
                 
                 $html .= '<div style="font-size: 12px; color: #666;">';
-                $html .= '<strong>' . __( 'Size:', 'flux-media' ) . '</strong> ' . size_format( $file_size ) . '<br>';
-                $html .= '<strong>' . __( 'URL:', 'flux-media' ) . '</strong> <a href="' . esc_url( $converted_url ) . '" target="_blank" style="color: #0073aa; text-decoration: none; word-break: break-all;">' . esc_html( $converted_url ) . '</a>';
+                $html .= '<strong>' . __( 'Size:', 'flux-media-optimizer' ) . '</strong> ' . size_format( $file_size ) . '<br>';
+                $html .= '<strong>' . __( 'URL:', 'flux-media-optimizer' ) . '</strong> <a href="' . esc_url( $converted_url ) . '" target="_blank" style="color: #0073aa; text-decoration: none; word-break: break-all;">' . esc_html( $converted_url ) . '</a>';
                 $html .= '</div>';
                 $html .= '</div>';
             }
@@ -678,8 +678,8 @@ class WordPressImageRenderer {
      * @return string HTML for conversion actions.
      */
     private function get_conversion_actions_html( $attachment_id, $conversion_disabled ) {
-        $html = '<div class="flux-media-conversion-actions" style="background: #f0f8ff; border: 1px solid #b3d9ff; border-radius: 4px; padding: 12px; margin: 10px 0;">';
-        $html .= '<h4 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">' . __( 'Conversion Actions', 'flux-media' ) . '</h4>';
+        $html = '<div class="flux-media-optimizer-conversion-actions" style="background: #f0f8ff; border: 1px solid #b3d9ff; border-radius: 4px; padding: 12px; margin: 10px 0;">';
+        $html .= '<h4 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">' . __( 'Conversion Actions', 'flux-media-optimizer' ) . '</h4>';
         
         if ( $conversion_disabled ) {
             $html .= sprintf(
@@ -687,14 +687,14 @@ class WordPressImageRenderer {
                     %s
                 </button>',
                 $attachment_id,
-                __( 'Enable Conversion', 'flux-media' )
+                __( 'Enable Conversion', 'flux-media-optimizer' )
             );
         } else {
             $html .= '<div style="display: flex; gap: 8px; flex-wrap: wrap;">';
             
             // Check if there are converted files to determine button text
-            $converted_files = get_post_meta( $attachment_id, '_flux_media_converted_files', true );
-            $button_text = ! empty( $converted_files ) ? __( 'Re-convert', 'flux-media' ) : __( 'Convert', 'flux-media' );
+            $converted_files = get_post_meta( $attachment_id, '_flux_media_optimizer_converted_files', true );
+            $button_text = ! empty( $converted_files ) ? __( 'Re-convert', 'flux-media-optimizer' ) : __( 'Convert', 'flux-media-optimizer' );
             
             $html .= sprintf(
                 '<button type="button" class="button button-primary" onclick="fluxMediaConvertAttachment(%d)" style="background: #0073aa; border-color: #0073aa; color: white; padding: 6px 12px; border-radius: 3px; cursor: pointer;">
@@ -709,7 +709,7 @@ class WordPressImageRenderer {
                     %s
                 </button>',
                 esc_attr( $attachment_id ),
-                esc_html( __( 'Disable Conversion', 'flux-media' ) )
+                esc_html( __( 'Disable Conversion', 'flux-media-optimizer' ) )
             );
             $html .= '</div>';
         }

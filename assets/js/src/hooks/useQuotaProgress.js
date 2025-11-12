@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { apiService } from '@flux-media/services/api';
+import { apiService } from '@flux-media-optimizer/services/api';
 
 /**
  * React Query hook for fetching quota progress

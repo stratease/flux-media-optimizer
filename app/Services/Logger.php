@@ -33,7 +33,7 @@ class Logger implements LoggerInterface {
 	 * @since 0.1.0
 	 */
 	public function __construct() {
-		$this->logger = new MonologLogger( 'flux-media' );
+		$this->logger = new MonologLogger( 'flux-media-optimizer' );
 		$this->setup_handlers();
 	}
 
@@ -44,7 +44,7 @@ class Logger implements LoggerInterface {
 	 */
 	private function setup_handlers() {
 		// Check if logging is disabled
-		$options = get_option( 'flux_media_options', [] );
+		$options = get_option( 'flux_media_optimizer_options', [] );
 		$logging_enabled = $options['enable_logging'] ?? true;
 		
 		if ( ! $logging_enabled ) {

@@ -32,8 +32,8 @@ import {
 } from '@mui/icons-material';
 import { __ } from '@wordpress/i18n';
 import { useQuery } from '@tanstack/react-query';
-import { apiService } from '@flux-media/services/api';
-import { useAutoSaveForm } from '@flux-media/hooks/useAutoSaveForm';
+import { apiService } from '@flux-media-optimizer/services/api';
+import { useAutoSaveForm } from '@flux-media-optimizer/hooks/useAutoSaveForm';
 
 /**
  * Logs page component with pagination and filtering
@@ -59,7 +59,7 @@ const LogsPage = () => {
         }
       } catch (err) {
         console.error('Failed to load logging setting:', err);
-        setError(__('Failed to load logging setting', 'flux-media'));
+        setError(__('Failed to load logging setting', 'flux-media-optimizer'));
       }
     };
 
@@ -146,10 +146,10 @@ const LogsPage = () => {
       <Grid container justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Grid item>
           <Typography variant="h5" gutterBottom>
-            {__('System Logs', 'flux-media')}
+            {__('System Logs', 'flux-media-optimizer')}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {__('View error and warning logs from Flux Media operations', 'flux-media')}
+            {__('View error and warning logs from Flux Media Optimizer operations', 'flux-media-optimizer')}
           </Typography>
         </Grid>
       </Grid>
@@ -159,10 +159,10 @@ const LogsPage = () => {
         <Grid container justifyContent="space-between" alignItems="center">
           <Grid item>
             <Typography variant="h6" gutterBottom>
-              {__('Logging Settings', 'flux-media')}
+              {__('Logging Settings', 'flux-media-optimizer')}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {__('Enable or disable system logging. When disabled, no new logs will be created and existing logs will not be displayed.', 'flux-media')}
+              {__('Enable or disable system logging. When disabled, no new logs will be created and existing logs will not be displayed.', 'flux-media-optimizer')}
             </Typography>
           </Grid>
           <Grid item>
@@ -174,7 +174,7 @@ const LogsPage = () => {
                   color="primary"
                 />
               }
-              label={__('Enable Logging', 'flux-media')}
+              label={__('Enable Logging', 'flux-media-optimizer')}
             />
           </Grid>
         </Grid>
@@ -184,7 +184,7 @@ const LogsPage = () => {
       {!enableLogging && (
         <Alert severity="info" sx={{ mb: 3 }}>
           <Typography variant="body2">
-            {__('Logging is currently disabled. Enable logging above to view system logs and start recording new log entries.', 'flux-media')}
+            {__('Logging is currently disabled. Enable logging above to view system logs and start recording new log entries.', 'flux-media-optimizer')}
           </Typography>
         </Alert>
       )}
@@ -195,11 +195,11 @@ const LogsPage = () => {
           <Grid container justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
             <Grid item>
               <Typography variant="h6" gutterBottom>
-                {__('Log Entries', 'flux-media')}
+                {__('Log Entries', 'flux-media-optimizer')}
               </Typography>
             </Grid>
             <Grid item>
-              <Tooltip title={__('Refresh logs', 'flux-media')}>
+              <Tooltip title={__('Refresh logs', 'flux-media-optimizer')}>
                 <IconButton onClick={handleRefresh} disabled={isLoading}>
                   <Refresh />
                 </IconButton>
@@ -209,7 +209,7 @@ const LogsPage = () => {
 
           {logsError && (
             <Alert severity="error" sx={{ mb: 3 }}>
-              {__('Error loading logs:', 'flux-media')} {logsError?.message || __('Unknown error occurred', 'flux-media')}
+              {__('Error loading logs:', 'flux-media-optimizer')} {logsError?.message || __('Unknown error occurred', 'flux-media-optimizer')}
             </Alert>
           )}
 
@@ -218,7 +218,7 @@ const LogsPage = () => {
         <Grid item xs={12} sm={6} md={3}>
           <TextField
             fullWidth
-            label={__('Search logs', 'flux-media')}
+            label={__('Search logs', 'flux-media-optimizer')}
             value={search}
             onChange={handleSearchChange}
             InputProps={{
@@ -229,26 +229,26 @@ const LogsPage = () => {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <FormControl fullWidth size="small">
-            <InputLabel>{__('Log Level', 'flux-media')}</InputLabel>
+            <InputLabel>{__('Log Level', 'flux-media-optimizer')}</InputLabel>
             <Select
               value={level}
               onChange={handleLevelChange}
-              label={__('Log Level', 'flux-media')}
+              label={__('Log Level', 'flux-media-optimizer')}
             >
-              <MenuItem value="">{__('All Levels', 'flux-media')}</MenuItem>
-              <MenuItem value="ERROR">{__('Error', 'flux-media')}</MenuItem>
-              <MenuItem value="WARNING">{__('Warning', 'flux-media')}</MenuItem>
-              <MenuItem value="CRITICAL">{__('Critical', 'flux-media')}</MenuItem>
+              <MenuItem value="">{__('All Levels', 'flux-media-optimizer')}</MenuItem>
+              <MenuItem value="ERROR">{__('Error', 'flux-media-optimizer')}</MenuItem>
+              <MenuItem value="WARNING">{__('Warning', 'flux-media-optimizer')}</MenuItem>
+              <MenuItem value="CRITICAL">{__('Critical', 'flux-media-optimizer')}</MenuItem>
             </Select>
           </FormControl>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <FormControl fullWidth size="small">
-            <InputLabel>{__('Per Page', 'flux-media')}</InputLabel>
+            <InputLabel>{__('Per Page', 'flux-media-optimizer')}</InputLabel>
             <Select
               value={perPage}
               onChange={handlePerPageChange}
-              label={__('Per Page', 'flux-media')}
+              label={__('Per Page', 'flux-media-optimizer')}
             >
               <MenuItem value={10}>10</MenuItem>
               <MenuItem value={20}>20</MenuItem>
@@ -264,10 +264,10 @@ const LogsPage = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>{__('Level', 'flux-media')}</TableCell>
-              <TableCell>{__('Message', 'flux-media')}</TableCell>
-              <TableCell>{__('Context', 'flux-media')}</TableCell>
-              <TableCell>{__('Date', 'flux-media')}</TableCell>
+              <TableCell>{__('Level', 'flux-media-optimizer')}</TableCell>
+              <TableCell>{__('Message', 'flux-media-optimizer')}</TableCell>
+              <TableCell>{__('Context', 'flux-media-optimizer')}</TableCell>
+              <TableCell>{__('Date', 'flux-media-optimizer')}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -335,7 +335,7 @@ const LogsPage = () => {
               <TableRow>
                 <TableCell colSpan={4} align="center">
                   <Typography variant="body2" color="text.secondary">
-                    {__('No logs found', 'flux-media')}
+                    {__('No logs found', 'flux-media-optimizer')}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -362,7 +362,7 @@ const LogsPage = () => {
           {logsData?.data && (
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
               <Typography variant="body2" color="text.secondary">
-                {__('Showing', 'flux-media')} {((page - 1) * perPage) + 1} - {Math.min(page * perPage, logsData.total)} {__('of', 'flux-media')} {logsData.total} {__('logs', 'flux-media')}
+                {__('Showing', 'flux-media-optimizer')} {((page - 1) * perPage) + 1} - {Math.min(page * perPage, logsData.total)} {__('of', 'flux-media-optimizer')} {logsData.total} {__('logs', 'flux-media-optimizer')}
               </Typography>
             </Box>
           )}

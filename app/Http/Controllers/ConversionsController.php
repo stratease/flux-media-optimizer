@@ -1,6 +1,6 @@
 <?php
 /**
- * Conversions REST API controller for Flux Media plugin.
+ * Conversions REST API controller for Flux Media Optimizer plugin.
  *
  * @package FluxMedia
  * @since 0.1.0
@@ -44,7 +44,7 @@ class ConversionsController extends BaseController {
 	 * @since 0.1.0
 	 */
 	public function register_routes() {
-		register_rest_route( 'flux-media/v1', '/conversions/stats', [
+		register_rest_route( 'flux-media-optimizer/v1', '/conversions/stats', [
 			[
 				'methods' => 'GET',
 				'callback' => [ $this, 'get_conversion_stats' ],

@@ -14,7 +14,7 @@ module.exports = {
   resolve: {
     extensions: ['.js'],
     alias: {
-      '@flux-media': path.resolve(__dirname, 'assets/js/src'),
+      '@flux-media-optimizer': path.resolve(__dirname, 'assets/js/src'),
     },
   },
   module: {
@@ -35,7 +35,7 @@ module.exports = {
                 {
                   root: ['./assets/js/src'],
                   alias: {
-                    '@flux-media': './assets/js/src',
+                    '@flux-media-optimizer': './assets/js/src',
                   },
                 },
               ],
@@ -59,7 +59,7 @@ module.exports = {
                 {
                   root: ['./assets/js/src'],
                   alias: {
-                    '@flux-media': './assets/js/src',
+                    '@flux-media-optimizer': './assets/js/src',
                   },
                 },
               ],

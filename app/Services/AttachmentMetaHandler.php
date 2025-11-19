@@ -20,6 +20,14 @@ namespace FluxMedia\App\Services;
 class AttachmentMetaHandler {
 
 	/**
+	 * Format constants for validation.
+	 *
+	 * @since 1.0.0
+	 */
+	const FORMAT_AVIF = 'avif';
+	const FORMAT_WEBP = 'webp';
+
+	/**
 	 * Meta key for converted files.
 	 *
 	 * @since 1.0.0
@@ -235,7 +243,7 @@ class AttachmentMetaHandler {
 	}
 
 	/**
-	 * Get converted files by size for an attachment.
+	 * Get all converted files grouped by size for an attachment.
 	 *
 	 * Returns files organized by size and format: ['size_name' => ['format' => 'file_path']]
 	 *
@@ -243,36 +251,63 @@ class AttachmentMetaHandler {
 	 * @param int $attachment_id Attachment ID.
 	 * @return array Array of size_name => format => file_path mappings, or empty array if not found.
 	 */
-	public static function get_converted_files_by_size( $attachment_id ) {
+	public static function get_converted_files_grouped_by_size( $attachment_id ) {
 		$files = get_post_meta( $attachment_id, self::META_KEY_CONVERTED_FILES_BY_SIZE, true );
 		return is_array( $files ) ? $files : [];
 	}
 
 	/**
-	 * Set converted files by size for an attachment.
+	 * Set all converted files grouped by size for an attachment.
 	 *
 	 * @since 1.0.0
 	 * @param int   $attachment_id Attachment ID.
 	 * @param array $files Array of size_name => format => file_path mappings.
 	 * @return bool|int Meta ID if the key didn't exist, true on successful update, false on failure.
 	 */
-	public static function set_converted_files_by_size( $attachment_id, $files ) {
+	public static function set_converted_files_grouped_by_size( $attachment_id, $files ) {
 		return update_post_meta( $attachment_id, self::META_KEY_CONVERTED_FILES_BY_SIZE, $files );
 	}
 
 	/**
-	 * Get converted files for a specific size.
+	 * Get converted files for a specific size with fallback logic.
+	 *
+	 * Returns an array with format keys (avif, webp) mapping to file paths.
+	 * Structure: ['avif' => '/path/to/file.avif', 'webp' => '/path/to/file.webp']
+	 *
+	 * Falls back through: preferred size → full size → legacy format.
 	 *
 	 * @since 1.0.0
 	 * @param int    $attachment_id Attachment ID.
-	 * @param string $size_name Size name (e.g., 'thumbnail', 'medium', 'full').
-	 * @return array Array of format => file_path mappings for the specified size, or empty array if not found.
+	 * @param string $preferred_size Preferred size name (e.g., 'post-thumbnail', 'medium', 'full'). Default 'full'.
+	 * @return array Converted files array for the size with format keys, or empty array if none found.
 	 */
-	public static function get_converted_files_for_size( $attachment_id, $size_name ) {
-		$files_by_size = self::get_converted_files_by_size( $attachment_id );
-		if ( isset( $files_by_size[ $size_name ] ) && is_array( $files_by_size[ $size_name ] ) ) {
-			return $files_by_size[ $size_name ];
+	public static function get_converted_files_for_size( $attachment_id, $preferred_size = 'full' ) {
+		$converted_files_by_size = self::get_converted_files_grouped_by_size( $attachment_id );
+		
+		// Try preferred size first
+		if ( ! empty( $converted_files_by_size ) && isset( $converted_files_by_size[ $preferred_size ] ) ) {
+			$files = $converted_files_by_size[ $preferred_size ];
+			// Ensure it's an array with format keys (avif/webp) at root level
+			if ( is_array( $files ) && ( isset( $files[ self::FORMAT_AVIF ] ) || isset( $files[ self::FORMAT_WEBP ] ) ) ) {
+				return $files;
+			}
 		}
+		
+		// Fallback to full size
+		if ( ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'] ) ) {
+			$files = $converted_files_by_size['full'];
+			// Ensure it's an array with format keys (avif/webp) at root level
+			if ( is_array( $files ) && ( isset( $files[ self::FORMAT_AVIF ] ) || isset( $files[ self::FORMAT_WEBP ] ) ) ) {
+				return $files;
+			}
+		}
+		
+		// Fallback to legacy format (should already have format keys at root)
+		$legacy_files = self::get_converted_files( $attachment_id );
+		if ( is_array( $legacy_files ) && ( isset( $legacy_files[ self::FORMAT_AVIF ] ) || isset( $legacy_files[ self::FORMAT_WEBP ] ) ) ) {
+			return $legacy_files;
+		}
+		
 		return [];
 	}
 
@@ -286,19 +321,19 @@ class AttachmentMetaHandler {
 	 * @return bool|int Meta ID if the key didn't exist, true on successful update, false on failure.
 	 */
 	public static function set_converted_files_for_size( $attachment_id, $size_name, $files ) {
-		$files_by_size = self::get_converted_files_by_size( $attachment_id );
+		$files_by_size = self::get_converted_files_grouped_by_size( $attachment_id );
 		$files_by_size[ $size_name ] = $files;
-		return self::set_converted_files_by_size( $attachment_id, $files_by_size );
+		return self::set_converted_files_grouped_by_size( $attachment_id, $files_by_size );
 	}
 
 	/**
-	 * Delete converted files by size meta for an attachment.
+	 * Delete all converted files grouped by size meta for an attachment.
 	 *
 	 * @since 1.0.0
 	 * @param int $attachment_id Attachment ID.
 	 * @return bool True on success, false on failure.
 	 */
-	public static function delete_converted_files_by_size( $attachment_id ) {
+	public static function delete_converted_files_grouped_by_size( $attachment_id ) {
 		return delete_post_meta( $attachment_id, self::META_KEY_CONVERTED_FILES_BY_SIZE );
 	}
 
@@ -311,10 +346,10 @@ class AttachmentMetaHandler {
 	 * @return bool|int Meta ID if the key didn't exist, true on successful update, false on failure.
 	 */
 	public static function delete_converted_files_for_size( $attachment_id, $size_name ) {
-		$files_by_size = self::get_converted_files_by_size( $attachment_id );
+		$files_by_size = self::get_converted_files_grouped_by_size( $attachment_id );
 		if ( isset( $files_by_size[ $size_name ] ) ) {
 			unset( $files_by_size[ $size_name ] );
-			return self::set_converted_files_by_size( $attachment_id, $files_by_size );
+			return self::set_converted_files_grouped_by_size( $attachment_id, $files_by_size );
 		}
 		return true;
 	}
@@ -330,7 +365,7 @@ class AttachmentMetaHandler {
 		self::delete_converted_files( $attachment_id );
 		self::delete_converted_formats( $attachment_id );
 		self::delete_conversion_date( $attachment_id );
-		self::delete_converted_files_by_size( $attachment_id );
+		self::delete_converted_files_grouped_by_size( $attachment_id );
 		self::enable_conversion( $attachment_id );
 	}
 }

@@ -167,7 +167,7 @@ class WordPressImageRenderer {
      */
     public static function get_image_url_from_attachment( $attachment_id, $format, $size = 'full' ) {
         // Try size-specific structure first
-        $converted_files_by_size = AttachmentMetaHandler::get_converted_files_by_size( $attachment_id );
+        $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
         if ( ! empty( $converted_files_by_size ) ) {
             if ( isset( $converted_files_by_size[ $size ][ $format ] ) ) {
                 return self::get_image_url_from_file_path( $converted_files_by_size[ $size ][ $format ] );
@@ -244,16 +244,33 @@ class WordPressImageRenderer {
     /**
      * Modify block content for optimized image display.
      *
-     * @since 0.1.0
+     * @since 1.0.0
      * @param string $block_content The block content.
      * @param array  $block The block data.
      * @return string Modified block content.
      */
     public function modify_block_content( $block_content, $block ) {
-        // Only process image blocks
-        if ( 'core/image' !== ( $block['blockName'] ?? '' ) ) {
-            return $block_content;
+        $block_name = $block['blockName'] ?? '';
+        
+        // Process image blocks and featured image blocks
+        if ( 'core/image' === $block_name ) {
+            return $this->modify_image_block( $block_content, $block );
+        } elseif ( 'core/post-featured-image' === $block_name ) {
+            return $this->modify_featured_image_block( $block_content, $block );
         }
+        
+        return $block_content;
+    }
+
+    /**
+     * Modify image block content for optimized display.
+     *
+     * @since 1.0.0
+     * @param string $block_content The block content.
+     * @param array  $block The block data.
+     * @return string Modified block content.
+     */
+    private function modify_image_block( $block_content, $block ) {
 
         // Get block attributes
         $attributes = $block['attrs'] ?? [];
@@ -272,11 +289,9 @@ class WordPressImageRenderer {
             return $block_content;
         }
 
-        // Get converted files (check size-specific structure first, fallback to legacy)
-        $converted_files_by_size = AttachmentMetaHandler::get_converted_files_by_size( $attachment_id );
-        $converted_files = ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'] ) 
-            ? $converted_files_by_size['full'] 
-            : AttachmentMetaHandler::get_converted_files( $attachment_id );
+        // Get converted files - prefer size from block attributes, fallback to full
+        $size = $attributes['sizeSlug'] ?? 'full';
+        $converted_files = AttachmentMetaHandler::get_converted_files_for_size( $attachment_id, $size );
         
         if ( empty( $converted_files ) ) {
             return $block_content;
@@ -296,6 +311,59 @@ class WordPressImageRenderer {
 
         return $block_content;
     }
+
+    /**
+     * Modify featured image block content for optimized display.
+     *
+     * Reuses the same conversion logic as image blocks, only differs in how attachment ID is obtained.
+     *
+     * @since 1.0.0
+     * @param string $block_content The block content.
+     * @param array  $block The block data.
+     * @return string Modified block content.
+     */
+    private function modify_featured_image_block( $block_content, $block ) {
+        // Get the post ID from context or block attributes
+        $post_id = get_the_ID();
+        if ( ! $post_id ) {
+            // Try to get from block context
+            $post_id = $block['attrs']['postId'] ?? null;
+        }
+        
+        if ( ! $post_id ) {
+            return $block_content;
+        }
+        
+        // Get featured image attachment ID
+        $attachment_id = get_post_thumbnail_id( $post_id );
+        if ( ! $attachment_id ) {
+            return $block_content;
+        }
+        
+        // Get converted files - prefer post-thumbnail size, fallback to full
+        $converted_files = AttachmentMetaHandler::get_converted_files_for_size( $attachment_id );
+
+        if ( empty( $converted_files ) ) {
+            return $block_content;
+        }
+        
+        // Check if we have converted formats available
+        if ( isset( $converted_files[ Converter::FORMAT_AVIF ] ) || isset( $converted_files[ Converter::FORMAT_WEBP ] ) ) {
+            if ( Settings::is_image_hybrid_approach_enabled() ) {
+                // Hybrid approach: Use picture element with sources and fallback
+                $this->enqueue_picture_css();
+                // Reuse existing method - pass empty attributes since featured images don't have block attributes
+                return $this->create_block_picture_element( $attachment_id, $converted_files, $block_content, [] );
+            } else {
+                // Single format approach: Replace src with best available format
+                // Reuse existing method
+                return $this->replace_block_img_src( $block_content, $attachment_id, $converted_files );
+            }
+        }
+        
+        return $block_content;
+    }
+
 
     /**
      * Modify post content images for optimized display.
@@ -321,7 +389,7 @@ class WordPressImageRenderer {
             }
             
             // Get converted files (check size-specific structure first, fallback to legacy)
-            $converted_files_by_size = AttachmentMetaHandler::get_converted_files_by_size( $attachment_id );
+            $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
             $converted_files = ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'] ) 
                 ? $converted_files_by_size['full'] 
                 : AttachmentMetaHandler::get_converted_files( $attachment_id );
@@ -357,7 +425,7 @@ class WordPressImageRenderer {
      */
     public function modify_attachment_fields( $form_fields, $post ) {
         // Get converted files (check size-specific structure first, fallback to legacy)
-        $converted_files_by_size = AttachmentMetaHandler::get_converted_files_by_size( $post->ID );
+        $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $post->ID );
         $converted_files = ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'] ) 
             ? $converted_files_by_size['full'] 
             : AttachmentMetaHandler::get_converted_files( $post->ID );
@@ -368,7 +436,7 @@ class WordPressImageRenderer {
         
         // Add conversion status if files exist
         // Use size-specific structure if available, otherwise use legacy
-        $converted_files_by_size = AttachmentMetaHandler::get_converted_files_by_size( $post->ID );
+        $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $post->ID );
         if ( ! empty( $converted_files_by_size ) ) {
             $html_content .= $this->get_conversion_status_html( $post->ID, $converted_files_by_size );
         } elseif ( ! empty( $converted_files ) ) {
@@ -425,7 +493,7 @@ class WordPressImageRenderer {
         $wrapper_attributes = $this->extract_wrapper_attributes_from_block_content( $block_content );
         
         // Get converted files by size for srcset generation
-        $converted_files_by_size = AttachmentMetaHandler::get_converted_files_by_size( $attachment_id );
+        $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
         
         // Determine preferred format (AVIF > WebP)
         $preferred_format = null;
@@ -897,7 +965,7 @@ class WordPressImageRenderer {
         // Check if this is a video attachment and if there are no converted files
         $file_path = get_attached_file( $attachment_id );
         $is_video = $file_path && $this->video_converter->is_supported_video( $file_path );
-        $converted_files_by_size = AttachmentMetaHandler::get_converted_files_by_size( $attachment_id );
+        $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
         $converted_files = ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'] ) 
             ? $converted_files_by_size['full'] 
             : AttachmentMetaHandler::get_converted_files( $attachment_id );
@@ -975,21 +1043,32 @@ class WordPressImageRenderer {
     }
 
     /**
-     * Replace img src attribute in block content (single format approach).
+     * Replace image src in block content with converted format URL.
      *
-     * @since 0.1.0
-     * @param string $block_content Original block content.
-     * @param int    $attachment_id Attachment ID.
-     * @param array  $converted_files Array of converted file paths.
+     * @since 1.0.0
+     * @param string $block_content The block content.
+     * @param int    $attachment_id Attachment ID (unused, kept for consistency).
+     * @param array  $converted_files Array of format => file_path mappings.
      * @return string Modified block content.
      */
     private function replace_block_img_src( $block_content, $attachment_id, $converted_files ) {
         // Priority: AVIF > WebP
+        $format = null;
+        $file_path = null;
+        
         if ( isset( $converted_files[ Converter::FORMAT_AVIF ] ) ) {
-            $new_url = self::get_image_url_from_attachment( $attachment_id, Converter::FORMAT_AVIF );
+            $format = Converter::FORMAT_AVIF;
+            $file_path = $converted_files[ Converter::FORMAT_AVIF ];
         } elseif ( isset( $converted_files[ Converter::FORMAT_WEBP ] ) ) {
-            $new_url = self::get_image_url_from_attachment( $attachment_id, Converter::FORMAT_WEBP );
+            $format = Converter::FORMAT_WEBP;
+            $file_path = $converted_files[ Converter::FORMAT_WEBP ];
         } else {
+            return $block_content;
+        }
+        
+        // Get URL from file path
+        $new_url = self::get_image_url_from_file_path( $file_path );
+        if ( ! $new_url ) {
             return $block_content;
         }
         

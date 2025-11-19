@@ -313,7 +313,7 @@ class BulkConverter {
 		// Update WordPress meta with all converted files (organized by size)
 		if ( ! empty( $all_converted_files_by_size ) ) {
 			// Store in size-specific meta
-			AttachmentMetaHandler::set_converted_files_by_size( $attachment_id, $all_converted_files_by_size );
+			AttachmentMetaHandler::set_converted_files_grouped_by_size( $attachment_id, $all_converted_files_by_size );
 			
 			// Also store full size in legacy format for backward compatibility
 			if ( isset( $all_converted_files_by_size['full'] ) ) {

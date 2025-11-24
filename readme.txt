@@ -4,18 +4,18 @@ Tags: image optimization, video compression, webp, avif, flux plugins
 Requires at least: 6.2
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 1.0.0
+Stable tag: 1.1.2
 License: GPL-2.0+
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Compress images to AVIF/WebP for 50-70% faster loads. Boost Core Web Vitals and improve SEO with automatic image optimization.
+Compress images to AVIF/WebP and optimize videos for 50-70% faster loads. Boost Core Web Vitals and improve SEO with automatic image and video optimization.
 
 == Description ==
 
-Transform your WordPress site's media performance. Flux Media Optimizer by Flux Plugins automatically converts your images to modern formats like WebP and AVIF, with native video compression.
+Transform your WordPress site's media performance. Flux Media Optimizer by Flux Plugins automatically converts your images to modern formats like WebP and AVIF, and optimizes your videos with MP4/WebM conversion for maximum performance.
 
 **🚀 Key Benefits:**
-* **50-70% smaller file sizes** - Dramatically reduce image file sizes without quality loss
+* **50-70% smaller file sizes** - Dramatically reduce image and video file sizes without quality loss
 * **Faster page loads** - Improve Core Web Vitals scores and user experience
 * **Better SEO rankings** - Google rewards fast-loading sites with higher search rankings
 * **Automatic optimization** - Works seamlessly with your existing content and themes
@@ -23,12 +23,12 @@ Transform your WordPress site's media performance. Flux Media Optimizer by Flux 
 
 **✨ Smart Features:**
 * **Hybrid approach** - Creates both WebP and AVIF formats for maximum browser compatibility
-* **Video pipeline (in final testing)** - Built-in MP4/WebM conversion powered by FFmpeg
-* **Automatic conversion** - Optimizes images on upload and processes existing media
-* **WordPress integration** - Works with Gutenberg blocks, galleries, and responsive images
-* **Quality control** - Adjustable compression settings (60-100% quality)
-* **Bulk processing** - Convert thousands of existing images with one click
-* **Format detection** - Automatically uses the best available processor (GD or ImageMagick)
+* **Video optimization** - Built-in MP4/WebM conversion powered by FFmpeg with configurable quality and bitrate settings
+* **Automatic conversion** - Optimizes images and videos on upload and processes existing media
+* **WordPress integration** - Works with Gutenberg blocks, galleries, responsive images, and video embeds
+* **Quality control** - Adjustable compression settings for images (60-100% quality) and videos (bitrate and presets)
+* **Bulk processing** - Convert thousands of existing images and videos with one click
+* **Format detection** - Automatically uses the best available processor (GD or ImageMagick for images, FFmpeg for videos)
 
 **🎯 Perfect for:**
 * Bloggers and content creators who want faster sites
@@ -50,13 +50,14 @@ Transform your WordPress site's media performance. Flux Media Optimizer by Flux 
 
 **📊 Real Results:**
 Users typically see:
-* 50-70% reduction in image file sizes
+* 50-70% reduction in image and video file sizes
 * 2-4 second improvement in page load times
 * 10-20 point increase in Google PageSpeed scores
 * Better Core Web Vitals metrics (LCP, FID, CLS)
 
 **🛠️ Technical Requirements:**
-* PHP 8.0+ with GD or ImageMagick extension. Some versions do not support optimized AVIF files.
+* PHP 8.0+ with GD or ImageMagick extension for images. Some versions do not support optimized AVIF files.
+* FFmpeg for video optimization (optional but recommended)
 * WordPress 5.0+
 * No additional server configuration required
 
@@ -76,7 +77,7 @@ All production dependencies are included in the plugin package and do not requir
 
 **⚡ Performance focused** - Built specifically for WordPress performance optimization, helping you achieve those coveted green scores in Google PageSpeed Insights.
 
-Ready to supercharge your site's performance? Install Flux Media Optimizer by Flux Plugins today for instant image optimization, and get built-in video compression and watch your Core Web Vitals improve!
+Ready to supercharge your site's performance? Install Flux Media Optimizer by Flux Plugins today for instant image and video optimization, and watch your Core Web Vitals improve!
 
 == Installation ==
 
@@ -91,13 +92,13 @@ Ready to supercharge your site's performance? Install Flux Media Optimizer by Fl
 
 Yes, Flux Media Optimizer works with any WordPress theme. It integrates seamlessly with WordPress's image rendering system and doesn't require any theme modifications.
 
-= What image formats are supported? =
+= What image and video formats are supported? =
 
-The plugin supports converting JPEG and PNG images to WebP and AVIF formats. It automatically detects which formats your server supports and uses the best available option.
+The plugin supports converting JPEG and PNG images to WebP and AVIF formats. For videos, it converts to optimized MP4 and WebM formats. It automatically detects which formats your server supports and uses the best available option.
 
 = How much space will I save? =
 
-Most users see 50-70% reduction in image file sizes. The exact savings depend on your original images, but WebP typically saves 25-35% and AVIF can save 50-70% compared to JPEG.
+Most users see 50-70% reduction in image file sizes and significant savings on videos. The exact savings depend on your original media, but WebP typically saves 25-35% and AVIF can save 50-70% compared to JPEG. Video compression savings vary based on your quality and bitrate settings.
 
 = Will this affect my site's SEO? =
 
@@ -105,7 +106,7 @@ Yes, in a positive way! Faster loading images improve your Core Web Vitals score
 
 = Do I need to configure anything? =
 
-No, Flux Media Optimizer works out of the box with sensible defaults. You can optionally adjust quality settings, but the plugin will start optimizing images immediately after activation.
+No, Flux Media Optimizer works out of the box with sensible defaults. You can optionally adjust quality settings for images and bitrate/preset settings for videos, but the plugin will start optimizing images and videos immediately after activation.
 
 = Is my data secure? =
 
@@ -115,13 +116,13 @@ Yes, by default all processing happens locally on your server. Your media files 
 
 The free version provides excellent local optimization. The Pro version (coming soon) will offer unlimited cloud processing, highest quality image and video compressions, CDN integration, and priority support for even better results.
 
-= Does this work with existing images? =
+= Does this work with existing images and videos? =
 
-Yes! Flux Media Optimizer can bulk process all your existing images. Just go to the settings page and enable "Bulk Convert" to optimize your entire media library with WP Cron.
+Yes! Flux Media Optimizer can bulk process all your existing images and videos. Just go to the settings page and enable "Bulk Convert" to optimize your entire media library with WP Cron.
 
-= Will this break my existing images? =
+= Will this break my existing images or videos? =
 
-No, Flux Media Optimizer creates new optimized versions while keeping your original images as fallbacks. If anything goes wrong, your original images remain untouched.
+No, Flux Media Optimizer creates new optimized versions while keeping your original media files as fallbacks. If anything goes wrong, your original images and videos remain untouched.
 
 = What if my server doesn't support WebP or AVIF? =
 

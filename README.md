@@ -1,6 +1,6 @@
 # Flux Media Optimizer by Flux Plugins
 
-One-click AVIF/WebP image optimization today, with built-in video compression.
+One-click AVIF/WebP image optimization and video compression for WordPress. Automatically convert images to modern formats and optimize videos for faster page loads.
 
 **Source Code**: [https://github.com/stratease/flux-media-optimizer](https://github.com/stratease/flux-media-optimizer)
 

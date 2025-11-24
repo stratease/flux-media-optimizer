@@ -873,8 +873,18 @@ class WordPressImageRenderer {
             $html .= '<p style="color: #666; font-style: italic; margin: 0;">' . esc_html( __( 'No conversions available', 'flux-media-optimizer' ) ) . '</p>';
         } elseif ( $is_size_specific ) {
             // Display size-specific structure
+            // Get valid WordPress size names (includes 'thumbnail', 'medium', 'large', and custom sizes)
+            $valid_sizes = get_intermediate_image_sizes();
+            // Add 'full' to the list of valid sizes
+            $valid_sizes[] = 'full';
+            
             foreach ( $converted_files as $size_name => $size_formats ) {
                 if ( ! is_array( $size_formats ) ) {
+                    continue;
+                }
+                
+                // Only display sizes that are valid WordPress registered sizes
+                if ( ! in_array( $size_name, $valid_sizes, true ) ) {
                     continue;
                 }
                 

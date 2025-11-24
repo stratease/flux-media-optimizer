@@ -169,8 +169,6 @@ class WordPressProvider {
         // Hook into REST API to modify attachment responses directly
         // This ensures block editor gets converted URLs in REST API responses
         add_filter( 'rest_prepare_attachment', [ $this, 'handle_rest_prepare_attachment' ], 10, 3 );
-        // Add converted files to attachment metadata so WordPress can match them naturally
-        add_filter( 'wp_get_attachment_metadata', [ $this, 'handle_attachment_metadata' ], 10, 2 );
         // Hook into metadata updates to convert sizes as they're generated
         add_filter( 'wp_update_attachment_metadata', [ $this, 'handle_update_attachment_metadata_for_sizes' ], 10, 2 );
         // Filter srcset to use converted formats (prefer AVIF, fallback to WebP)
@@ -316,6 +314,20 @@ class WordPressProvider {
         $all_converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
         if ( ! is_array( $all_converted_files_by_size ) ) {
             $all_converted_files_by_size = [];
+        }
+        
+        // Clean up any invalid size names that don't match WordPress registered sizes
+        // Get valid WordPress size names (includes 'thumbnail', 'medium', 'large', and custom sizes)
+        $valid_sizes = get_intermediate_image_sizes();
+        // Add 'full' to the list of valid sizes
+        $valid_sizes[] = 'full';
+        
+        foreach ( array_keys( $all_converted_files_by_size ) as $size_name ) {
+            // Only keep sizes that are valid WordPress registered sizes
+            if ( ! in_array( $size_name, $valid_sizes, true ) ) {
+                unset( $all_converted_files_by_size[ $size_name ] );
+                $this->logger->info( "Removed invalid size entry (not a WordPress registered size): {$size_name}" );
+            }
         }
         
         // Clean up formats that are no longer enabled in settings
@@ -501,10 +513,20 @@ class WordPressProvider {
         // Get all intermediate sizes
         $metadata = wp_get_attachment_metadata( $attachment_id );
         if ( ! empty( $metadata['sizes'] ) && ! empty( $full_file_path ) ) {
+            // Get valid WordPress size names (includes 'thumbnail', 'medium', 'large', and custom sizes)
+            $valid_sizes = get_intermediate_image_sizes();
+            // Add 'full' to the list of valid sizes
+            $valid_sizes[] = 'full';
+            
             // Build directory path using PHP dirname function
             $file_dir = dirname( wp_normalize_path( $full_file_path ) );
             
             foreach ( $metadata['sizes'] as $size_name => $size_data ) {
+                // Only process sizes that are valid WordPress registered sizes
+                if ( ! in_array( $size_name, $valid_sizes, true ) ) {
+                    continue;
+                }
+                
                 // Build full path to size file using WordPress path functions
                 $size_file_path = trailingslashit( $file_dir ) . $size_data['file'];
                 $size_file_path = wp_normalize_path( $size_file_path );
@@ -1029,128 +1051,6 @@ class WordPressProvider {
         return $metadata;
     }
 
-    /**
-     * Handle attachment metadata filter to add converted files.
-     *
-     * Adds converted files (AVIF/WebP) to the metadata sizes array for each size
-     * so WordPress can naturally match them when getting dimensions and generating srcset.
-     * This ensures converted files are recognized as valid image sizes.
-     *
-     * @since 1.0.0
-     * @param array|false $metadata       Metadata array or false if not found.
-     * @param int          $attachment_id  Attachment ID.
-     * @return array|false Modified metadata or false.
-     */
-    public function handle_attachment_metadata( $metadata, $attachment_id ) {
-        // If no metadata, return as-is
-        if ( ! is_array( $metadata ) || empty( $metadata ) ) {
-            return $metadata;
-        }
-        
-        // Get converted files by size for this attachment
-        $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
-        if ( empty( $converted_files_by_size ) ) {
-            // Fallback to legacy format for backward compatibility
-            $converted_files = $this->get_converted_files( $attachment_id );
-            if ( empty( $converted_files ) ) {
-                return $metadata;
-            }
-            
-            // Handle legacy format (full size only)
-            if ( ! isset( $metadata['sizes'] ) ) {
-                $metadata['sizes'] = [];
-            }
-            
-            $width = $metadata['width'] ?? 0;
-            $height = $metadata['height'] ?? 0;
-            
-            if ( $width && $height ) {
-                foreach ( $converted_files as $format => $file_path ) {
-                    if ( $format !== Converter::FORMAT_AVIF && $format !== Converter::FORMAT_WEBP ) {
-                        continue;
-                    }
-                    
-                    $filename = wp_basename( $file_path );
-                    $size_key = 'full-' . $format;
-                    
-                    if ( ! isset( $metadata['sizes'][ $size_key ] ) ) {
-                        $metadata['sizes'][ $size_key ] = [
-                            'file' => $filename,
-                            'width' => $width,
-                            'height' => $height,
-                            'mime-type' => $format === Converter::FORMAT_AVIF ? 'image/avif' : 'image/webp',
-                        ];
-                        
-                        if ( file_exists( $file_path ) ) {
-                            $metadata['sizes'][ $size_key ]['filesize'] = filesize( $file_path );
-                        }
-                    }
-                }
-            }
-            
-            return $metadata;
-        }
-        
-        // Ensure sizes array exists
-        if ( ! isset( $metadata['sizes'] ) ) {
-            $metadata['sizes'] = [];
-        }
-        
-        // Iterate through converted files organized by size
-        foreach ( $converted_files_by_size as $size_name => $size_formats ) {
-            if ( ! is_array( $size_formats ) ) {
-                continue;
-            }
-            
-            // Get size dimensions from metadata
-            $width = 0;
-            $height = 0;
-            
-            if ( 'full' === $size_name ) {
-                $width = $metadata['width'] ?? 0;
-                $height = $metadata['height'] ?? 0;
-            } elseif ( isset( $metadata['sizes'][ $size_name ] ) ) {
-                $width = $metadata['sizes'][ $size_name ]['width'] ?? 0;
-                $height = $metadata['sizes'][ $size_name ]['height'] ?? 0;
-            }
-            
-            if ( ! $width || ! $height ) {
-                continue;
-            }
-            
-            // Add converted files for this size
-            foreach ( $size_formats as $format => $file_path ) {
-                // Only process image formats (AVIF/WebP)
-                if ( $format !== Converter::FORMAT_AVIF && $format !== Converter::FORMAT_WEBP ) {
-                    continue;
-                }
-                
-                // Get the filename from the file path
-                $filename = wp_basename( $file_path );
-                
-                // Create a size entry key for the converted file
-                // Format: size-format (e.g., 'medium-webp', 'full-avif')
-                $size_key = $size_name . '-' . $format;
-                
-                // Only add if not already present
-                if ( ! isset( $metadata['sizes'][ $size_key ] ) ) {
-                    $metadata['sizes'][ $size_key ] = [
-                        'file' => $filename,
-                        'width' => $width,
-                        'height' => $height,
-                        'mime-type' => $format === Converter::FORMAT_AVIF ? 'image/avif' : 'image/webp',
-                    ];
-                    
-                    // Add filesize if available
-                    if ( file_exists( $file_path ) ) {
-                        $metadata['sizes'][ $size_key ]['filesize'] = filesize( $file_path );
-                    }
-                }
-            }
-        }
-        
-        return $metadata;
-    }
 
     /**
      * Handle attachment URL filter.

@@ -10,6 +10,7 @@ PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PLUGIN_NAME="flux-media-optimizer"
 PLUGIN_FILE="$PLUGIN_DIR/flux-media-optimizer.php"
 PACKAGE_JSON="$PLUGIN_DIR/package.json"
+README_FILE="$PLUGIN_DIR/readme.txt"
 
 # Function to extract version from plugin file header
 extract_plugin_header_version() {
@@ -141,6 +142,17 @@ else
             else
                 sed -i "s/\"version\":[[:space:]]*\"[^\"]*\"/\"version\": \"$NEW_VERSION\"/" "$PACKAGE_JSON"
             fi
+        fi
+    fi
+    
+    # Update Stable tag in readme.txt (WordPress.org requirement)
+    if [ -f "$README_FILE" ]; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS sed
+            sed -i '' "s/Stable tag:[[:space:]]*[0-9.]*/Stable tag: $NEW_VERSION/" "$README_FILE"
+        else
+            # Linux sed
+            sed -i "s/Stable tag:[[:space:]]*[0-9.]*/Stable tag: $NEW_VERSION/" "$README_FILE"
         fi
     fi
     

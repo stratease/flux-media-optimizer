@@ -221,13 +221,13 @@ class ConversionTracker {
 		// Build placeholders for IN clause
 		$placeholders = implode( ',', array_fill( 0, count( $formats ), '%s' ) );
 		
-		// Prepare the query with format placeholders
-		$query = $wpdb->prepare(
-			"DELETE FROM {$this->table_name} WHERE attachment_id = %d AND file_type IN ($placeholders)",
-			array_merge( [ $attachment_id ], $formats )
+		// Prepare and execute the query with format placeholders
+		$deleted = $wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$this->table_name} WHERE attachment_id = %d AND file_type IN ($placeholders)",
+				array_merge( [ $attachment_id ], $formats )
+			)
 		);
-
-		$deleted = $wpdb->query( $query );
 
 		return $deleted !== false ? (int) $deleted : 0;
 	}

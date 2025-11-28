@@ -152,15 +152,17 @@ class VideoConverter implements Converter {
      * @return bool True if FFmpeg is available, false otherwise.
      */
     private function is_ffmpeg_available() {
-        $output = [];
-        $return_var = 0;
-        $result = @exec( 'ffmpeg -version 2>&1', $output, $return_var );
-        
-        if ( $return_var !== 0 ) {
+        try {
+            // Try to create FFMpeg instance to detect availability
+            if ( ! class_exists( 'FluxMedia\FFMpeg\FFMpeg' ) ) {
+                return false;
+            }
+            $ffmpeg = \FluxMedia\FFMpeg\FFMpeg::create();
+            return true;
+        } catch ( \Exception $e ) {
+            // FFmpeg not available or failed to initialize
             return false;
         }
-        
-        return true;
     }
 
     /**

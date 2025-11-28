@@ -99,14 +99,6 @@ class ApiService {
     return this.request(`/conversions/recent?limit=${limit}`);
   }
 
-  // Quota endpoints
-  async getQuotaProgress() {
-    return this.request('/quota');
-  }
-
-  async getPlanInfo() {
-    return this.request('/quota');
-  }
 
   // Options endpoints
   async getOptions() {

@@ -19,11 +19,6 @@ One-click AVIF/WebP image optimization and video compression for WordPress. Auto
 - **Size & Quality Controls**: Configure bitrate and presets to balance clarity and savings
 - **Bulk & On-Upload Support**: Convert existing library items or new uploads automatically
 
-### SaaS API Integration
-- **License Key Authentication**: Secure API integration with license key validation
-- **Remote Quota Management**: Quota tracking handled by SaaS service
-- **Privacy Compliant**: Full compliance with WordPress.org SaaS guidelines
-- **Future-Ready**: Architecture prepared for enhanced cloud processing
 
 ### Modern Admin Interface
 - **React Router**: Hash-based routing with Link components
@@ -48,7 +43,78 @@ One-click AVIF/WebP image optimization and video compression for WordPress. Auto
 
 **Privacy Policy**: [https://fluxplugins.com/privacy-policy/](https://fluxplugins.com/privacy-policy/)
 
+## 🛠️ Build Process
+
+This plugin uses webpack to build JavaScript and CSS assets from source code.
+
+### Source Code Location
+- **JavaScript Source**: `assets/js/src/` - React components and application code
+- **Build Output**: `assets/js/dist/` - Compiled and minified production bundles
+
+### Build Tools
+- **Build Tool**: webpack (configured in `package.json`)
+- **Build Commands**:
+  - `npm run build` - Production build (minified and optimized)
+  - `npm run dev` - Development build with watch mode
+  - `npm run start` - Development server with hot reload
+
+### Building from Source
+To build the plugin from source:
+
+1. Install Node.js dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Build production assets:
+   ```bash
+   npm run build
+   ```
+
+3. For development with hot reload:
+   ```bash
+   npm run start
+   ```
+
+The source code is available in the GitHub repository: [https://github.com/stratease/flux-media-optimizer](https://github.com/stratease/flux-media-optimizer)
+
 ## 🛠️ Quick Start
+## 🛠️ Build Process
+
+This plugin uses webpack to build JavaScript and CSS assets from source code.
+
+### Source Code Location
+- **JavaScript Source**: `assets/js/src/` - React components and application code
+- **CSS Source**: `assets/css/` (if exists) - Stylesheet source files
+- **Build Output**: `assets/js/dist/` - Compiled and minified production bundles
+
+### Build Tools
+- **Build Tool**: webpack (configured in `package.json`)
+- **Build Commands**:
+  - `npm run build` - Production build (minified and optimized)
+  - `npm run dev` - Development build with watch mode
+  - `npm run start` - Development server with hot reload
+
+### Building from Source
+To build the plugin from source:
+
+1. Install Node.js dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Build production assets:
+   ```bash
+   npm run build
+   ```
+
+3. For development with hot reload:
+   ```bash
+   npm run start
+   ```
+
+The source code is available in the GitHub repository: [https://github.com/stratease/flux-media-optimizer](https://github.com/stratease/flux-media-optimizer)
+
 
 ### Installation
 ```bash
@@ -115,6 +181,7 @@ All endpoints are prefixed with `/wp-json/flux-media-optimizer/v1/`:
 ## 🔮 Future Roadmap
 
 ### Planned Enhancements
+- **External Service Integration**: Plans for external file processing and CDN services integration. This will improve image and video optimizations, speed up processing, and allow sites that do not have the required libraries installed to process media files.
 - **SaaS API Integration**: Full cloud processing integration
 - **CDN Integration**: CloudFlare, AWS CloudFront support
 - **AI-Powered Optimization**: Machine learning-based compression

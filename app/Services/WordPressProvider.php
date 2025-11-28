@@ -10,7 +10,7 @@ namespace FluxMedia\App\Services;
 
 use FluxMedia\App\Services\ImageConverter;
 use FluxMedia\App\Services\VideoConverter;
-use FluxMedia\App\Services\QuotaManager;
+
 use FluxMedia\App\Services\ConversionTracker;
 use FluxMedia\App\Services\BulkConverter;
 use FluxMedia\App\Services\WordPressImageRenderer;
@@ -53,12 +53,6 @@ class WordPressProvider {
     private $video_converter;
 
     /**
-     * Quota manager instance.
-     *
-     * @since 0.1.0
-     * @var QuotaManager
-     */
-    private $quota_manager;
 
     /**
      * Conversion tracker instance.
@@ -105,9 +99,8 @@ class WordPressProvider {
         $this->video_converter = $video_converter;
         $this->image_renderer = new WordPressImageRenderer( $video_converter );
         $this->video_renderer = new WordPressVideoRenderer();
-        $this->quota_manager = new QuotaManager( $this->logger );
         $this->conversion_tracker = new ConversionTracker( $this->logger );
-        $this->bulk_converter = new BulkConverter( $this->logger, $image_converter, $video_converter, $this->quota_manager, $this->conversion_tracker );
+        $this->bulk_converter = new BulkConverter( $this->logger, $image_converter, $video_converter, $this->conversion_tracker );
     }
 
     /**
@@ -463,7 +456,7 @@ class WordPressProvider {
                 continue;
             }
 
-            // Get file sizes for quota tracking - use source file size for animated GIFs.
+            // Get file sizes for statistics tracking - use source file size for animated GIFs.
             $size_original_size = $wp_filesystem->size( $source_file_path );
             
             // Initialize size array if needed
@@ -480,7 +473,7 @@ class WordPressProvider {
                 
                 $converted_size = $wp_filesystem->exists( $converted_file_path ) ? $wp_filesystem->size( $converted_file_path ) : 0;
                 
-                // Record conversion for quota tracking (track all sizes for accurate savings calculation)
+                // Record conversion for statistics tracking (track all sizes for accurate savings calculation)
                 $this->conversion_tracker->record_conversion( $attachment_id, $format, $size_original_size, $converted_size, $size_name );
                 
                 // Store converted file

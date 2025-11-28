@@ -36,7 +36,6 @@ export const useStartConversion = () => {
     onSuccess: () => {
       // Invalidate conversion-related queries
       queryClient.invalidateQueries({ queryKey: ['conversions'] });
-      queryClient.invalidateQueries({ queryKey: ['quota'] });
     },
     onError: (error) => {
       console.error('Failed to start conversion:', error);
@@ -73,7 +72,6 @@ export const useBulkConvert = () => {
     onSuccess: () => {
       // Invalidate conversion-related queries
       queryClient.invalidateQueries({ queryKey: ['conversions'] });
-      queryClient.invalidateQueries({ queryKey: ['quota'] });
     },
     onError: (error) => {
       console.error('Failed to start bulk conversion:', error);

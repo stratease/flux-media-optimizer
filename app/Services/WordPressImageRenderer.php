@@ -101,13 +101,6 @@ class WordPressImageRenderer {
         wp_register_style( 'flux-media-optimizer-picture-styles', false, [], FLUX_MEDIA_OPTIMIZER_VERSION );
         wp_enqueue_style( 'flux-media-optimizer-picture-styles' );
         wp_add_inline_style( 'flux-media-optimizer-picture-styles', $css );
-
-        // Method 4: Fallback - add directly to head if we're in the right context
-        if ( ! is_admin() && ! did_action( 'wp_head' ) ) {
-            add_action( 'wp_head', function() use ( $css ) {
-                echo '<style type="text/css" id="flux-media-optimizer-picture-styles">' . esc_html( $css ) . '</style>';
-            }, 20 );
-        }
     }
 
     /**

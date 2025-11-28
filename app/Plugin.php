@@ -21,6 +21,8 @@ use FluxMedia\App\Http\Controllers\OptionsController;
 use FluxMedia\App\Http\Controllers\StatusController;
 use FluxMedia\App\Http\Controllers\ConversionsController;
 use FluxMedia\App\Http\Controllers\LogsController;
+use FluxMedia\App\Http\Controllers\WebhookController;
+use FluxMedia\App\Services\ExternalOptimizationProvider;
 use FluxMedia\App\Services\ConversionTracker;
 use FluxMedia\App\Services\LogsService;
 use FluxMedia\App\Services\Database;
@@ -155,6 +157,13 @@ class Plugin {
         $status_controller->register_routes();
         $conversions_controller->register_routes();
         $logs_controller->register_routes();
+        
+        // Register webhook controller if external service is enabled
+        if ( Settings::is_external_service_enabled() ) {
+            $external_provider = new ExternalOptimizationProvider( $this->logger );
+            $webhook_controller = new WebhookController( $external_provider );
+            $webhook_controller->register_routes();
+        }
     }
 
     /**

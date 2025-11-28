@@ -20,6 +20,7 @@ use FluxMedia\App\Services\Settings;
 use FluxMedia\App\Services\Converter;
 use FluxMedia\App\Services\AttachmentMetaHandler;
 use FluxMedia\App\Services\GifAnimationDetector;
+use FluxMedia\App\Services\ExternalOptimizationProvider;
 
 /**
  * WordPress provider that handles all WordPress integration.
@@ -93,6 +94,14 @@ class WordPressProvider {
     private $video_renderer;
 
     /**
+     * External optimization provider instance.
+     *
+     * @since 3.0.0
+     * @var ExternalOptimizationProvider|null
+     */
+    private $external_provider;
+
+    /**
      * Constructor.
      *
      * @since 0.1.0
@@ -117,6 +126,12 @@ class WordPressProvider {
      * @return void
      */
     public function init() {
+        // Initialize external provider if external service is enabled.
+        if ( Settings::is_external_service_enabled() ) {
+            $this->external_provider = new ExternalOptimizationProvider( $this->logger );
+            $this->external_provider->init();
+        }
+        
         $this->register_hooks();
     }
 
@@ -129,22 +144,30 @@ class WordPressProvider {
     public function register_hooks() {
         // ===== CONVERT MEDIA =====
         // Media upload hooks (handles both images and videos)
-        add_action( 'add_attachment', [ $this, 'handle_media_upload' ] );
+        // Only register local processing hooks if external service is not enabled.
+        if ( ! Settings::is_external_service_enabled() ) {
+            add_action( 'add_attachment', [ $this, 'handle_media_upload' ] );
+        }
         add_action( 'wp_generate_attachment_metadata', [ $this, 'handle_image_metadata_generation' ], 10, 2 );
         
         // Ensure conversions run when attachments are edited or files are replaced
-        add_filter( 'wp_update_attachment_metadata', [ $this, 'handle_update_attachment_metadata' ], 10, 2 );
-        add_filter( 'update_attached_file', [ $this, 'handle_update_attached_file' ], 10, 2 );
-        add_filter( 'wp_save_image_editor_file', [ $this, 'handle_wp_save_image_editor_file' ], 10, 5 );
+        // Only register if external service is not enabled.
+        if ( ! Settings::is_external_service_enabled() ) {
+            add_filter( 'wp_update_attachment_metadata', [ $this, 'handle_update_attachment_metadata' ], 10, 2 );
+            add_filter( 'update_attached_file', [ $this, 'handle_update_attached_file' ], 10, 2 );
+            add_filter( 'wp_save_image_editor_file', [ $this, 'handle_wp_save_image_editor_file' ], 10, 5 );
+        }
         
         // AJAX handlers for attachment actions
         add_action( 'wp_ajax_flux_media_optimizer_convert_attachment', [ $this, 'handle_ajax_convert_attachment' ] );
         add_action( 'wp_ajax_flux_media_optimizer_disable_conversion', [ $this, 'handle_ajax_disable_conversion' ] );
         add_action( 'wp_ajax_flux_media_optimizer_enable_conversion', [ $this, 'handle_ajax_enable_conversion' ] );
-        // Cron job for individual video processing
-        add_action( 'flux_media_optimizer_process_video', [ $this, 'handle_process_video_cron' ], 10, 2 );
-        // Cron job for bulk conversion (only if enabled)
-        if ( Settings::is_bulk_conversion_enabled() ) {
+        // Cron job for individual video processing (only if external service not enabled)
+        if ( ! Settings::is_external_service_enabled() ) {
+            add_action( 'flux_media_optimizer_process_video', [ $this, 'handle_process_video_cron' ], 10, 2 );
+        }
+        // Cron job for bulk conversion (only if enabled and external service not enabled)
+        if ( Settings::is_bulk_conversion_enabled() && ! Settings::is_external_service_enabled() ) {
             add_action( 'flux_media_optimizer_bulk_conversion', [ $this, 'handle_bulk_conversion_cron' ] );
             
             // Schedule cron job if not already scheduled
@@ -257,7 +280,7 @@ class WordPressProvider {
     /**
      * Check if an attachment is an animated GIF.
      *
-     * @since TBD
+     * @since 3.0.0
      * @param int $attachment_id Attachment ID.
      * @return bool True if animated GIF, false otherwise.
      */
@@ -471,6 +494,50 @@ class WordPressProvider {
                 $all_converted_files_by_size[ $size_name ] = [];
             }
             
+            // Store original file URL and size.
+            // Get the original file URL for this size.
+            $original_file_url = '';
+            if ( 'full' === $size_name ) {
+                $original_file_url = wp_get_attachment_url( $attachment_id );
+            } else {
+                // For other sizes, get the URL from metadata.
+                $metadata = wp_get_attachment_metadata( $attachment_id );
+                if ( ! empty( $metadata['sizes'][ $size_name ]['file'] ) ) {
+                    $upload_dir = wp_upload_dir();
+                    $file_dir = dirname( $metadata['file'] );
+                    $original_file_url = $upload_dir['baseurl'] . '/' . $file_dir . '/' . $metadata['sizes'][ $size_name ]['file'];
+                }
+            }
+            
+            if ( $size_original_size > 0 ) {
+                // Store original file details.
+                AttachmentMetaHandler::set_file_url_and_size( $attachment_id, 'original', $size_name, $original_file_url ?: $source_file_path, $size_original_size );
+                
+                // Also add to local array so it's included when we save the batch.
+                // Convert path to URL if needed (same logic as set_file_url_and_size).
+                $url_to_store = $original_file_url;
+                if ( empty( $url_to_store ) ) {
+                    // Convert file path to URL.
+                    $upload_dir = wp_upload_dir();
+                    $upload_path = wp_normalize_path( $upload_dir['basedir'] );
+                    $source_file_path_normalized = wp_normalize_path( $source_file_path );
+                    if ( strpos( $source_file_path_normalized, $upload_path ) === 0 ) {
+                        $relative_path = str_replace( $upload_path, '', $source_file_path_normalized );
+                        $relative_path = ltrim( $relative_path, '/' );
+                        $url_to_store = $upload_dir['baseurl'] . '/' . $relative_path;
+                    } else {
+                        $url_to_store = wp_get_attachment_url( $attachment_id );
+                    }
+                }
+                
+                if ( $url_to_store ) {
+                    $all_converted_files_by_size[ $size_name ]['original'] = [
+                        'url' => esc_url_raw( $url_to_store ),
+                        'filesize' => $size_original_size,
+                    ];
+                }
+            }
+            
             // Store converted files for each format
             foreach ( $results['converted_formats'] as $format ) {
                 $converted_file_path = $results['converted_files'][ $format ] ?? '';
@@ -478,13 +545,36 @@ class WordPressProvider {
                     continue;
                 }
                 
-                $converted_size = $wp_filesystem->exists( $converted_file_path ) ? $wp_filesystem->size( $converted_file_path ) : 0;
+                // Get file size - ensure file exists and is readable
+                $converted_size = 0;
+                if ( $wp_filesystem->exists( $converted_file_path ) ) {
+                    $converted_size = $wp_filesystem->size( $converted_file_path );
+                    // Validate that we got a valid size (greater than 0)
+                    if ( $converted_size <= 0 ) {
+                        // Fallback to PHP filesize if wp_filesystem returns invalid size
+                        if ( file_exists( $converted_file_path ) ) {
+                            $converted_size = filesize( $converted_file_path );
+                        }
+                    }
+                } elseif ( file_exists( $converted_file_path ) ) {
+                    // Fallback to PHP filesize if wp_filesystem doesn't exist but file does
+                    $converted_size = filesize( $converted_file_path );
+                }
                 
                 // Record conversion for quota tracking (track all sizes for accurate savings calculation)
                 $this->conversion_tracker->record_conversion( $attachment_id, $format, $size_original_size, $converted_size, $size_name );
                 
-                // Store converted file
-                $all_converted_files_by_size[ $size_name ][ $format ] = $converted_file_path;
+                // Store URL and size together using unified structure.
+                // Only store if we have a valid file size (greater than 0)
+                if ( $converted_size > 0 ) {
+                    AttachmentMetaHandler::set_file_url_and_size( $attachment_id, $format, $size_name, $converted_file_path, $converted_size );
+                }
+                
+                // Also store in local array for batch update.
+                $all_converted_files_by_size[ $size_name ][ $format ] = [
+                    'url' => $converted_file_path,
+                    'filesize' => $converted_size,
+                ];
             }
         }
         
@@ -507,13 +597,6 @@ class WordPressProvider {
         if ( ! empty( $all_converted_files_by_size ) || $disabled_formats_removed ) {
             AttachmentMetaHandler::set_converted_files_grouped_by_size( $attachment_id, $all_converted_files_by_size );
             
-            // Also store full size in legacy format for backward compatibility
-            if ( isset( $all_converted_files_by_size['full'] ) ) {
-                AttachmentMetaHandler::set_converted_files( $attachment_id, $all_converted_files_by_size['full'] );
-            } else {
-                // If no full size exists, clear legacy format
-                AttachmentMetaHandler::set_converted_files( $attachment_id, [] );
-            }
             
             // Update formats list - only include formats that actually exist
             AttachmentMetaHandler::set_converted_formats( $attachment_id, $final_formats );
@@ -654,6 +737,37 @@ class WordPressProvider {
             // Get original file size
             $original_size = $wp_filesystem && $wp_filesystem->exists( $file_path ) ? $wp_filesystem->size( $file_path ) : 0;
 
+            // Store original file URL and size.
+            $original_file_url = wp_get_attachment_url( $attachment_id );
+            if ( $original_size > 0 ) {
+                // Store original file details.
+                AttachmentMetaHandler::set_file_url_and_size( $attachment_id, 'original', 'full', $original_file_url ?: $file_path, $original_size );
+                
+                // Also add to local array so it's included when we save the batch.
+                // Convert path to URL if needed (same logic as set_file_url_and_size).
+                $url_to_store = $original_file_url;
+                if ( empty( $url_to_store ) ) {
+                    // Convert file path to URL.
+                    $upload_dir = wp_upload_dir();
+                    $upload_path = wp_normalize_path( $upload_dir['basedir'] );
+                    $file_path_normalized = wp_normalize_path( $file_path );
+                    if ( strpos( $file_path_normalized, $upload_path ) === 0 ) {
+                        $relative_path = str_replace( $upload_path, '', $file_path_normalized );
+                        $relative_path = ltrim( $relative_path, '/' );
+                        $url_to_store = $upload_dir['baseurl'] . '/' . $relative_path;
+                    } else {
+                        $url_to_store = wp_get_attachment_url( $attachment_id );
+                    }
+                }
+                
+                if ( $url_to_store ) {
+                    $converted_files_by_size['full']['original'] = [
+                        'url' => esc_url_raw( $url_to_store ),
+                        'filesize' => $original_size,
+                    ];
+                }
+            }
+
             // Record conversion with file size data for each format
             // Videos don't have multiple sizes, so use 'full' as size_name
             foreach ( $results['converted_formats'] as $format ) {
@@ -661,12 +775,28 @@ class WordPressProvider {
                 $converted_size = $wp_filesystem && $wp_filesystem->exists( $converted_file_path ) ? $wp_filesystem->size( $converted_file_path ) : 0;
                 
                 $this->conversion_tracker->record_conversion( $attachment_id, $format, $original_size, $converted_size, 'full' );
+                
+                // Store URL and size together using unified structure.
+                AttachmentMetaHandler::set_file_url_and_size( $attachment_id, $format, 'full', $converted_file_path, $converted_size );
             }
 
             // Update WordPress meta
             AttachmentMetaHandler::set_converted_formats( $attachment_id, $results['converted_formats'] );
             AttachmentMetaHandler::set_conversion_date_now( $attachment_id );
-            AttachmentMetaHandler::set_converted_files( $attachment_id, $results['converted_files'] );
+            
+            // Store in size-specific format
+            // Note: URLs and sizes are already stored via set_file_url_and_size() calls above.
+            $converted_files_by_size = [
+                'full' => [],
+            ];
+            foreach ( $results['converted_files'] as $format => $file_path ) {
+                $converted_size = $wp_filesystem && $wp_filesystem->exists( $file_path ) ? $wp_filesystem->size( $file_path ) : 0;
+                $converted_files_by_size['full'][ $format ] = [
+                    'url' => $file_path,
+                    'filesize' => $converted_size,
+                ];
+            }
+            AttachmentMetaHandler::set_converted_files_grouped_by_size( $attachment_id, $converted_files_by_size );
 
             // Video conversion completed
         } else {
@@ -685,8 +815,6 @@ class WordPressProvider {
         // Get converted files by size (new structure)
         $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
         
-        // Also get legacy format for backward compatibility
-        $converted_files = AttachmentMetaHandler::get_converted_files( $attachment_id );
         
         if ( empty( $converted_files_by_size ) && empty( $converted_files ) ) {
             return;
@@ -727,22 +855,48 @@ class WordPressProvider {
         
         // Delete files from legacy structure (avoid duplicates)
         if ( ! empty( $converted_files ) ) {
-            foreach ( $converted_files as $format => $file_path ) {
-                // Ensure file_path is a string (skip if array or invalid)
-                if ( ! is_string( $file_path ) || empty( $file_path ) ) {
+            foreach ( $converted_files as $format => $data ) {
+                // Extract URL/path from unified structure (handles both new and legacy formats).
+                $url_or_path = null;
+                if ( is_array( $data ) && isset( $data['url'] ) ) {
+                    // New format: array with 'url' and 'filesize'.
+                    $url_or_path = $data['url'];
+                } elseif ( is_string( $data ) ) {
+                    // Legacy format: string URL/path.
+                    $url_or_path = $data;
+                }
+                
+                // Ensure url_or_path is a string (skip if invalid)
+                if ( ! is_string( $url_or_path ) || empty( $url_or_path ) ) {
                     continue;
                 }
                 
                 // Skip if already deleted from size-specific structure
-                if ( ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'][ $format ] ) && $converted_files_by_size['full'][ $format ] === $file_path ) {
+                $full_data = $converted_files_by_size['full'][ $format ] ?? null;
+                $full_url_or_path = null;
+                if ( is_array( $full_data ) && isset( $full_data['url'] ) ) {
+                    $full_url_or_path = $full_data['url'];
+                } elseif ( is_string( $full_data ) ) {
+                    $full_url_or_path = $full_data;
+                }
+                
+                if ( ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'][ $format ] ) && $full_url_or_path === $url_or_path ) {
                     continue;
                 }
                 $total_count++;
-                if ( $wp_filesystem && $wp_filesystem->exists( $file_path ) && $wp_filesystem->delete( $file_path ) ) {
+                
+                // Check if it's a URL (CDN) - skip deletion for URLs, only remove from meta.
+                if ( AttachmentMetaHandler::is_file_url( $url_or_path ) ) {
+                    $this->logger->info( "Skipped deletion of CDN URL: {$url_or_path} (format: {$format})" );
+                    continue;
+                }
+                
+                // It's a file path, proceed with deletion.
+                if ( $wp_filesystem && $wp_filesystem->exists( $url_or_path ) && $wp_filesystem->delete( $url_or_path ) ) {
                     $deleted_count++;
-                    $this->logger->info( "Deleted converted file: {$file_path} (format: {$format})" );
+                    $this->logger->info( "Deleted converted file: {$url_or_path} (format: {$format})" );
                 } else {
-                    $this->logger->warning( "Failed to delete converted file: {$file_path} (format: {$format})" );
+                    $this->logger->warning( "Failed to delete converted file: {$url_or_path} (format: {$format})" );
                 }
             }
         }
@@ -760,9 +914,6 @@ class WordPressProvider {
      * @param int $attachment_id WordPress attachment ID.
      * @return array Array of format => file_path mappings.
      */
-    public function get_converted_files( $attachment_id ) {
-        return AttachmentMetaHandler::get_converted_files( $attachment_id );
-    }
 
     /**
      * Get converted file path for a specific format.
@@ -773,8 +924,16 @@ class WordPressProvider {
      * @return string|null File path or null if not found.
      */
     public function get_converted_file_path( $attachment_id, $format ) {
-        $converted_files = $this->get_converted_files( $attachment_id );
-        return $converted_files[ $format ] ?? null;
+        $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
+        $converted_files = ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'] )
+            ? $converted_files_by_size['full']
+            : [];
+        
+        // Extract URL from unified structure.
+        if ( isset( $converted_files[ $format ] ) && is_array( $converted_files[ $format ] ) && isset( $converted_files[ $format ]['url'] ) ) {
+            return $converted_files[ $format ]['url'];
+        }
+        return null;
     }
 
     /**
@@ -785,8 +944,8 @@ class WordPressProvider {
      * @return bool True if converted files exist, false otherwise.
      */
     public function has_converted_files( $attachment_id ) {
-        $converted_files = $this->get_converted_files( $attachment_id );
-        return ! empty( $converted_files );
+        $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
+        return ! empty( $converted_files_by_size );
     }
 
     /**
@@ -797,11 +956,8 @@ class WordPressProvider {
      * @return bool True if files were deleted successfully, false otherwise.
      */
     public function delete_converted_files( $attachment_id ) {
-        // Get converted files by size (new structure)
+        // Get converted files by size
         $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
-        
-        // Also get legacy format for backward compatibility
-        $converted_files = $this->get_converted_files( $attachment_id );
         
         // Validate data structures to prevent type errors
         if ( ! empty( $converted_files_by_size ) && ! is_array( $converted_files_by_size ) ) {
@@ -809,12 +965,7 @@ class WordPressProvider {
             $converted_files_by_size = [];
         }
         
-        if ( ! empty( $converted_files ) && ! is_array( $converted_files ) ) {
-            $this->logger->warning( "Invalid converted_files structure for attachment {$attachment_id}: expected array, got " . gettype( $converted_files ) );
-            $converted_files = [];
-        }
-        
-        if ( empty( $converted_files_by_size ) && empty( $converted_files ) ) {
+        if ( empty( $converted_files_by_size ) ) {
             return true; // Nothing to delete
         }
 
@@ -835,17 +986,32 @@ class WordPressProvider {
                 if ( ! is_array( $size_formats ) ) {
                     continue;
                 }
-                foreach ( $size_formats as $format => $file_path ) {
-                    // Ensure file_path is a string (skip if array or invalid)
-                    if ( ! is_string( $file_path ) || empty( $file_path ) ) {
+                foreach ( $size_formats as $format => $data ) {
+                    // Extract URL/path from unified structure.
+                    if ( ! is_array( $data ) || ! isset( $data['url'] ) ) {
+                        continue;
+                    }
+                    
+                    $url_or_path = $data['url'];
+                    
+                    // Ensure url_or_path is a string (skip if invalid)
+                    if ( ! is_string( $url_or_path ) || empty( $url_or_path ) ) {
                         continue;
                     }
                     $total_count++;
-                    if ( $wp_filesystem && $wp_filesystem->exists( $file_path ) && $wp_filesystem->delete( $file_path ) ) {
+                    
+                    // Check if it's a URL (CDN) - skip deletion for URLs, only remove from meta.
+                    if ( AttachmentMetaHandler::is_file_url( $url_or_path ) ) {
+                        $this->logger->info( "Skipped deletion of CDN URL: {$url_or_path} (size: {$size_name}, format: {$format})" );
+                        continue;
+                    }
+                    
+                    // It's a file path, proceed with deletion.
+                    if ( $wp_filesystem && $wp_filesystem->exists( $url_or_path ) && $wp_filesystem->delete( $url_or_path ) ) {
                         $deleted_count++;
-                        $this->logger->info( "Deleted converted file: {$file_path} (size: {$size_name}, format: {$format})" );
+                        $this->logger->debug( "Deleted converted file: {$url_or_path} (size: {$size_name}, format: {$format})" );
                     } else {
-                        $this->logger->warning( "Failed to delete converted file: {$file_path} (size: {$size_name}, format: {$format})" );
+                        $this->logger->warning( "Failed to delete converted file: {$url_or_path} (size: {$size_name}, format: {$format})" );
                     }
                 }
             }
@@ -853,22 +1019,48 @@ class WordPressProvider {
         
         // Delete files from legacy structure (avoid duplicates)
         if ( ! empty( $converted_files ) ) {
-            foreach ( $converted_files as $format => $file_path ) {
-                // Ensure file_path is a string (skip if array or invalid)
-                if ( ! is_string( $file_path ) || empty( $file_path ) ) {
+            foreach ( $converted_files as $format => $data ) {
+                // Extract URL/path from unified structure (handles both new and legacy formats).
+                $url_or_path = null;
+                if ( is_array( $data ) && isset( $data['url'] ) ) {
+                    // New format: array with 'url' and 'filesize'.
+                    $url_or_path = $data['url'];
+                } elseif ( is_string( $data ) ) {
+                    // Legacy format: string URL/path.
+                    $url_or_path = $data;
+                }
+                
+                // Ensure url_or_path is a string (skip if invalid)
+                if ( ! is_string( $url_or_path ) || empty( $url_or_path ) ) {
                     continue;
                 }
                 
                 // Skip if already deleted from size-specific structure
-                if ( ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'][ $format ] ) && $converted_files_by_size['full'][ $format ] === $file_path ) {
+                $full_data = $converted_files_by_size['full'][ $format ] ?? null;
+                $full_url_or_path = null;
+                if ( is_array( $full_data ) && isset( $full_data['url'] ) ) {
+                    $full_url_or_path = $full_data['url'];
+                } elseif ( is_string( $full_data ) ) {
+                    $full_url_or_path = $full_data;
+                }
+                
+                if ( ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'][ $format ] ) && $full_url_or_path === $url_or_path ) {
                     continue;
                 }
                 $total_count++;
-                if ( $wp_filesystem && $wp_filesystem->exists( $file_path ) && $wp_filesystem->delete( $file_path ) ) {
+                
+                // Check if it's a URL (CDN) - skip deletion for URLs, only remove from meta.
+                if ( AttachmentMetaHandler::is_file_url( $url_or_path ) ) {
+                    $this->logger->info( "Skipped deletion of CDN URL: {$url_or_path} (format: {$format})" );
+                    continue;
+                }
+                
+                // It's a file path, proceed with deletion.
+                if ( $wp_filesystem && $wp_filesystem->exists( $url_or_path ) && $wp_filesystem->delete( $url_or_path ) ) {
                     $deleted_count++;
-                    $this->logger->debug( "Deleted converted file: {$file_path} (format: {$format})" );
+                    $this->logger->debug( "Deleted converted file: {$url_or_path} (format: {$format})" );
                 } else {
-                    $this->logger->warning( "Failed to delete converted file: {$file_path} (format: {$format})" );
+                    $this->logger->warning( "Failed to delete converted file: {$url_or_path} (format: {$format})" );
                 }
             }
         }
@@ -1027,7 +1219,22 @@ class WordPressProvider {
                 // Verify all formats exist using WordPress filesystem
                 $all_formats_exist = true;
                 foreach ( $image_formats as $format ) {
-                    if ( ! isset( $existing_converted[ $size_name ][ $format ] ) || ! $wp_filesystem->exists( $existing_converted[ $size_name ][ $format ] ) ) {
+                    if ( ! isset( $existing_converted[ $size_name ][ $format ] ) ) {
+                        $all_formats_exist = false;
+                        break;
+                    }
+                    
+                    // Extract URL/path from unified structure to check file existence.
+                    $data = $existing_converted[ $size_name ][ $format ];
+                    if ( ! is_array( $data ) || ! isset( $data['url'] ) ) {
+                        $all_formats_exist = false;
+                        break;
+                    }
+                    
+                    $url_or_path = $data['url'];
+                    
+                    // Check file existence (skip for CDN URLs).
+                    if ( ! empty( $url_or_path ) && ! AttachmentMetaHandler::is_file_url( $url_or_path ) && ! $wp_filesystem->exists( $url_or_path ) ) {
                         $all_formats_exist = false;
                         break;
                     }
@@ -1061,15 +1268,72 @@ class WordPressProvider {
                     $existing_converted[ $size_name ] = [];
                 }
                 
+                    // Store original file URL and size.
+                    // Get the original file URL for this size.
+                    $original_file_url = '';
+                    if ( 'full' === $size_name ) {
+                        $original_file_url = wp_get_attachment_url( $attachment_id );
+                    } else {
+                        // For other sizes, get the URL from metadata.
+                        $metadata = wp_get_attachment_metadata( $attachment_id );
+                        if ( ! empty( $metadata['sizes'][ $size_name ]['file'] ) ) {
+                            $upload_dir = wp_upload_dir();
+                            $file_dir = dirname( $metadata['file'] );
+                            $original_file_url = $upload_dir['baseurl'] . '/' . $file_dir . '/' . $metadata['sizes'][ $size_name ]['file'];
+                        }
+                    }
+                    
+                    if ( $size_original_size > 0 ) {
+                        // Store original file details.
+                        AttachmentMetaHandler::set_file_url_and_size( $attachment_id, 'original', $size_name, $original_file_url ?: $size_file_path, $size_original_size );
+                        
+                        // Also add to local array so it's included when we save the batch.
+                        // Convert path to URL if needed (same logic as set_file_url_and_size).
+                        $url_to_store = $original_file_url;
+                        if ( empty( $url_to_store ) ) {
+                            // Convert file path to URL.
+                            $upload_dir = wp_upload_dir();
+                            $upload_path = wp_normalize_path( $upload_dir['basedir'] );
+                            $size_file_path_normalized = wp_normalize_path( $size_file_path );
+                            if ( strpos( $size_file_path_normalized, $upload_path ) === 0 ) {
+                                $relative_path = str_replace( $upload_path, '', $size_file_path_normalized );
+                                $relative_path = ltrim( $relative_path, '/' );
+                                $url_to_store = $upload_dir['baseurl'] . '/' . $relative_path;
+                            } else {
+                                // Filter is already removed/restored above if needed, but let's be safe for full size fallback
+                                remove_filter( 'wp_get_attachment_url', [ $this, 'handle_attachment_url_filter' ], 10 );
+                                $url_to_store = wp_get_attachment_url( $attachment_id );
+                                add_filter( 'wp_get_attachment_url', [ $this, 'handle_attachment_url_filter' ], 10, 2 );
+                            }
+                        }
+                        
+                        if ( $url_to_store ) {
+                            if ( ! isset( $existing_converted[ $size_name ] ) ) {
+                                $existing_converted[ $size_name ] = [];
+                            }
+                            $existing_converted[ $size_name ]['original'] = [
+                                'url' => esc_url_raw( $url_to_store ),
+                                'filesize' => $size_original_size,
+                            ];
+                        }
+                    }
+                
                 // Store converted files for this size and track conversions
                 foreach ( $results['converted_formats'] as $format ) {
                     $converted_file_path = $results['converted_files'][ $format ] ?? '';
                     if ( ! empty( $converted_file_path ) ) {
-                        $existing_converted[ $size_name ][ $format ] = $converted_file_path;
-                        
                         // Track conversion: compare converted file size against original file size for this specific size
                         $converted_size = $wp_filesystem->exists( $converted_file_path ) ? $wp_filesystem->size( $converted_file_path ) : 0;
                         $this->conversion_tracker->record_conversion( $attachment_id, $format, $size_original_size, $converted_size, $size_name );
+                        
+                        // Store URL and size together using unified structure.
+                        AttachmentMetaHandler::set_file_url_and_size( $attachment_id, $format, $size_name, $converted_file_path, $converted_size );
+                        
+                        // Also store in local array for batch update.
+                        $existing_converted[ $size_name ][ $format ] = [
+                            'url' => $converted_file_path,
+                            'filesize' => $converted_size,
+                        ];
                     }
                 }
                 
@@ -1078,13 +1342,10 @@ class WordPressProvider {
         }
 
         // Update meta if we converted any sizes
+        // Note: File sizes are already stored via set_file_url_and_size() calls above.
         if ( $converted_any ) {
             AttachmentMetaHandler::set_converted_files_grouped_by_size( $attachment_id, $existing_converted );
             
-            // Also update full size in legacy format for backward compatibility
-            if ( isset( $existing_converted['full'] ) ) {
-                AttachmentMetaHandler::set_converted_files( $attachment_id, $existing_converted['full'] );
-            }
             
             // Update formats list
             $all_formats = [];
@@ -1119,11 +1380,32 @@ class WordPressProvider {
             return $url;
         }
 
-        // Get converted files (check size-specific structure first, fallback to legacy)
+        // Bypass filter in admin attachment details page to show original file
+        // Check if we're in the admin and on the upload.php page (attachment details)
+        if ( is_admin() ) {
+            // Check if we're on upload.php with item parameter (attachment details modal/page)
+            $current_screen = get_current_screen();
+            if ( $current_screen && ( $current_screen->id === 'attachment' || ( isset( $_GET['item'] ) && basename( $_SERVER['PHP_SELF'] ) === 'upload.php' ) ) ) {
+                // This is the attachment details page - return original URL
+                return $url;
+            }
+            
+            // Also bypass when WordPress is rendering attachment fields (File URL field)
+            // Check if we're in the context of attachment_fields_to_edit filter
+            $backtrace = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 10 );
+            foreach ( $backtrace as $frame ) {
+                if ( isset( $frame['function'] ) && $frame['function'] === 'get_attachment_fields_to_edit' ) {
+                    // WordPress is getting attachment fields - return original URL
+                    return $url;
+                }
+            }
+        }
+
+        // Get converted files from size-specific structure
         $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
         $converted_files = ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'] ) 
             ? $converted_files_by_size['full'] 
-            : $this->get_converted_files( $attachment_id );
+            : [];
         
         if ( empty( $converted_files ) ) {
             return $url;
@@ -1159,6 +1441,32 @@ class WordPressProvider {
             return $url;
         }
 
+        // Bypass filter in admin attachment details page to show original file
+        // Check if we're in the admin and on the attachment details page
+        if ( is_admin() ) {
+            // Check for AJAX actions related to attachment details
+            if ( wp_doing_ajax() ) {
+                $action = isset( $_REQUEST['action'] ) ? $_REQUEST['action'] : '';
+                if ( in_array( $action, [ 'get-attachment', 'query-attachments', 'image-editor', 'imgedit-preview', 'send-attachment-to-editor' ], true ) ) {
+                    return $url;
+                }
+            }
+
+            global $pagenow;
+            if ( $pagenow === 'upload.php' && isset( $_GET['item'] ) ) {
+                // This is the attachment details page - return original URL
+                return $url;
+            }
+            
+            // Fallback to current screen check
+            if ( function_exists( 'get_current_screen' ) ) {
+                $current_screen = get_current_screen();
+                if ( $current_screen && $current_screen->id === 'attachment' ) {
+                    return $url;
+                }
+            }
+        }
+
         // Get converted files (check size-specific structure first, fallback to legacy)
         $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
         
@@ -1169,7 +1477,7 @@ class WordPressProvider {
             ? $converted_files_by_size[ $size_name ] 
             : ( ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'] ) 
                 ? $converted_files_by_size['full'] 
-                : $this->get_converted_files( $attachment_id ) );
+                : [] );
         
         if ( empty( $converted_files ) ) {
             return $url;
@@ -1205,6 +1513,32 @@ class WordPressProvider {
             return $image;
         }
 
+        // Bypass filter in admin attachment details page to show original file
+        // Check if we're in the admin and on the attachment details page
+        if ( is_admin() ) {
+            // Check for AJAX actions related to attachment details
+            if ( wp_doing_ajax() ) {
+                $action = isset( $_REQUEST['action'] ) ? $_REQUEST['action'] : '';
+                if ( in_array( $action, [ 'get-attachment', 'query-attachments', 'image-editor', 'imgedit-preview', 'send-attachment-to-editor' ], true ) ) {
+                    return $image;
+                }
+            }
+
+            global $pagenow;
+            if ( $pagenow === 'upload.php' && isset( $_GET['item'] ) ) {
+                // This is the attachment details page - return original image
+                return $image;
+            }
+            
+            // Fallback to current screen check
+            if ( function_exists( 'get_current_screen' ) ) {
+                $current_screen = get_current_screen();
+                if ( $current_screen && $current_screen->id === 'attachment' ) {
+                    return $image;
+                }
+            }
+        }
+
         // Get the URL from the image array
         $url = $image[0] ?? '';
         if ( empty( $url ) ) {
@@ -1221,7 +1555,7 @@ class WordPressProvider {
             ? $converted_files_by_size[ $size_name ] 
             : ( ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'] ) 
                 ? $converted_files_by_size['full'] 
-                : $this->get_converted_files( $attachment_id ) );
+                : [] );
         
         if ( empty( $converted_files ) ) {
             return $image;
@@ -1352,11 +1686,11 @@ class WordPressProvider {
      * @return string Modified media HTML.
      */
     public function handle_content_images_filter( $filtered_media, $context, $attachment_id ) {
-        // Get converted files (check size-specific structure first, fallback to legacy)
+        // Get converted files from size-specific structure
         $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
         $converted_files = ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'] ) 
             ? $converted_files_by_size['full'] 
-            : $this->get_converted_files( $attachment_id );
+            : [];
         
         if ( empty( $converted_files ) ) {
             return $filtered_media;
@@ -1438,7 +1772,7 @@ class WordPressProvider {
                 ? $converted_files_by_size['post-thumbnail'] 
                 : ( ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'] ) 
                     ? $converted_files_by_size['full'] 
-                    : AttachmentMetaHandler::get_converted_files( $post_thumbnail_id ) ) );
+                    : [] ) );
         
         if ( empty( $converted_files ) ) {
             return $html;
@@ -1480,7 +1814,7 @@ class WordPressProvider {
             ? $converted_files_by_size[ $size_name ] 
             : ( ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'] ) 
                 ? $converted_files_by_size['full'] 
-                : AttachmentMetaHandler::get_converted_files( $attachment_id ) );
+                : [] );
         
         if ( empty( $converted_files ) ) {
             return $html;
@@ -1526,7 +1860,7 @@ class WordPressProvider {
             return [
                 'success' => true,
                 'type' => 'image',
-                'converted_files' => $this->get_converted_files( $attachment_id ),
+                'converted_files' => AttachmentMetaHandler::get_converted_files_for_size( $attachment_id, 'full' ),
             ];
         } elseif ( $this->video_converter->is_supported_video( $file_path ) ) {
             // Enqueue video processing for async processing
@@ -1536,7 +1870,7 @@ class WordPressProvider {
                 'type' => 'video',
                 'queued' => true,
                 'message' => 'Video conversion has been queued for processing',
-                'converted_files' => $this->get_converted_files( $attachment_id ),
+                'converted_files' => AttachmentMetaHandler::get_converted_files_for_size( $attachment_id, 'full' ),
             ];
         }
 
@@ -1853,11 +2187,11 @@ class WordPressProvider {
 
         $attachment_id = $post->ID;
 
-        // Get converted files (check size-specific structure first, fallback to legacy)
+        // Get converted files from size-specific structure
         $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
         $converted_files = ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'] ) 
             ? $converted_files_by_size['full'] 
-            : $this->get_converted_files( $attachment_id );
+            : [];
         
         if ( empty( $converted_files ) ) {
             return $response;
@@ -1939,3 +2273,5 @@ class WordPressProvider {
         return $response;
     }
 }
+
+

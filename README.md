@@ -19,11 +19,12 @@ One-click AVIF/WebP image optimization and video compression for WordPress. Auto
 - **Size & Quality Controls**: Configure bitrate and presets to balance clarity and savings
 - **Bulk & On-Upload Support**: Convert existing library items or new uploads automatically
 
-### SaaS API Integration
-- **License Key Authentication**: Secure API integration with license key validation
-- **Remote Quota Management**: Quota tracking handled by SaaS service
-- **Privacy Compliant**: Full compliance with WordPress.org SaaS guidelines
-- **Future-Ready**: Architecture prepared for enhanced cloud processing
+### Global CDN & Cloud Processing (SaaS)
+- **Global Content Delivery**: Optimized assets are stored on Flux's Google Cloud CDN, ensuring lightning-fast delivery worldwide regardless of visitor location
+- **Offloaded Processing**: Heavy image/video conversion tasks are handled by our external service, reducing load on your server
+- **Automatic Upload & Optimization**: New uploads are automatically sent to our processing service and returned as optimized assets
+- **Secure Integration**: Uses license key authentication and secure webhooks for reliable communication
+- **Remote Quota Management**: Usage is tracked automatically, with clear visibility in your WordPress admin
 
 ### Modern Admin Interface
 - **React Router**: Hash-based routing with Link components
@@ -41,8 +42,9 @@ One-click AVIF/WebP image optimization and video compression for WordPress. Auto
 - Media files never leave your WordPress installation
 
 ### Optional SaaS Service
-- Opt-in only with explicit user consent
+- Opt-in only with explicit user consent and license activation
 - External processing via secure cloud infrastructure
+- Optimized files are stored on Flux's Global Google Cloud CDN for performance
 - Email communications for service updates and marketing
 - Full compliance with WordPress.org guidelines
 
@@ -84,6 +86,7 @@ This plugin uses a modern, decoupled architecture that separates business logic 
 - **Provider Pattern**: `WordPressProvider` handles all WordPress integration
 - **Dependency Injection**: Uses interfaces for testable, decoupled components
 - **Unified Converter Interface**: Fluent API with centralized format constants
+- **External Optimization**: `ExternalOptimizationProvider` manages communication with the SaaS processing service and CDN
 
 ## 📁 Project Structure
 
@@ -111,12 +114,11 @@ All endpoints are prefixed with `/wp-json/flux-media-optimizer/v1/`:
 - `GET /conversions/stats` - Conversion statistics
 - `POST /conversions/bulk` - Start bulk conversion
 - `GET /logs` - Get logs with pagination
+- `POST /webhook` - Callback endpoint for external processing service
 
 ## 🔮 Future Roadmap
 
 ### Planned Enhancements
-- **SaaS API Integration**: Full cloud processing integration
-- **CDN Integration**: CloudFlare, AWS CloudFront support
 - **AI-Powered Optimization**: Machine learning-based compression
 - **Advanced Analytics**: Detailed conversion metrics
 - **Extended Format Support**: Additional formats via SaaS API

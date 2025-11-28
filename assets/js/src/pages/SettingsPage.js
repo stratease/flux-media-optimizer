@@ -449,6 +449,23 @@ const SettingsPage = () => {
               sx={{ maxWidth: 400 }}
               helperText={__('Your license key will be securely stored and used to validate premium features.', 'flux-media-optimizer')}
             />
+            {settings?.license_key && (
+              <Box sx={{ mt: 3 }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={settings?.external_service_enabled || false}
+                      onChange={handleSettingChange('external_service_enabled')}
+                      disabled={isLoading}
+                    />
+                  }
+                  label={__('Enable CDN and External Processing', 'flux-media-optimizer')}
+                />
+                <FormHelperText sx={{ ml: 0, mt: 1 }}>
+                  {__('When enabled, all image and video processing will be handled by the external CDN service. Local processing will be disabled.', 'flux-media-optimizer')}
+                </FormHelperText>
+              </Box>
+            )}
           </Box>
         </Grid>
 

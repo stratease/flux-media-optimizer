@@ -32,6 +32,11 @@ define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
+// Define external service URL constant (can be overridden in wp-config.php).
+if ( ! defined( 'FLUX_MEDIA_OPTIMIZER_EXTERNAL_SERVICE_URL' ) ) {
+	define( 'FLUX_MEDIA_OPTIMIZER_EXTERNAL_SERVICE_URL', 'https://api.fluxplugins.com' );
+}
+
 // Check PHP version compatibility.
 if ( version_compare( PHP_VERSION, '7.4', '<' ) ) {
 	add_action( 'admin_notices', 'flux_media_optimizer_php_version_notice' );
@@ -100,6 +105,10 @@ add_action( 'admin_init', 'flux_media_optimizer_activation_redirect' );
  * @since 0.1.0
  */
 function flux_media_optimizer_init() {
+	// Generate and store UUID (account_id) if it doesn't exist.
+	// This is done on plugin initialization, not on license key activation.
+	flux_media_optimizer_ensure_account_id();
+	
 	// Initialize the main plugin class.
 	$flux_media_optimizer = new FluxMedia\App\Plugin();
 	$flux_media_optimizer->init();
@@ -108,6 +117,44 @@ function flux_media_optimizer_init() {
 	if ( defined( 'WP_CLI' ) && WP_CLI ) {
 		WP_CLI::add_command( 'flux-media-optimizer', 'FluxMedia\App\Console\Commands\FluxMediaCommand' );
 	}
+}
+
+/**
+ * Ensure account ID (UUID) exists for this site.
+ *
+ * Generates and stores UUID on first plugin load if it doesn't exist.
+ * This UUID is persistent and never changes, even if license keys change.
+ *
+ * @since TBD
+ * @return void
+ */
+function flux_media_optimizer_ensure_account_id() {
+	$account_id = get_site_option( 'flux-plugins_account_id', '' );
+	
+	if ( empty( $account_id ) ) {
+		// Generate UUID v4.
+		$uuid = flux_media_optimizer_generate_uuid();
+		update_site_option( 'flux-plugins_account_id', $uuid );
+	}
+}
+
+/**
+ * Generate a UUID v4.
+ *
+ * @since TBD
+ * @return string UUID v4 string.
+ */
+function flux_media_optimizer_generate_uuid() {
+	// Use WordPress's wp_generate_uuid4() if available (WP 6.1+), otherwise generate manually.
+	if ( function_exists( 'wp_generate_uuid4' ) ) {
+		return wp_generate_uuid4();
+	}
+	
+	// Fallback UUID v4 generation.
+	$data = random_bytes( 16 );
+	$data[6] = chr( ord( $data[6] ) & 0x0f | 0x40 ); // Set version to 0100.
+	$data[8] = chr( ord( $data[8] ) & 0x3f | 0x80 ); // Set bits 6-7 to 10.
+	return vsprintf( '%s%s-%s-%s-%s-%s%s%s', str_split( bin2hex( $data ), 4 ) );
 }
 
 /**

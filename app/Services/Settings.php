@@ -8,6 +8,9 @@
 
 namespace FluxMedia\App\Services;
 
+use FluxMedia\App\Services\ExternalApiClient;
+use FluxMedia\App\Services\Logger;
+
 /**
  * Settings management class with constants and centralized getter/setter methods.
  *
@@ -61,6 +64,7 @@ class Settings {
 	const DEFAULT_LOG_LEVEL = 'info';
 	const DEFAULT_ENABLE_LOGGING = false;
 	const DEFAULT_LICENSE_KEY = '';
+	const DEFAULT_EXTERNAL_SERVICE_ENABLED = false;
 
 	/**
 	 * WordPress option name.
@@ -102,6 +106,7 @@ class Settings {
 			
 			// SaaS API settings.
 			'license_key' => self::DEFAULT_LICENSE_KEY,
+			'external_service_enabled' => self::DEFAULT_EXTERNAL_SERVICE_ENABLED,
 		];
 	}
 
@@ -398,21 +403,85 @@ class Settings {
 	/**
 	 * Get the license key for SaaS API authentication.
 	 *
+	 * Stored in flux-plugins_license_key site option for cross-plugin compatibility.
+	 *
 	 * @since 0.1.0
 	 * @return string License key.
 	 */
 	public static function get_license_key() {
-		return (string) self::get( 'license_key', self::DEFAULT_LICENSE_KEY );
+		return (string) get_site_option( 'flux-plugins_license_key', '' );
 	}
 
 	/**
 	 * Set the license key for SaaS API authentication.
+	 *
+	 * Stores in flux-plugins_license_key site option for cross-plugin compatibility.
+	 * Activates the license with external service if the key has changed.
 	 *
 	 * @since 0.1.0
 	 * @param string $license_key License key.
 	 * @return bool True on success, false on failure.
 	 */
 	public static function set_license_key( $license_key ) {
-		return self::set( 'license_key', sanitize_text_field( $license_key ) );
+		$license_key = sanitize_text_field( $license_key );
+		$old_license_key = self::get_license_key();
+		
+		// Only activate if license key has changed or is being set for the first time.
+		$should_activate = ( $old_license_key !== $license_key ) && ! empty( $license_key );
+		
+		$result = update_site_option( 'flux-plugins_license_key', $license_key );
+		
+		// Activate license with external service if key changed.
+		if ( $result && $should_activate ) {
+			$logger = new Logger();
+			$api_client = new ExternalApiClient( $logger );
+			$activation_result = $api_client->activate_license( $license_key );
+			
+			if ( ! $activation_result['success'] ) {
+				// Log error but don't prevent license key from being saved.
+				$logger->error( "License activation failed: " . ( $activation_result['error'] ?? 'Unknown error' ) );
+			}
+		}
+		
+		return $result;
+	}
+
+	/**
+	 * Get the account ID (UUID) for this site.
+	 *
+	 * UUID is generated on plugin initialization and never changes.
+	 *
+	 * @since TBD
+	 * @return string Account ID (UUID) or empty string if not set.
+	 */
+	public static function get_account_id() {
+		return (string) get_site_option( 'flux-plugins_account_id', '' );
+	}
+
+	/**
+	 * Check if external service is enabled.
+	 *
+	 * External service cannot be enabled without a license key.
+	 *
+	 * @since TBD
+	 * @return bool True if external service is enabled and license key exists.
+	 */
+	public static function is_external_service_enabled() {
+		$enabled = (bool) self::get( 'external_service_enabled', self::DEFAULT_EXTERNAL_SERVICE_ENABLED );
+		$has_license = ! empty( self::get_license_key() );
+		
+		// External service cannot be enabled without a license key.
+		return $enabled && $has_license;
+	}
+
+	/**
+	 * Set external service enabled state.
+	 *
+	 * @since TBD
+	 * @param bool $enabled Whether external service is enabled.
+	 * @return bool True on success, false on failure.
+	 */
+	public static function set_external_service_enabled( $enabled ) {
+		return self::set( 'external_service_enabled', (bool) $enabled );
 	}
 }

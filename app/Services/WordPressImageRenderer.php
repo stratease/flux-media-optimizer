@@ -10,6 +10,10 @@ namespace FluxMedia\App\Services;
 
 use FluxMedia\App\Services\Converter;
 use FluxMedia\App\Services\AttachmentMetaHandler;
+use FluxMedia\App\Services\AttachmentIdResolver;
+use FluxMedia\App\Services\ExternalOptimizationProvider;
+use FluxMedia\App\Services\Settings;
+use FluxMedia\App\Services\Logger;
 
 /**
  * WordPress image renderer for handling image display and optimization.
@@ -166,25 +170,8 @@ class WordPressImageRenderer {
      * @return string|null Image URL or null if not available.
      */
     public static function get_image_url_from_attachment( $attachment_id, $format, $size = 'full' ) {
-        // Try size-specific structure first
-        $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
-        if ( ! empty( $converted_files_by_size ) ) {
-            if ( isset( $converted_files_by_size[ $size ][ $format ] ) ) {
-                return self::get_image_url_from_file_path( $converted_files_by_size[ $size ][ $format ] );
-            }
-            // Fallback to full size if requested size not found
-            if ( 'full' !== $size && isset( $converted_files_by_size['full'][ $format ] ) ) {
-                return self::get_image_url_from_file_path( $converted_files_by_size['full'][ $format ] );
-            }
-        }
-        
-        // Fallback to legacy format (full size only)
-        $converted_files = AttachmentMetaHandler::get_converted_files( $attachment_id );
-        if ( ! empty( $converted_files ) && isset( $converted_files[ $format ] ) ) {
-            return self::get_image_url_from_file_path( $converted_files[ $format ] );
-        }
-        
-        return null;
+        // Use AttachmentMetaHandler for centralized URL resolution.
+        return AttachmentMetaHandler::get_converted_file_url( $attachment_id, $format, $size );
     }
 
     /**
@@ -297,7 +284,7 @@ class WordPressImageRenderer {
             $attachment_id = (int) $attributes['id'];
         } elseif ( ! empty( $attributes['url'] ) ) {
             $image_url = $attributes['url'];
-            $attachment_id = $this->get_attachment_id_from_url( $image_url );
+            $attachment_id = AttachmentIdResolver::from_url( $image_url );
         }
         
         if ( ! $attachment_id ) {
@@ -398,16 +385,16 @@ class WordPressImageRenderer {
             $after_src = $matches[3];
             
             // Get attachment ID from URL
-            $attachment_id = $this->get_attachment_id_from_url( $src_url );
+            $attachment_id = AttachmentIdResolver::from_url( $src_url );
             if ( ! $attachment_id ) {
                 return $full_match;
             }
             
-            // Get converted files (check size-specific structure first, fallback to legacy)
+            // Get converted files from size-specific structure
             $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
             $converted_files = ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'] ) 
                 ? $converted_files_by_size['full'] 
-                : AttachmentMetaHandler::get_converted_files( $attachment_id );
+                : [];
             
             if ( empty( $converted_files ) ) {
                 return $full_match;
@@ -439,34 +426,69 @@ class WordPressImageRenderer {
      * @return array Modified form fields.
      */
     public function modify_attachment_fields( $form_fields, $post ) {
-        // Get converted files (check size-specific structure first, fallback to legacy)
-        $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $post->ID );
-        $converted_files = ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'] ) 
-            ? $converted_files_by_size['full'] 
-            : AttachmentMetaHandler::get_converted_files( $post->ID );
-        $conversion_disabled = AttachmentMetaHandler::is_conversion_disabled( $post->ID );
-        
-        // Combine all sections under one "Flux Media Optimizer" label
-        $html_content = '';
-        
-        // Add conversion status if files exist
-        // Use size-specific structure if available, otherwise use legacy
-        $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $post->ID );
-        if ( ! empty( $converted_files_by_size ) ) {
-            $html_content .= $this->get_conversion_status_html( $post->ID, $converted_files_by_size );
-        } elseif ( ! empty( $converted_files ) ) {
-            $html_content .= $this->get_conversion_status_html( $post->ID, $converted_files );
+        // Wrap entire method in try-catch to prevent fatal errors during AJAX queries.
+        try {
+            // Validate post object.
+            if ( ! $post || ! isset( $post->ID ) ) {
+                return $form_fields;
+            }
+            
+            // Get converted files (check size-specific structure first, fallback to legacy)
+            $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $post->ID );
+            $converted_files = ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'] ) 
+                ? $converted_files_by_size['full'] 
+                : AttachmentMetaHandler::get_converted_files( $post->ID );
+            $conversion_disabled = AttachmentMetaHandler::is_conversion_disabled( $post->ID );
+            
+            // Combine all sections under one "Flux Media Optimizer" label
+            $html_content = '';
+            
+        // Check for external service processing status
+        if ( Settings::is_external_service_enabled() ) {
+            try {
+                $external_provider = new ExternalOptimizationProvider( new Logger() );
+                $job_status = $external_provider->get_job_status( $post->ID );
+                
+                if ( $job_status ) {
+                    $html_content .= $this->get_external_processing_status_html( $post->ID, $job_status );
+                }
+            } catch ( \Exception $e ) {
+                // Silently fail if external provider can't be initialized (e.g., table doesn't exist yet)
+                // This prevents fatal errors on attachment screen
+            }
         }
-        
-        // Always add conversion actions
-        $html_content .= $this->get_conversion_actions_html( $post->ID, $conversion_disabled );
-        
-        // Single Flux Media Optimizer section with all content
-        $form_fields['flux_media_optimizer'] = [
-            'label' => __( 'Flux Media Optimizer', 'flux-media-optimizer' ),
-            'input' => 'html',
-            'html' => $html_content,
-        ];
+            
+            // Add conversion status if files exist
+            // Use size-specific structure if available, otherwise use legacy
+            // Note: $converted_files_by_size was already retrieved above, reuse it
+            if ( ! empty( $converted_files_by_size ) ) {
+                $html_content .= $this->get_conversion_status_html( $post->ID, $converted_files_by_size );
+            } elseif ( ! empty( $converted_files ) ) {
+                $html_content .= $this->get_conversion_status_html( $post->ID, $converted_files );
+            }
+            
+            // Always add conversion actions
+            $html_content .= $this->get_conversion_actions_html( $post->ID, $conversion_disabled );
+            
+            // Single Flux Media Optimizer section with all content
+            $form_fields['flux_media_optimizer'] = [
+                'label' => __( 'Flux Media Optimizer', 'flux-media-optimizer' ),
+                'input' => 'html',
+                'html' => $html_content,
+            ];
+        } catch ( \Exception $e ) {
+            // Log error but don't break the attachment query
+            if ( function_exists( 'error_log' ) ) {
+                error_log( 'Flux Media Optimizer: Error in modify_attachment_fields: ' . $e->getMessage() );
+            }
+            // Return form_fields unchanged if there's an error
+        } catch ( \Error $e ) {
+            // Catch fatal errors (PHP 7+)
+            if ( function_exists( 'error_log' ) ) {
+                error_log( 'Flux Media Optimizer: Fatal error in modify_attachment_fields: ' . $e->getMessage() );
+            }
+            // Return form_fields unchanged if there's an error
+        }
         
         return $form_fields;
     }
@@ -581,7 +603,7 @@ class WordPressImageRenderer {
 
         // Add full size
         if ( isset( $converted_files_by_size['full'][ $format ] ) ) {
-            $full_url = self::get_image_url_from_file_path( $converted_files_by_size['full'][ $format ] );
+            $full_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, $format, 'full' );
             if ( $full_url && isset( $metadata['width'] ) ) {
                 $srcset_parts[] = esc_url( $full_url ) . ' ' . (int) $metadata['width'] . 'w';
             }
@@ -591,7 +613,7 @@ class WordPressImageRenderer {
         if ( ! empty( $metadata['sizes'] ) ) {
             foreach ( $metadata['sizes'] as $size_name => $size_data ) {
                 if ( isset( $converted_files_by_size[ $size_name ][ $format ] ) && isset( $size_data['width'] ) ) {
-                    $size_url = self::get_image_url_from_file_path( $converted_files_by_size[ $size_name ][ $format ] );
+                    $size_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, $format, $size_name );
                     if ( $size_url ) {
                         $srcset_parts[] = esc_url( $size_url ) . ' ' . (int) $size_data['width'] . 'w';
                     }
@@ -613,6 +635,10 @@ class WordPressImageRenderer {
      */
     private function create_picture_element( $attachment_id, $converted_files, $original_html ) {
         $original_url = wp_get_attachment_url( $attachment_id );
+        if ( ! $original_url ) {
+            // If we can't get the URL, return original HTML
+            return $original_html;
+        }
         
         // Extract attributes from original HTML
         preg_match( '/<img([^>]*?)>/i', $original_html, $matches );
@@ -799,37 +825,6 @@ class WordPressImageRenderer {
         return $result;
     }
 
-    /**
-     * Get attachment ID from URL.
-     *
-     * @since 0.1.0
-     * @param string $url Image URL.
-     * @return int|null Attachment ID or null if not found.
-     */
-    private function get_attachment_id_from_url( $url ) {
-        // Use WordPress built-in function first (more reliable)
-        $attachment_id = attachment_url_to_postid( $url );
-        if ( $attachment_id ) {
-            return $attachment_id;
-        }
-        
-        // Fallback to database query for edge cases
-        global $wpdb;
-        
-        $upload_dir = wp_upload_dir();
-        $base_url = $upload_dir['baseurl'];
-        
-        // Remove base URL to get relative path
-        $relative_path = str_replace( $base_url . '/', '', $url );
-        
-        // Query for attachment ID
-        $attachment_id = $wpdb->get_var( $wpdb->prepare(
-            "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND meta_value = %s",
-            $relative_path
-        ) );
-        
-        return $attachment_id ? (int) $attachment_id : null;
-    }
 
     /**
      * Get conversion status HTML for admin display.
@@ -840,17 +835,31 @@ class WordPressImageRenderer {
      * @return string HTML for conversion status.
      */
     private function get_conversion_status_html( $attachment_id, $converted_files ) {
-        // Initialize WordPress filesystem for file operations
-        if ( ! function_exists( 'WP_Filesystem' ) ) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
-        }
-        WP_Filesystem();
-        
-        global $wp_filesystem;
-        
-        $original_file = get_attached_file( $attachment_id );
-        $original_size = $wp_filesystem && $wp_filesystem->exists( $original_file ) ? $wp_filesystem->size( $original_file ) : ( file_exists( $original_file ) ? filesize( $original_file ) : 0 );
-        $original_url = wp_get_attachment_url( $attachment_id );
+        try {
+            // Initialize WordPress filesystem for file operations
+            if ( ! function_exists( 'WP_Filesystem' ) ) {
+                require_once ABSPATH . 'wp-admin/includes/file.php';
+            }
+            WP_Filesystem();
+            
+            global $wp_filesystem;
+            
+            // Get the original file path from _wp_attached_file meta (bypasses any filters)
+            // This ensures we get the actual original file, not a converted one
+            $original_file_meta = get_post_meta( $attachment_id, '_wp_attached_file', true );
+            if ( ! $original_file_meta ) {
+                return '';
+            }
+            
+            // Build the full file path
+            $upload_dir = wp_upload_dir();
+            $original_file = $upload_dir['basedir'] . '/' . $original_file_meta;
+            
+            // Get file size
+            $original_size = $wp_filesystem && $wp_filesystem->exists( $original_file ) ? $wp_filesystem->size( $original_file ) : ( file_exists( $original_file ) ? filesize( $original_file ) : 0 );
+            
+            // Build the original URL directly from the meta (bypasses wp_get_attachment_url filter)
+            $original_url = $upload_dir['baseurl'] . '/' . $original_file_meta;
         
         $html = '<div class="flux-media-optimizer-conversion-status" style="background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; padding: 15px; margin: 10px 0;">';
         
@@ -893,12 +902,14 @@ class WordPressImageRenderer {
                 $width = 0;
                 $height = 0;
                 
-                if ( 'full' === $size_name ) {
-                    $width = $metadata['width'] ?? 0;
-                    $height = $metadata['height'] ?? 0;
-                } elseif ( isset( $metadata['sizes'][ $size_name ] ) ) {
-                    $width = $metadata['sizes'][ $size_name ]['width'] ?? 0;
-                    $height = $metadata['sizes'][ $size_name ]['height'] ?? 0;
+                if ( ! empty( $metadata ) && is_array( $metadata ) ) {
+                    if ( 'full' === $size_name ) {
+                        $width = $metadata['width'] ?? 0;
+                        $height = $metadata['height'] ?? 0;
+                    } elseif ( isset( $metadata['sizes'][ $size_name ] ) ) {
+                        $width = $metadata['sizes'][ $size_name ]['width'] ?? 0;
+                        $height = $metadata['sizes'][ $size_name ]['height'] ?? 0;
+                    }
                 }
                 
                 $size_label = 'full' === $size_name ? __( 'Full Size', 'flux-media-optimizer' ) : ucfirst( $size_name );
@@ -909,30 +920,58 @@ class WordPressImageRenderer {
                 }
                 $html .= '</h5>';
                 
-                foreach ( $size_formats as $format => $file_path ) {
-                    $file_size = $wp_filesystem && $wp_filesystem->exists( $file_path ) ? $wp_filesystem->size( $file_path ) : ( file_exists( $file_path ) ? filesize( $file_path ) : 0 );
-                    $size_original = 0;
+                foreach ( $size_formats as $format => $data ) {
+                    // Skip original file in the list of converted files
+                    if ( $format === 'original' ) {
+                        continue;
+                    }
+
+                    // Extract URL/path from unified structure.
+                    if ( ! is_array( $data ) || ! isset( $data['url'] ) ) {
+                        continue;
+                    }
                     
-                    // Get original size for this specific size
-                    if ( 'full' === $size_name ) {
-                        $size_original = $original_size;
-                    } else {
-                        // Get the original file path for this specific size
-                        $size_file = get_attached_file( $attachment_id );
-                        $file_dir = dirname( $size_file );
-                        $size_file_name = $metadata['sizes'][ $size_name ]['file'] ?? '';
-                        
-                        if ( ! empty( $size_file_name ) ) {
-                            $size_file_path = $file_dir . '/' . $size_file_name;
-                            $size_original = $wp_filesystem && $wp_filesystem->exists( $size_file_path ) ? $wp_filesystem->size( $size_file_path ) : ( file_exists( $size_file_path ) ? filesize( $size_file_path ) : 0 );
+                    $url_or_path = $data['url'];
+                    
+                    // Check if it's a URL (CDN) or file path (local).
+                    $is_url = is_string( $url_or_path ) && ( strpos( $url_or_path, 'http://' ) === 0 || strpos( $url_or_path, 'https://' ) === 0 );
+                    
+                    // Get file size using AttachmentMetaHandler (handles both URLs and file paths).
+                    $file_size = AttachmentMetaHandler::get_file_size( $attachment_id, $format, $size_name ) ?? 0;
+                    
+                    // Get original size for this specific size from meta first, then fallback to file system
+                    $size_original = AttachmentMetaHandler::get_converted_file_size( $attachment_id, 'original', $size_name );
+                    
+                    if ( $size_original === null ) {
+                        // Fallback to file system calculation
+                        if ( 'full' === $size_name ) {
+                            $size_original = $original_size;
+                        } else {
+                            // Get the original file path for this specific size
+                            $size_file = get_attached_file( $attachment_id );
+                            if ( ! $size_file ) {
+                                $size_original = 0;
+                            } else {
+                                $file_dir = dirname( $size_file );
+                                $size_file_name = $metadata['sizes'][ $size_name ]['file'] ?? '';
+                                
+                                if ( ! empty( $size_file_name ) ) {
+                                    $size_file_path = $file_dir . '/' . $size_file_name;
+                                    // Get original file size from file system.
+                                    $size_original = $wp_filesystem && $wp_filesystem->exists( $size_file_path ) ? $wp_filesystem->size( $size_file_path ) : ( file_exists( $size_file_path ) ? filesize( $size_file_path ) : 0 );
+                                } else {
+                                    $size_original = 0;
+                                }
+                            }
                         }
                     }
                     
                     // Calculate savings percentage (compare converted file against original file of same size)
-                    $savings = $size_original > 0 ? ( ( $size_original - $file_size ) / $size_original ) * 100 : 0;
+                    // Only calculate if we have both sizes (not available for CDN URLs).
+                    $savings = ( $size_original > 0 && $file_size > 0 ) ? ( ( $size_original - $file_size ) / $size_original ) * 100 : 0;
                     
-                    // Use centralized URL generation
-                    $converted_url = self::get_image_url_from_file_path( $file_path );
+                    // Get converted file URL from AttachmentMetaHandler
+                    $converted_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, $format, $size_name );
                     
                     // Format-specific styling
                     $format_color = $format === Converter::FORMAT_WEBP ? '#4285f4' : ( $format === Converter::FORMAT_AVIF ? '#ea4335' : '#34a853' );
@@ -940,12 +979,26 @@ class WordPressImageRenderer {
                     $html .= '<div style="background: white; border: 1px solid #e1e1e1; border-radius: 3px; padding: 12px; margin-bottom: 8px; margin-left: 15px;">';
                     $html .= '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">';
                     $html .= '<span style="font-weight: bold; color: ' . $format_color . '; text-transform: uppercase; font-size: 12px;">' . esc_html( $format ) . '</span>';
-                    $html .= '<span style="background: #e8f5e8; color: #2e7d32; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold;">' . round( $savings, 1 ) . '% ' . __( 'smaller', 'flux-media-optimizer' ) . '</span>';
+                    if ( $savings > 0 ) {
+                        $html .= '<span style="background: #e8f5e8; color: #2e7d32; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold;">' . round( $savings, 1 ) . '% ' . __( 'smaller', 'flux-media-optimizer' ) . '</span>';
+                    } elseif ( $size_original > 0 && $file_size > 0 ) {
+                        // File is larger or equal
+                        $increase = abs( $savings );
+                        $tooltip = __( 'File is larger than original. This usually happens when the original is already highly compressed or when using high quality settings.', 'flux-media-optimizer' );
+                        $html .= '<span title="' . esc_attr( $tooltip ) . '" style="background: #ffebee; color: #c62828; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold; cursor: help; border-bottom: 1px dotted #c62828;">' . round( $increase, 1 ) . '% ' . __( 'larger', 'flux-media-optimizer' ) . '</span>';
+                    }
                     $html .= '</div>';
                     
                     $html .= '<div style="font-size: 12px; color: #666;">';
-                    $html .= '<strong>' . __( 'Size:', 'flux-media-optimizer' ) . '</strong> ' . size_format( $file_size ) . '<br>';
-                    $html .= '<strong>' . __( 'URL:', 'flux-media-optimizer' ) . '</strong> <a href="' . esc_url( $converted_url ) . '" target="_blank" style="color: #0073aa; text-decoration: none; word-break: break-all;">' . esc_html( $converted_url ) . '</a>';
+                    if ( $file_size > 0 ) {
+                        $html .= '<strong>' . __( 'Size:', 'flux-media-optimizer' ) . '</strong> ' . size_format( $file_size ) . '<br>';
+                    }
+                    if ( $converted_url ) {
+                        // Check if URL is from CDN by checking if it's a URL (starts with http/https).
+                        $is_cdn = AttachmentMetaHandler::is_file_url( $converted_url );
+                        $url_label = $is_cdn ? __( 'CDN URL:', 'flux-media-optimizer' ) : __( 'URL:', 'flux-media-optimizer' );
+                        $html .= '<strong>' . esc_html( $url_label ) . '</strong> <a href="' . esc_url( $converted_url ) . '" target="_blank" style="color: #0073aa; text-decoration: none; word-break: break-all;">' . esc_html( $converted_url ) . '</a>';
+                    }
                     $html .= '</div>';
                     $html .= '</div>';
                 }
@@ -953,13 +1006,25 @@ class WordPressImageRenderer {
                 $html .= '</div>';
             }
         } else {
-            // Legacy format (flat structure) - only full size
-            foreach ( $converted_files as $format => $file_path ) {
-                $file_size = $wp_filesystem && $wp_filesystem->exists( $file_path ) ? $wp_filesystem->size( $file_path ) : ( file_exists( $file_path ) ? filesize( $file_path ) : 0 );
-                $savings = $original_size > 0 ? ( ( $original_size - $file_size ) / $original_size ) * 100 : 0;
+            // Handle flat structure (should not exist, but handle gracefully)
+            foreach ( $converted_files as $format => $data ) {
+                // Extract URL from unified structure.
+                if ( ! is_array( $data ) || ! isset( $data['url'] ) ) {
+                    continue;
+                }
                 
-                // Use centralized URL generation
-                $converted_url = self::get_image_url_from_file_path( $file_path );
+                $url_or_path = $data['url'];
+                
+                // Check if it's a URL (CDN) or file path (local).
+                $is_url = ( strpos( $url_or_path, 'http://' ) === 0 || strpos( $url_or_path, 'https://' ) === 0 );
+                
+                // Get file size using AttachmentMetaHandler (handles both URLs and file paths).
+                $file_size = AttachmentMetaHandler::get_file_size( $attachment_id, $format, 'full' ) ?? 0;
+                
+                $savings = ( $original_size > 0 && $file_size > 0 ) ? ( ( $original_size - $file_size ) / $original_size ) * 100 : 0;
+                
+                // Get converted file URL from AttachmentMetaHandler
+                $converted_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, $format, 'full' );
                 
                 // Format-specific styling
                 $format_color = $format === Converter::FORMAT_WEBP ? '#4285f4' : ( $format === Converter::FORMAT_AVIF ? '#ea4335' : '#34a853' );
@@ -967,12 +1032,26 @@ class WordPressImageRenderer {
                 $html .= '<div style="background: white; border: 1px solid #e1e1e1; border-radius: 3px; padding: 12px; margin-bottom: 8px;">';
                 $html .= '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">';
                 $html .= '<span style="font-weight: bold; color: ' . $format_color . '; text-transform: uppercase; font-size: 12px;">' . esc_html( $format ) . '</span>';
-                $html .= '<span style="background: #e8f5e8; color: #2e7d32; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold;">' . round( $savings, 1 ) . '% ' . __( 'smaller', 'flux-media-optimizer' ) . '</span>';
+                if ( $savings > 0 ) {
+                    $html .= '<span style="background: #e8f5e8; color: #2e7d32; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold;">' . round( $savings, 1 ) . '% ' . __( 'smaller', 'flux-media-optimizer' ) . '</span>';
+                } elseif ( $original_size > 0 && $file_size > 0 ) {
+                    // File is larger or equal
+                    $increase = abs( $savings );
+                    $tooltip = __( 'File is larger than original. This usually happens when the original is already highly compressed or when using high quality settings.', 'flux-media-optimizer' );
+                    $html .= '<span title="' . esc_attr( $tooltip ) . '" style="background: #ffebee; color: #c62828; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold; cursor: help; border-bottom: 1px dotted #c62828;">' . round( $increase, 1 ) . '% ' . __( 'larger', 'flux-media-optimizer' ) . '</span>';
+                }
                 $html .= '</div>';
                 
                 $html .= '<div style="font-size: 12px; color: #666;">';
-                $html .= '<strong>' . __( 'Size:', 'flux-media-optimizer' ) . '</strong> ' . size_format( $file_size ) . '<br>';
-                $html .= '<strong>' . __( 'URL:', 'flux-media-optimizer' ) . '</strong> <a href="' . esc_url( $converted_url ) . '" target="_blank" style="color: #0073aa; text-decoration: none; word-break: break-all;">' . esc_html( $converted_url ) . '</a>';
+                if ( $file_size > 0 ) {
+                    $html .= '<strong>' . __( 'Size:', 'flux-media-optimizer' ) . '</strong> ' . size_format( $file_size ) . '<br>';
+                }
+                if ( $converted_url ) {
+                    // Check if URL is from CDN by checking if it's a URL (starts with http/https).
+                    $is_cdn = AttachmentMetaHandler::is_file_url( $converted_url );
+                    $url_label = $is_cdn ? __( 'CDN URL:', 'flux-media-optimizer' ) : __( 'URL:', 'flux-media-optimizer' );
+                    $html .= '<strong>' . esc_html( $url_label ) . '</strong> <a href="' . esc_url( $converted_url ) . '" target="_blank" style="color: #0073aa; text-decoration: none; word-break: break-all;">' . esc_html( $converted_url ) . '</a>';
+                }
                 $html .= '</div>';
                 $html .= '</div>';
             }
@@ -980,6 +1059,19 @@ class WordPressImageRenderer {
         
         $html .= '</div>';
         return $html;
+        } catch ( \Exception $e ) {
+            // Return empty string on error to prevent breaking attachment query
+            if ( function_exists( 'error_log' ) ) {
+                error_log( 'Flux Media Optimizer: Error in get_conversion_status_html: ' . $e->getMessage() );
+            }
+            return '';
+        } catch ( \Error $e ) {
+            // Catch fatal errors
+            if ( function_exists( 'error_log' ) ) {
+                error_log( 'Flux Media Optimizer: Fatal error in get_conversion_status_html: ' . $e->getMessage() );
+            }
+            return '';
+        }
     }
 
     /**
@@ -990,13 +1082,69 @@ class WordPressImageRenderer {
      * @param bool $conversion_disabled Whether conversion is disabled.
      * @return string HTML for conversion actions.
      */
-    private function get_conversion_actions_html( $attachment_id, $conversion_disabled ) {
-        $html = '<div class="flux-media-optimizer-conversion-actions" style="background: #f0f8ff; border: 1px solid #b3d9ff; border-radius: 4px; padding: 12px; margin: 10px 0;">';
-        $html .= '<h4 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">' . __( 'Conversion Actions', 'flux-media-optimizer' ) . '</h4>';
+    /**
+     * Get external processing status HTML.
+     *
+     * @since 3.0.0
+     * @param int   $attachment_id Attachment ID.
+     * @param array $job_status    Job status data.
+     * @return string HTML content.
+     */
+    private function get_external_processing_status_html( $attachment_id, $job_status ) {
+        $html = '<div class="flux-media-optimizer-external-status" style="background: #fff3cd; border: 1px solid #ffb900; border-radius: 4px; padding: 15px; margin: 10px 0;">';
+        $html .= '<h4 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">' . __( 'External Processing Status', 'flux-media-optimizer' ) . '</h4>';
         
-        // Check if this is a video attachment and if there are no converted files
-        $file_path = get_attached_file( $attachment_id );
-        $is_video = $file_path && $this->video_converter->is_supported_video( $file_path );
+        $status = $job_status['status'] ?? 'unknown';
+        $status_colors = [
+            'queued' => '#0073aa',
+            'processing' => '#0073aa',
+            'completed' => '#00a32a',
+            'failed' => '#d63638',
+        ];
+        $status_color = $status_colors[ $status ] ?? '#666';
+        
+        $html .= '<div style="font-size: 12px; color: #666; margin-bottom: 10px;">';
+        $html .= '<strong>' . __( 'Status:', 'flux-media-optimizer' ) . '</strong> ';
+        $html .= '<span style="color: ' . esc_attr( $status_color ) . '; font-weight: bold;">' . esc_html( ucfirst( $status ) ) . '</span>';
+        
+        if ( ! empty( $job_status['job_id'] ) ) {
+            $html .= '<br><strong>' . __( 'Job ID:', 'flux-media-optimizer' ) . '</strong> ' . esc_html( $job_status['job_id'] );
+        }
+        
+        if ( $status === 'queued' || $status === 'processing' ) {
+            $html .= '<br><em style="color: #856404;">' . __( 'Processing in progress. Please check back in a few minutes.', 'flux-media-optimizer' ) . '</em>';
+        }
+        
+        if ( $status === 'failed' && ! empty( $job_status['last_error'] ) ) {
+            $html .= '<br><strong style="color: #d63638;">' . __( 'Error:', 'flux-media-optimizer' ) . '</strong> ' . esc_html( $job_status['last_error'] );
+            if ( ( $job_status['retry_count'] ?? 0 ) < 3 ) {
+                $html .= '<br><button type="button" class="button button-secondary" onclick="fluxMediaRetryJob(' . esc_js( $attachment_id ) . ')" style="margin-top: 8px;">' . __( 'Retry', 'flux-media-optimizer' ) . '</button>';
+            }
+        }
+        
+        if ( $status === 'completed' && ! empty( $job_status['base_url'] ) ) {
+            $html .= '<br><strong>' . __( 'CDN Base URL:', 'flux-media-optimizer' ) . '</strong> ';
+            $html .= '<a href="' . esc_url( $job_status['base_url'] ) . '" target="_blank" style="color: #0073aa; text-decoration: none;">' . esc_html( $job_status['base_url'] ) . '</a>';
+        }
+        
+        $html .= '</div>';
+        $html .= '</div>';
+        
+        return $html;
+    }
+
+    private function get_conversion_actions_html( $attachment_id, $conversion_disabled ) {
+        try {
+            $html = '<div class="flux-media-optimizer-conversion-actions" style="background: #f0f8ff; border: 1px solid #b3d9ff; border-radius: 4px; padding: 12px; margin: 10px 0;">';
+            $html .= '<h4 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">' . __( 'Conversion Actions', 'flux-media-optimizer' ) . '</h4>';
+            
+            // Check if this is a video attachment and if there are no converted files
+            $file_path = get_attached_file( $attachment_id );
+            if ( ! $file_path ) {
+                return '';
+            }
+            
+            $is_video = $file_path && $this->video_converter->is_supported_video( $file_path );
         $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
         $converted_files = ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'] ) 
             ? $converted_files_by_size['full'] 
@@ -1045,6 +1193,19 @@ class WordPressImageRenderer {
         
         $html .= '</div>';
         return $html;
+        } catch ( \Exception $e ) {
+            // Return empty string on error to prevent breaking attachment query
+            if ( function_exists( 'error_log' ) ) {
+                error_log( 'Flux Media Optimizer: Error in get_conversion_actions_html: ' . $e->getMessage() );
+            }
+            return '';
+        } catch ( \Error $e ) {
+            // Catch fatal errors
+            if ( function_exists( 'error_log' ) ) {
+                error_log( 'Flux Media Optimizer: Fatal error in get_conversion_actions_html: ' . $e->getMessage() );
+            }
+            return '';
+        }
     }
 
     /**
@@ -1098,8 +1259,8 @@ class WordPressImageRenderer {
             return $block_content;
         }
         
-        // Get URL from file path
-        $new_url = self::get_image_url_from_file_path( $file_path );
+        // Get URL using AttachmentMetaHandler
+        $new_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, $format, 'full' );
         if ( ! $new_url ) {
             return $block_content;
         }

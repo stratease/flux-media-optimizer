@@ -75,6 +75,8 @@ class OptionsController extends BaseController {
 	public function get_options( WP_REST_Request $request ) {
 		try {
 			$options = $this->settings->get_all();
+			// Include license_key from site option.
+			$options['license_key'] = Settings::get_license_key();
 			return $this->create_success_response( $options, 'Options retrieved successfully' );
 		} catch ( \Exception $e ) {
 			return $this->create_error_response( 'Failed to retrieve options: ' . $e->getMessage() );
@@ -96,11 +98,20 @@ class OptionsController extends BaseController {
 				return $this->create_error_response( 'Invalid options format', 'invalid_options', 400 );
 			}
 
-			// Update all options at once
-			$this->settings->update( $options );
+			// Handle license_key separately (stored in site options, not plugin options).
+			if ( isset( $options['license_key'] ) ) {
+				Settings::set_license_key( $options['license_key'] );
+				unset( $options['license_key'] );
+			}
 
-			// Get updated options
+			// Update remaining options at once.
+			if ( ! empty( $options ) ) {
+				$this->settings->update( $options );
+			}
+
+			// Get updated options (includes license_key from site option).
 			$updated_options = $this->settings->get_all();
+			$updated_options['license_key'] = Settings::get_license_key();
 			
 			return $this->create_success_response( $updated_options, 'Options updated successfully' );
 		} catch ( \Exception $e ) {

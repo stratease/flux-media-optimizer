@@ -315,10 +315,6 @@ class BulkConverter {
 			// Store in size-specific meta
 			AttachmentMetaHandler::set_converted_files_grouped_by_size( $attachment_id, $all_converted_files_by_size );
 			
-			// Also store full size in legacy format for backward compatibility
-			if ( isset( $all_converted_files_by_size['full'] ) ) {
-				AttachmentMetaHandler::set_converted_files( $attachment_id, $all_converted_files_by_size['full'] );
-			}
 			
 			AttachmentMetaHandler::set_converted_formats( $attachment_id, $all_converted_formats );
 			AttachmentMetaHandler::set_conversion_date_now( $attachment_id );
@@ -451,7 +447,6 @@ class BulkConverter {
 			// Update WordPress meta
 			AttachmentMetaHandler::set_converted_formats( $attachment_id, $results['converted_formats'] );
 			AttachmentMetaHandler::set_conversion_date_now( $attachment_id );
-			AttachmentMetaHandler::set_converted_files( $attachment_id, $results['converted_files'] );
 		}
 
 		return $results;

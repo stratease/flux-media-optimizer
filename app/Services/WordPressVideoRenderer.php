@@ -11,6 +11,7 @@ namespace FluxMedia\App\Services;
 use FluxMedia\App\Services\Converter;
 use FluxMedia\App\Services\Settings;
 use FluxMedia\App\Services\AttachmentMetaHandler;
+use FluxMedia\App\Services\AttachmentIdResolver;
 
 /**
  * WordPress video renderer for handling video display and optimization.
@@ -41,15 +42,16 @@ class WordPressVideoRenderer {
         // For videos: Use priority AV1 > WebM (single format approach)
         // When hybrid approach is enabled, we still return the best format for direct URL access
         // Always check for null/empty returns and fallback to original URL
+        // Videos only have 'full' size.
         if ( isset( $converted_files[ Converter::FORMAT_AV1 ] ) ) {
-            $converted_url = WordPressImageRenderer::get_image_url_from_file_path( $converted_files[ Converter::FORMAT_AV1 ] );
+            $converted_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, Converter::FORMAT_AV1, 'full' );
             if ( ! empty( $converted_url ) ) {
                 return $converted_url;
             }
         }
         
         if ( isset( $converted_files[ Converter::FORMAT_WEBM ] ) ) {
-            $converted_url = WordPressImageRenderer::get_image_url_from_file_path( $converted_files[ Converter::FORMAT_WEBM ] );
+            $converted_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, Converter::FORMAT_WEBM, 'full' );
             if ( ! empty( $converted_url ) ) {
                 return $converted_url;
             }
@@ -106,7 +108,7 @@ class WordPressVideoRenderer {
             $attachment_id = (int) $attributes['id'];
         } elseif ( ! empty( $attributes['url'] ) ) {
             $video_url = $attributes['url'];
-            $attachment_id = $this->get_attachment_id_from_url( $video_url );
+            $attachment_id = AttachmentIdResolver::from_url( $video_url );
         }
         
         if ( ! $attachment_id ) {
@@ -114,7 +116,10 @@ class WordPressVideoRenderer {
         }
 
         // Get converted files
-        $converted_files = AttachmentMetaHandler::get_converted_files( $attachment_id );
+        $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
+        $converted_files = ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'] )
+            ? $converted_files_by_size['full']
+            : [];
         if ( empty( $converted_files ) ) {
             return $block_content;
         }
@@ -148,13 +153,16 @@ class WordPressVideoRenderer {
                 $src_url = $src_matches[1];
                 
                 // Get attachment ID from URL
-                $attachment_id = $this->get_attachment_id_from_url( $src_url );
+                $attachment_id = AttachmentIdResolver::from_url( $src_url );
                 if ( ! $attachment_id ) {
                     return $full_match;
                 }
                 
                 // Get converted files
-                $converted_files = AttachmentMetaHandler::get_converted_files( $attachment_id );
+                $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
+        $converted_files = ! empty( $converted_files_by_size ) && isset( $converted_files_by_size['full'] )
+            ? $converted_files_by_size['full']
+            : [];
                 if ( empty( $converted_files ) ) {
                     return $full_match;
                 }
@@ -206,15 +214,16 @@ class WordPressVideoRenderer {
             $new_video_html .= '>';
 
             // Add both AV1 and WebM sources if available
+            // Videos only have 'full' size.
             if ( isset( $converted_files[ Converter::FORMAT_AV1 ] ) ) {
-                $av1_url = WordPressImageRenderer::get_image_url_from_file_path( $converted_files[ Converter::FORMAT_AV1 ] );
+                $av1_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, Converter::FORMAT_AV1, 'full' );
                 if ( $av1_url ) {
                     $new_video_html .= '<source src="' . esc_url( $av1_url ) . '" type="video/mp4; codecs=av01">';
                 }
             }
 
             if ( isset( $converted_files[ Converter::FORMAT_WEBM ] ) ) {
-                $webm_url = WordPressImageRenderer::get_image_url_from_file_path( $converted_files[ Converter::FORMAT_WEBM ] );
+                $webm_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, Converter::FORMAT_WEBM, 'full' );
                 if ( $webm_url ) {
                     $new_video_html .= '<source src="' . esc_url( $webm_url ) . '" type="video/webm">';
                 }
@@ -235,10 +244,11 @@ class WordPressVideoRenderer {
             $optimized_url = null;
             
             // Use priority AV1 > WebM
+            // Videos only have 'full' size.
             if ( isset( $converted_files[ Converter::FORMAT_AV1 ] ) ) {
-                $optimized_url = WordPressImageRenderer::get_image_url_from_file_path( $converted_files[ Converter::FORMAT_AV1 ] );
+                $optimized_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, Converter::FORMAT_AV1, 'full' );
             } elseif ( isset( $converted_files[ Converter::FORMAT_WEBM ] ) ) {
-                $optimized_url = WordPressImageRenderer::get_image_url_from_file_path( $converted_files[ Converter::FORMAT_WEBM ] );
+                $optimized_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, Converter::FORMAT_WEBM, 'full' );
             }
             
             // If we have an optimized URL, replace the src attribute
@@ -279,29 +289,5 @@ class WordPressVideoRenderer {
         return str_replace( $video_tag, $optimized_video, $block_content );
     }
 
-    /**
-     * Get attachment ID from URL.
-     *
-     * @since 1.0.0
-     * @param string $url Video URL.
-     * @return int|null Attachment ID or null if not found.
-     */
-    private function get_attachment_id_from_url( $url ) {
-        global $wpdb;
-        
-        $upload_dir = wp_upload_dir();
-        $base_url = $upload_dir['baseurl'];
-        
-        // Remove base URL to get relative path
-        $relative_path = str_replace( $base_url . '/', '', $url );
-        
-        // Query for attachment ID
-        $attachment_id = $wpdb->get_var( $wpdb->prepare(
-            "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND meta_value = %s",
-            $relative_path
-        ) );
-        
-        return $attachment_id ? (int) $attachment_id : null;
-    }
 }
 

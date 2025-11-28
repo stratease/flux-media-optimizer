@@ -57,13 +57,35 @@ class Database {
 			KEY created_at (created_at)
 		) $charset_collate;";
 
+		// Create external jobs table
+		$external_jobs_table = $wpdb->prefix . 'flux_media_optimizer_external_jobs';
+		$external_jobs_sql = "CREATE TABLE $external_jobs_table (
+			id bigint(20) NOT NULL AUTO_INCREMENT,
+			attachment_id bigint(20) NOT NULL,
+			job_id varchar(255) NOT NULL,
+			status varchar(20) NOT NULL DEFAULT 'queued',
+			base_url varchar(500) DEFAULT NULL,
+			formats text DEFAULT NULL,
+			sizes text DEFAULT NULL,
+			retry_count int(3) NOT NULL DEFAULT 0,
+			last_error text DEFAULT NULL,
+			created_at datetime DEFAULT CURRENT_TIMESTAMP,
+			updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			PRIMARY KEY (id),
+			UNIQUE KEY unique_job_id (job_id),
+			KEY attachment_id (attachment_id),
+			KEY status (status),
+			KEY created_at (created_at)
+		) $charset_collate;";
+
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 		
 		dbDelta( $conversions_sql );
 		dbDelta( $logs_sql );
+		dbDelta( $external_jobs_sql );
 
 		// Store database version for future updates
-		update_option( 'flux_media_optimizer_db_version', '1.0' );
+		update_option( 'flux_media_optimizer_db_version', '2.0' );
 	}
 
 	/**
@@ -76,9 +98,11 @@ class Database {
 
 		$conversions_table = $wpdb->prefix . 'flux_media_optimizer_conversions';
 		$logs_table = $wpdb->prefix . 'flux_media_optimizer_logs';
+		$external_jobs_table = $wpdb->prefix . 'flux_media_optimizer_external_jobs';
 
 		$wpdb->query( $wpdb->prepare( "DROP TABLE IF EXISTS %s", $conversions_table ) );
 		$wpdb->query( $wpdb->prepare( "DROP TABLE IF EXISTS %s", $logs_table ) );
+		$wpdb->query( $wpdb->prepare( "DROP TABLE IF EXISTS %s", $external_jobs_table ) );
 
 		// Remove database version option
 		delete_option( 'flux_media_optimizer_db_version' );
@@ -95,11 +119,13 @@ class Database {
 
 		$conversions_table = $wpdb->prefix . 'flux_media_optimizer_conversions';
 		$logs_table = $wpdb->prefix . 'flux_media_optimizer_logs';
+		$external_jobs_table = $wpdb->prefix . 'flux_media_optimizer_external_jobs';
 
 		$conversions_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $conversions_table ) ) === $conversions_table;
 		$logs_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $logs_table ) ) === $logs_table;
+		$external_jobs_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $external_jobs_table ) ) === $external_jobs_table;
 
-		return $conversions_exists && $logs_exists;
+		return $conversions_exists && $logs_exists && $external_jobs_exists;
 	}
 
 	/**
@@ -119,7 +145,7 @@ class Database {
 	 */
 	public static function maybe_update_database() {
 		$current_version = self::get_db_version();
-		$target_version = '1.0';
+		$target_version = '2.0';
 
 		if ( version_compare( $current_version, $target_version, '<' ) ) {
 			self::create_tables();

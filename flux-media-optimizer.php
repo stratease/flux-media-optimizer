@@ -190,7 +190,8 @@ function flux_media_optimizer_uninstall() {
 	];
 
 	foreach ( $tables as $table ) {
-		$wpdb->query( $wpdb->prepare( "DROP TABLE IF EXISTS %s", $table ) );
+		// Use %i placeholder for identifiers (table names) - available in WordPress 6.2+
+		$wpdb->query( $wpdb->prepare( "DROP TABLE IF EXISTS %i", $table ) );
 	}
 
 	// Remove plugin options.

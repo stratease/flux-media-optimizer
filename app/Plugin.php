@@ -15,7 +15,7 @@ use FluxMedia\App\Services\ImageConverter;
 use FluxMedia\App\Services\VideoConverter;
 use FluxMedia\App\Services\FormatSupportDetector;
 use FluxMedia\App\Services\ProcessorDetector;
-use FluxMedia\App\Services\QuotaManager;
+
 use FluxMedia\App\Http\Controllers\AdminController;
 use FluxMedia\App\Http\Controllers\OptionsController;
 use FluxMedia\App\Http\Controllers\StatusController;
@@ -135,20 +135,19 @@ class Plugin {
     /**
      * Register REST API routes.
      *
-     * @since 0.1.0
+     * @since 2.0.1
      * @return void
      */
     public function register_rest_routes() {
         // Initialize detectors and services
         $processor_detector = new ProcessorDetector();
         $format_detector = new FormatSupportDetector( $processor_detector );
-        $quota_manager = new QuotaManager( $this->logger );
         $conversion_tracker = new ConversionTracker( $this->logger );
         $logs_service = new LogsService();
 
         // Register controllers
         $options_controller = new OptionsController( $this->settings );
-        $status_controller = new StatusController( $format_detector, $processor_detector, $quota_manager );
+        $status_controller = new StatusController( $format_detector, $processor_detector );
         $conversions_controller = new ConversionsController( $conversion_tracker );
         $logs_controller = new LogsController( $logs_service );
         $options_controller->register_routes();

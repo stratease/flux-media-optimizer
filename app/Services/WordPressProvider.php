@@ -10,7 +10,7 @@ namespace FluxMedia\App\Services;
 
 use FluxMedia\App\Services\ImageConverter;
 use FluxMedia\App\Services\VideoConverter;
-use FluxMedia\App\Services\QuotaManager;
+
 use FluxMedia\App\Services\ConversionTracker;
 use FluxMedia\App\Services\BulkConverter;
 use FluxMedia\App\Services\WordPressImageRenderer;
@@ -51,14 +51,6 @@ class WordPressProvider {
      * @var VideoConverter
      */
     private $video_converter;
-
-    /**
-     * Quota manager instance.
-     *
-     * @since 0.1.0
-     * @var QuotaManager
-     */
-    private $quota_manager;
 
     /**
      * Conversion tracker instance.
@@ -105,9 +97,8 @@ class WordPressProvider {
         $this->video_converter = $video_converter;
         $this->image_renderer = new WordPressImageRenderer( $video_converter );
         $this->video_renderer = new WordPressVideoRenderer();
-        $this->quota_manager = new QuotaManager( $this->logger );
         $this->conversion_tracker = new ConversionTracker( $this->logger );
-        $this->bulk_converter = new BulkConverter( $this->logger, $image_converter, $video_converter, $this->quota_manager, $this->conversion_tracker );
+        $this->bulk_converter = new BulkConverter( $this->logger, $image_converter, $video_converter, $this->conversion_tracker );
     }
 
     /**
@@ -199,7 +190,7 @@ class WordPressProvider {
     /**
      * Handle media upload (images and videos).
      *
-     * @since 0.1.0
+     * @since 2.0.1
      * @param int $attachment_id Attachment ID.
      * @return void
      */
@@ -210,7 +201,12 @@ class WordPressProvider {
         }
 
         $file_path = get_attached_file( $attachment_id );
-        if ( ! $file_path || ! wp_check_filetype( $file_path )['ext'] ) {
+        if ( ! $file_path ) {
+            return;
+        }
+        
+        $filetype = wp_check_filetype( $file_path );
+        if ( empty( $filetype['ext'] ) ) {
             return;
         }
 
@@ -285,12 +281,18 @@ class WordPressProvider {
      * Ensures all registered WordPress image sizes are generated and converted.
      * Do not check our disabled flag here - sometimes we run this from explicit image conversions which should override.
      *
-     * @since 1.0.0
+     * @since 2.0.1
      * @param int    $attachment_id Attachment ID.
      * @param string $file_path Source file path.
      * @return void
      */
     private function process_image_conversion( $attachment_id, $file_path ) {
+        // Verify file exists before processing
+        if ( ! file_exists( $file_path ) ) {
+            $this->logger->warning( "Source file does not exist for attachment {$attachment_id}: {$file_path}" );
+            return;
+        }
+
         // Check if this is an animated GIF.
         $is_animated_gif = $this->is_animated_gif_attachment( $attachment_id );
 
@@ -299,9 +301,11 @@ class WordPressProvider {
         if ( empty( $metadata ) || empty( $metadata['file'] ) ) {
             // Generate metadata if it doesn't exist (this will create all sizes).
             $metadata = wp_generate_attachment_metadata( $attachment_id, $file_path );
-            if ( ! empty( $metadata ) ) {
-                wp_update_attachment_metadata( $attachment_id, $metadata );
+            if ( empty( $metadata ) ) {
+                $this->logger->error( "Failed to generate metadata for attachment {$attachment_id}" );
+                return;
             }
+            wp_update_attachment_metadata( $attachment_id, $metadata );
         }
 
         // Get all image sizes for this attachment (includes full + all registered sizes).
@@ -463,7 +467,7 @@ class WordPressProvider {
                 continue;
             }
 
-            // Get file sizes for quota tracking - use source file size for animated GIFs.
+            // Get file sizes for statistics tracking - use source file size for animated GIFs.
             $size_original_size = $wp_filesystem->size( $source_file_path );
             
             // Initialize size array if needed
@@ -480,7 +484,7 @@ class WordPressProvider {
                 
                 $converted_size = $wp_filesystem->exists( $converted_file_path ) ? $wp_filesystem->size( $converted_file_path ) : 0;
                 
-                // Record conversion for quota tracking (track all sizes for accurate savings calculation)
+                // Record conversion for statistics tracking (track all sizes for accurate savings calculation)
                 $this->conversion_tracker->record_conversion( $attachment_id, $format, $size_original_size, $converted_size, $size_name );
                 
                 // Store converted file
@@ -1769,7 +1773,7 @@ class WordPressProvider {
      *
      * Runs when image metadata is updated, including after edits like crop/rotate.
      *
-     * @since 1.0.0
+     * @since 2.0.1
      * @param array $data Attachment metadata.
      * @param int   $attachment_id Attachment ID.
      * @return array Unmodified metadata array.
@@ -1781,7 +1785,12 @@ class WordPressProvider {
         }
 
         $file_path = get_attached_file( $attachment_id );
-        if ( ! $file_path || ! wp_check_filetype( $file_path )['ext'] ) {
+        if ( ! $file_path ) {
+            return $data;
+        }
+        
+        $filetype = wp_check_filetype( $file_path );
+        if ( empty( $filetype['ext'] ) ) {
             return $data;
         }
 

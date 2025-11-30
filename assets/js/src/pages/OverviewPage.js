@@ -1,19 +1,17 @@
 import React from 'react';
 import { Grid, Typography, Box } from '@mui/material';
 import { __ } from '@wordpress/i18n';
-import { ImageStatusCard, VideoStatusCard, PHPConfigurationCard, QuotaProgressCard } from '@flux-media-optimizer/components';
+import { ImageStatusCard, VideoStatusCard, PHPConfigurationCard } from '@flux-media-optimizer/components';
 import { useSystemStatus } from '@flux-media-optimizer/hooks/useSystemStatus';
-import { useQuotaProgress } from '@flux-media-optimizer/hooks/useQuotaProgress';
 import { useConversions } from '@flux-media-optimizer/hooks/useConversions';
 
 /**
- * Overview page component showing system status, quota, and conversion statistics.
+ * Overview page component showing system status and conversion statistics.
  *
  * @since 0.1.0
  */
 const OverviewPage = () => {
   const { data: systemStatus, isLoading: systemLoading } = useSystemStatus();
-  const { data: quotaData, isLoading: quotaLoading } = useQuotaProgress();
   const { data: conversionsData, isLoading: conversionsLoading } = useConversions();
 
   const getSavingsStats = () => {

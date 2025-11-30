@@ -4,11 +4,11 @@ Tags: image optimization, video compression, webp, avif, flux plugins
 Requires at least: 6.2
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 2.0.0
+Stable tag: 2.0.1
 License: GPL-2.0+
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Compress images to AVIF/WebP and optimize videos for 50-70% faster loads. Boost Core Web Vitals and improve SEO with automatic image and video optimization.
+Compress images to AVIF/WebP and optimize videos for 50-70% faster loads. Boost Core Web Vitals and SEO with automatic optimization.
 
 == Description ==
 
@@ -45,7 +45,7 @@ Transform your WordPress site's media performance. Flux Media Optimizer by Flux 
 
 **🔒 Privacy & Security:**
 * All processing happens locally on your server by default
-* Your images never leave your WordPress installation unless you opt-in to Pro features
+* Your images never leave your WordPress installation unless you opt-in to external processing services
 * Full compliance with WordPress.org guidelines and privacy regulations
 * [View our privacy policy](https://fluxplugins.com/privacy-policy/)
 
@@ -57,9 +57,9 @@ Users typically see:
 * Better Core Web Vitals metrics (LCP, FID, CLS)
 
 **🛠️ Technical Requirements:**
-* PHP 8.0+ with GD or ImageMagick extension for images. Some versions do not support optimized AVIF files.
+* PHP 8.0+ with GD or ImageMagick extension for images. Note: Some PHP/ImageMagick versions may not support AVIF file creation.
 * FFmpeg for video optimization (optional but recommended)
-* WordPress 5.0+
+* WordPress 6.2+
 * No additional server configuration required
 
 == Dependencies ==
@@ -71,6 +71,31 @@ This plugin uses the following third-party libraries:
 * **PHP-FFmpeg** (php-ffmpeg/php-ffmpeg) - Video processing and conversion library
 
 All production dependencies are included in the plugin package and do not require separate installation. Development dependencies are excluded from the production build to minimize file size.
+
+== Build Process ==
+
+This plugin uses webpack to build JavaScript and CSS assets from source code.
+
+**Source Code Location:**
+* JavaScript Source: `assets/js/src/` - React components and application code
+* CSS Source: `assets/css/` (if exists) - Stylesheet source files
+* Build Output: `assets/js/dist/` - Compiled and minified production bundles
+
+**Build Tools:**
+* Build Tool: webpack (configured in `package.json`)
+* Build Commands:
+  * `npm run build` - Production build (minified and optimized)
+  * `npm run dev` - Development build with watch mode
+  * `npm run start` - Development server with hot reload
+
+**Building from Source:**
+To build the plugin from source:
+
+1. Install Node.js dependencies: `npm install`
+2. Build production assets: `npm run build`
+3. For development with hot reload: `npm run start`
+
+The source code is available in the GitHub repository: https://github.com/stratease/flux-media
 
 **🎨 Works with any theme** - Flux Media Optimizer integrates seamlessly with WordPress's image system, so it works with any theme without modifications.
 
@@ -111,11 +136,8 @@ No, Flux Media Optimizer works out of the box with sensible defaults. You can op
 
 = Is my data secure? =
 
-Yes, by default all processing happens locally on your server. Your media files never leave your WordPress installation unless you explicitly opt-in to our Pro cloud processing features.
+Yes, by default all processing happens locally on your server. Your media files never leave your WordPress installation unless you explicitly opt-in to external processing services.
 
-= What's the difference between the free and Pro versions? =
-
-The free version provides excellent local optimization. The Pro version (coming soon) will offer unlimited cloud processing, highest quality image and video compressions, CDN integration, and priority support for even better results.
 
 = Does this work with existing images and videos? =
 
@@ -159,6 +181,16 @@ Yes! Flux Media Optimizer supports both static and animated GIFs. However, anima
 = 1.0.0 =
 Initial release of Flux Media Optimizer by Flux Plugins with comprehensive media optimization features. Perfect for improving your site's Core Web Vitals and SEO performance.
 
+== External Services ==
+
+This plugin does not currently use any external services. All image and video processing happens locally on your server by default.
+
+Future versions may include optional external service integrations for enhanced functionality, such as:
+* **External File Processing**: Optional external file processing services that could improve image and video optimizations, speed up processing, and allow sites that do not have the required libraries installed to process media files.
+* **CDN Integration**: Optional integration with CDN services for improved content delivery.
+
+Any future external service integrations will be optional and require explicit user consent. By default, all processing will continue to happen locally on your server.
+
 == Privacy Policy ==
 
 Flux Media Optimizer is committed to protecting your privacy. By default, all image processing happens locally on your server - your images never leave your WordPress installation.
@@ -167,6 +199,5 @@ Flux Media Optimizer is committed to protecting your privacy. By default, all im
 
 Key points:
 * Local processing by default - no external data sharing
-* Optional Pro features require explicit consent
 * Email collection for marketing purposes only with opt-in consent
 * Full compliance with WordPress.org guidelines and privacy regulations

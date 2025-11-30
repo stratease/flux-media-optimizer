@@ -2,7 +2,7 @@
 
 One-click AVIF/WebP image optimization and video compression for WordPress. Automatically convert images to modern formats and optimize videos for faster page loads.
 
-**Source Code**: [https://github.com/stratease/flux-media-optimizer](https://github.com/stratease/flux-media-optimizer)
+**Source Code**: [https://github.com/stratease/flux-media](https://github.com/stratease/flux-media)
 
 ## 🚀 Features
 
@@ -19,11 +19,6 @@ One-click AVIF/WebP image optimization and video compression for WordPress. Auto
 - **Size & Quality Controls**: Configure bitrate and presets to balance clarity and savings
 - **Bulk & On-Upload Support**: Convert existing library items or new uploads automatically
 
-### SaaS API Integration
-- **License Key Authentication**: Secure API integration with license key validation
-- **Remote Quota Management**: Quota tracking handled by SaaS service
-- **Privacy Compliant**: Full compliance with WordPress.org SaaS guidelines
-- **Future-Ready**: Architecture prepared for enhanced cloud processing
 
 ### Modern Admin Interface
 - **React Router**: Hash-based routing with Link components
@@ -32,6 +27,13 @@ One-click AVIF/WebP image optimization and video compression for WordPress. Auto
 - **Auto-Save**: Real-time settings saving with visual feedback
 - **Skeleton Loading**: Professional loading states
 - **WordPress i18n**: Full internationalization support
+
+## 💡 Pro Features (Coming Soon)
+
+- **Unlimited cloud processing** - Offload heavy conversions to our secure cloud infrastructure
+- **Best optimizations** - Servers built with optimal image and video processing libraries to get the best results
+- **CDN integration** - Global content delivery for lightning-fast image serving
+- **Priority support** - Get help when you need it most
 
 ## 🔒 Privacy & Data Protection
 
@@ -47,6 +49,41 @@ One-click AVIF/WebP image optimization and video compression for WordPress. Auto
 - Full compliance with WordPress.org guidelines
 
 **Privacy Policy**: [https://fluxplugins.com/privacy-policy/](https://fluxplugins.com/privacy-policy/)
+
+## 🛠️ Build Process
+
+This plugin uses webpack to build JavaScript and CSS assets from source code.
+
+### Source Code Location
+- **JavaScript Source**: `assets/js/src/` - React components and application code
+- **Build Output**: `assets/js/dist/` - Compiled and minified production bundles
+
+### Build Tools
+- **Build Tool**: webpack (configured in `package.json`)
+- **Build Commands**:
+  - `npm run build` - Production build (minified and optimized)
+  - `npm run dev` - Development build with watch mode
+  - `npm run start` - Development server with hot reload
+
+### Building from Source
+To build the plugin from source:
+
+1. Install Node.js dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Build production assets:
+   ```bash
+   npm run build
+   ```
+
+3. For development with hot reload:
+   ```bash
+   npm run start
+   ```
+
+The source code is available in the GitHub repository: [https://github.com/stratease/flux-media](https://github.com/stratease/flux-media)
 
 ## 🛠️ Quick Start
 
@@ -115,6 +152,7 @@ All endpoints are prefixed with `/wp-json/flux-media-optimizer/v1/`:
 ## 🔮 Future Roadmap
 
 ### Planned Enhancements
+- **External Service Integration**: Plans for external file processing and CDN services integration. This will improve image and video optimizations, speed up processing, and allow sites that do not have the required libraries installed to process media files.
 - **SaaS API Integration**: Full cloud processing integration
 - **CDN Integration**: CloudFlare, AWS CloudFront support
 - **AI-Powered Optimization**: Machine learning-based compression
@@ -157,7 +195,7 @@ GPL-2.0+ - See [LICENSE](LICENSE) file for details.
 ### Contact
 - **Email**: support@fluxplugins.com
 - **Website**: https://fluxplugins.com
-- **GitHub**: https://github.com/stratease/flux-media-optimizer
+- **GitHub**: https://github.com/stratease/flux-media
 
 ---
 

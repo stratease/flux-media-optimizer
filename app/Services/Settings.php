@@ -60,7 +60,6 @@ class Settings {
 	 */
 	const DEFAULT_LOG_LEVEL = 'info';
 	const DEFAULT_ENABLE_LOGGING = false;
-	const DEFAULT_LICENSE_KEY = '';
 
 	/**
 	 * WordPress option name.
@@ -101,7 +100,7 @@ class Settings {
 			'enable_logging' => self::DEFAULT_ENABLE_LOGGING,
 			
 			// SaaS API settings.
-			'license_key' => self::DEFAULT_LICENSE_KEY,
+			'license_key' => '',
 		];
 	}
 
@@ -396,19 +395,19 @@ class Settings {
 	}
 
 	/**
-	 * Get the license key for SaaS API authentication.
+	 * Get the license key for future SaaS API authentication.
 	 *
-	 * @since 0.1.0
+	 * @since 2.0.1
 	 * @return string License key.
 	 */
 	public static function get_license_key() {
-		return (string) self::get( 'license_key', self::DEFAULT_LICENSE_KEY );
+		return self::get( 'license_key', '' );
 	}
 
 	/**
-	 * Set the license key for SaaS API authentication.
+	 * Set the license key for future SaaS API authentication.
 	 *
-	 * @since 0.1.0
+	 * @since 2.0.1
 	 * @param string $license_key License key.
 	 * @return bool True on success, false on failure.
 	 */

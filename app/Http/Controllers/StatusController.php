@@ -11,7 +11,7 @@ namespace FluxMedia\App\Http\Controllers;
 use FluxMedia\App\Services\FormatSupportDetector;
 use FluxMedia\App\Services\ProcessorDetector;
 use FluxMedia\App\Services\ProcessorTypes;
-use FluxMedia\App\Services\QuotaManager;
+
 use FluxMedia\App\Services\Converter;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -40,25 +40,15 @@ class StatusController extends BaseController {
 	private $processor_detector;
 
 	/**
-	 * Quota manager instance.
-	 *
-	 * @since 0.1.0
-	 * @var QuotaManager
-	 */
-	private $quota_manager;
-
-	/**
 	 * Constructor.
 	 *
-	 * @since 0.1.0
+	 * @since 2.0.1
 	 * @param FormatSupportDetector $format_detector Format support detector.
 	 * @param ProcessorDetector     $processor_detector Processor detector.
-	 * @param QuotaManager          $quota_manager Quota manager.
 	 */
-	public function __construct( FormatSupportDetector $format_detector, ProcessorDetector $processor_detector, QuotaManager $quota_manager ) {
+	public function __construct( FormatSupportDetector $format_detector, ProcessorDetector $processor_detector ) {
 		$this->format_detector = $format_detector;
 		$this->processor_detector = $processor_detector;
-		$this->quota_manager = $quota_manager;
 		parent::__construct( new \FluxMedia\App\Services\Logger() );
 	}
 
@@ -76,13 +66,6 @@ class StatusController extends BaseController {
 			],
 		] );
 
-		register_rest_route( 'flux-media-optimizer/v1', '/quota', [
-			[
-				'methods' => 'GET',
-				'callback' => [ $this, 'get_quota' ],
-				'permission_callback' => [ $this, 'check_permissions' ],
-			],
-		] );
 	}
 
 	/**
@@ -111,29 +94,6 @@ class StatusController extends BaseController {
 	}
 
 	/**
-	 * Get quota information.
-	 *
-	 * @since 0.1.0
-	 * @param WP_REST_Request $request Request object.
-	 * @return WP_REST_Response Response object.
-	 */
-	public function get_quota( WP_REST_Request $request ) {
-		try {
-			$quota = [
-				'current_usage' => $this->quota_manager->get_current_usage(),
-				'limits' => $this->quota_manager->get_limits(),
-				'progress' => $this->quota_manager->get_quota_progress(),
-				'days_until_reset' => $this->quota_manager->get_days_until_reset(),
-				'is_free_plan' => $this->quota_manager->is_free_plan(),
-			];
-
-			return $this->create_success_response( $quota, 'Quota information retrieved successfully' );
-		} catch ( \Exception $e ) {
-			return $this->create_error_response( 'Failed to retrieve quota information: ' . $e->getMessage() );
-		}
-	}
-
-	/**
 	 * Get image processor status.
 	 *
 	 * @since 0.1.0
@@ -142,7 +102,7 @@ class StatusController extends BaseController {
 	private function get_image_processor_status() {
 		$available_processors = $this->processor_detector->get_available_image_processors();
 		$format_support_info = $this->format_detector->get_format_support_info();
-		
+
 		// Build detailed processor information
 		$processors = [];
 		foreach ( $available_processors as $type => $processor_info ) {

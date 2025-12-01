@@ -47,9 +47,6 @@ class Options {
 		'max_file_size' => 100, // MB.
 		'conversion_timeout' => 3600, // seconds.
 
-		// License settings.
-		'license_key' => '',
-		'license_status' => 'free', // free, premium, expired, invalid.
 
 		// CDN settings (TODO: Implement CDN integration).
 		'cdn_enabled' => false,

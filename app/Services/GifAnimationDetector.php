@@ -3,22 +3,24 @@
  * GIF animation detector service.
  *
  * @package FluxMedia
- * @since TBD
+ * @since 2.0.1
  */
 
 namespace FluxMedia\App\Services;
 
+use FluxMedia\App\Services\LoggerInterface;
+
 /**
  * Service to detect if a GIF file is animated.
  *
- * @since TBD
+ * @since 2.0.1
  */
 class GifAnimationDetector {
 
 	/**
 	 * Logger instance.
 	 *
-	 * @since TBD
+	 * @since 2.0.1
 	 * @var LoggerInterface
 	 */
 	private $logger;
@@ -26,7 +28,7 @@ class GifAnimationDetector {
 	/**
 	 * Constructor.
 	 *
-	 * @since TBD
+	 * @since 2.0.1
 	 * @param LoggerInterface $logger Logger instance.
 	 */
 	public function __construct( LoggerInterface $logger ) {
@@ -36,7 +38,7 @@ class GifAnimationDetector {
 	/**
 	 * Check if a GIF file is animated using Imagick.
 	 *
-	 * @since TBD
+	 * @since 2.0.1
 	 * @param string $file_path Path to the GIF file.
 	 * @return bool True if animated, false otherwise.
 	 */
@@ -64,12 +66,25 @@ class GifAnimationDetector {
 	 * This method reads the GIF file to check for multiple image descriptors.
 	 * An animated GIF contains multiple image descriptors (0x21 0xF9 pattern).
 	 *
-	 * @since TBD
+	 * @since 2.0.1
 	 * @param string $file_path Path to the GIF file.
 	 * @return bool True if animated, false otherwise.
 	 */
 	public function is_animated_by_file_read( $file_path ) {
-		if ( ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
+		// Initialize WordPress filesystem
+		if ( ! function_exists( 'WP_Filesystem' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+		WP_Filesystem();
+
+		global $wp_filesystem;
+
+		if ( ! $wp_filesystem ) {
+			$this->logger->warning( "WordPress filesystem not available for GIF animation detection: {$file_path}" );
+			return false;
+		}
+
+		if ( ! $wp_filesystem->exists( $file_path ) ) {
 			return false;
 		}
 
@@ -79,50 +94,45 @@ class GifAnimationDetector {
 			return false;
 		}
 
-		// Read file to check for multiple image descriptors
-		$handle = fopen( $file_path, 'rb' );
-		if ( ! $handle ) {
+		// Check file size to avoid reading extremely large files into memory
+		// Most GIFs are reasonable in size, but we'll cap at 50MB for safety
+		$file_size = $wp_filesystem->size( $file_path );
+		if ( $file_size === false || $file_size > 50 * 1024 * 1024 ) {
+			$this->logger->warning( "GIF file too large for animation detection: {$file_path} ({$file_size} bytes)" );
 			return false;
 		}
 
-		// Read first 13 bytes (GIF header)
-		$header = fread( $handle, 13 );
-		if ( substr( $header, 0, 3 ) !== 'GIF' ) {
-			fclose( $handle );
+		// Read file contents using WordPress filesystem API
+		$file_contents = $wp_filesystem->get_contents( $file_path );
+		if ( $file_contents === false ) {
+			$this->logger->warning( "Failed to read GIF file for animation detection: {$file_path}" );
+			return false;
+		}
+
+		// Verify GIF header
+		if ( strlen( $file_contents ) < 13 || substr( $file_contents, 0, 3 ) !== 'GIF' ) {
 			return false;
 		}
 
 		// Count image descriptors (0x21 0xF9 pattern indicates graphic control extension)
 		// Animated GIFs have multiple image descriptors
+		// Look for image separator (0x2C) which indicates a new image frame
 		$image_descriptor_count = 0;
-		$chunk_size = 8192;
-		$previous_byte = null;
+		$length = strlen( $file_contents );
 
-		while ( ! feof( $handle ) ) {
-			$chunk = fread( $handle, $chunk_size );
-			if ( $chunk === false ) {
-				break;
-			}
+		for ( $i = 0; $i < $length; $i++ ) {
+			$byte = ord( $file_contents[ $i ] );
 
-			$length = strlen( $chunk );
-			for ( $i = 0; $i < $length; $i++ ) {
-				$byte = ord( $chunk[ $i ] );
-
-				// Look for image separator (0x2C) which indicates a new image frame
-				if ( $byte === 0x2C ) {
-					$image_descriptor_count++;
-					// If we find more than one image descriptor, it's animated
-					if ( $image_descriptor_count > 1 ) {
-						fclose( $handle );
-						return true;
-					}
+			// Look for image separator (0x2C) which indicates a new image frame
+			if ( $byte === 0x2C ) {
+				$image_descriptor_count++;
+				// If we find more than one image descriptor, it's animated
+				if ( $image_descriptor_count > 1 ) {
+					return true;
 				}
-
-				$previous_byte = $byte;
 			}
 		}
 
-		fclose( $handle );
 		return false;
 	}
 
@@ -131,7 +141,7 @@ class GifAnimationDetector {
 	 *
 	 * Tries Imagick first (more reliable), falls back to file reading.
 	 *
-	 * @since TBD
+	 * @since 2.0.1
 	 * @param string $file_path Path to the GIF file.
 	 * @return bool True if animated, false otherwise.
 	 */

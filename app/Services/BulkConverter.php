@@ -45,12 +45,6 @@ class BulkConverter {
 	private $video_converter;
 
 	/**
-	 * Quota manager instance.
-	 *
-	 * @since 0.1.0
-	 * @var QuotaManager
-	 */
-	private $quota_manager;
 
 	/**
 	 * Conversion tracker instance.
@@ -67,14 +61,14 @@ class BulkConverter {
 	 * @param Logger            $logger Logger instance.
 	 * @param ImageConverter    $image_converter Image converter service.
 	 * @param VideoConverter    $video_converter Video converter service.
-	 * @param QuotaManager      $quota_manager Quota manager service.
+	
 	 * @param ConversionTracker $conversion_tracker Conversion tracker service.
 	 */
-	public function __construct( Logger $logger, ImageConverter $image_converter, VideoConverter $video_converter, QuotaManager $quota_manager, ConversionTracker $conversion_tracker ) {
+	public function __construct( Logger $logger, ImageConverter $image_converter, VideoConverter $video_converter, ConversionTracker $conversion_tracker ) {
 		$this->logger = $logger;
 		$this->image_converter = $image_converter;
 		$this->video_converter = $video_converter;
-		$this->quota_manager = $quota_manager;
+		
 		$this->conversion_tracker = $conversion_tracker;
 	}
 
@@ -90,7 +84,6 @@ class BulkConverter {
 			'processed' => 0,
 			'converted' => 0,
 			'errors' => 0,
-			'quota_exceeded' => false,
 		];
 
 		// Get unconverted media files
@@ -103,12 +96,6 @@ class BulkConverter {
 		foreach ( $unconverted_files as $attachment_id ) {
 			$results['processed']++;
 
-			// Check quota before processing
-			if ( ! $this->quota_manager->can_convert( 'image' ) && ! $this->quota_manager->can_convert( 'video' ) ) {
-				$results['quota_exceeded'] = true;
-				$this->logger->warning( 'Quota exceeded during bulk conversion. Stopping processing.' );
-				break;
-			}
 
 			try {
 				$file_path = get_attached_file( $attachment_id );
@@ -289,7 +276,7 @@ class BulkConverter {
 					
 					$converted_size = $wp_filesystem->exists( $converted_file_path ) ? $wp_filesystem->size( $converted_file_path ) : 0;
 					
-					// Record conversion for quota tracking (track all sizes for accurate savings calculation)
+					// Record conversion for statistics tracking (track all sizes for accurate savings calculation)
 					$this->conversion_tracker->record_conversion( $attachment_id, $format, $size_original_size, $converted_size, $size_name );
 					
 					// Track full size original for total calculation

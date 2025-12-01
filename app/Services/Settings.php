@@ -63,7 +63,6 @@ class Settings {
 	 */
 	const DEFAULT_LOG_LEVEL = 'info';
 	const DEFAULT_ENABLE_LOGGING = false;
-	const DEFAULT_LICENSE_KEY = '';
 	const DEFAULT_EXTERNAL_SERVICE_ENABLED = false;
 
 	/**
@@ -105,7 +104,8 @@ class Settings {
 			'enable_logging' => self::DEFAULT_ENABLE_LOGGING,
 			
 			// SaaS API settings.
-			'license_key' => self::DEFAULT_LICENSE_KEY,
+			// Note: license_key is stored in flux-plugins_license_key site option for cross-plugin compatibility.
+			// Use Settings::get_license_key() and Settings::set_license_key() methods instead.
 			'external_service_enabled' => self::DEFAULT_EXTERNAL_SERVICE_ENABLED,
 		];
 	}
@@ -401,7 +401,7 @@ class Settings {
 	}
 
 	/**
-	 * Get the license key for SaaS API authentication.
+	 * Get the license key for future SaaS API authentication.
 	 *
 	 * Stored in flux-plugins_license_key site option for cross-plugin compatibility.
 	 *
@@ -413,7 +413,7 @@ class Settings {
 	}
 
 	/**
-	 * Set the license key for SaaS API authentication.
+	 * Set the license key for future SaaS API authentication.
 	 *
 	 * Stores in flux-plugins_license_key site option for cross-plugin compatibility.
 	 * Activates the license with external service if the key has changed.

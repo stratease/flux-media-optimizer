@@ -16,10 +16,12 @@ export const NotificationProvider = ({ children }) => {
 
   const showNotification = useCallback((notification) => {
     const id = Date.now() + Math.random();
+    // Default duration: 6 seconds for info/success, 12 seconds for errors/warnings
+    const defaultDuration = notification.severity === 'error' || notification.severity === 'warning' ? 12000 : 6000;
     const newNotification = {
       id,
       open: true,
-      autoHideDuration: 6000,
+      autoHideDuration: notification.autoHideDuration ?? defaultDuration,
       ...notification,
     };
 

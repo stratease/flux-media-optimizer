@@ -75,7 +75,7 @@ export const AutoSaveProvider = ({ children }) => {
       {children}
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={snackbar.severity === 'error' ? 6000 : 3000}
+        autoHideDuration={snackbar.severity === 'error' ? 12000 : 3000}
         onClose={handleSnackbarClose}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         sx={{ mb: 2, mr: 2 }}

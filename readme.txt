@@ -183,13 +183,38 @@ Initial release of Flux Media Optimizer by Flux Plugins with comprehensive media
 
 == External Services ==
 
-This plugin does not currently use any external services. All image and video processing happens locally on your server by default.
+**Default Behavior:**
+By default, all image and video processing happens locally on your server. Your media files never leave your WordPress installation unless you explicitly opt-in to external processing services.
 
-Future versions may include optional external service integrations for enhanced functionality, such as:
-* **External File Processing**: Optional external file processing services that could improve image and video optimizations, speed up processing, and allow sites that do not have the required libraries installed to process media files.
-* **CDN Integration**: Optional integration with CDN services for improved content delivery.
+**Optional External Service:**
+This plugin includes an optional external service integration that provides:
+* **External File Processing**: Offloads heavy image and video conversion tasks to external servers, reducing load on your server
+* **CDN Integration**: Stores optimized files on a global CDN for faster delivery worldwide
 
-Any future external service integrations will be optional and require explicit user consent. By default, all processing will continue to happen locally on your server.
+**What Data is Sent:**
+When the external service is enabled (requires explicit user activation and a license key), the following data is sent to the external service:
+* Media files (images and videos) that you upload or request to be converted
+* Attachment metadata (file names, sizes, formats)
+* License key for authentication
+* Account ID (UUID) for service identification
+
+**When Data is Sent:**
+Data is only sent when:
+* The external service is explicitly enabled by the user in plugin settings
+* A valid license key is provided and activated
+* Media files are uploaded or conversion is requested
+
+**Service Provider:**
+The external service is provided by Flux Plugins:
+* **Service URL**: https://api.fluxplugins.com
+* **Terms of Service**: https://fluxplugins.com/terms-of-service/
+* **Privacy Policy**: https://fluxplugins.com/privacy-policy/
+
+**Important Notes:**
+* External service is completely optional - all core functionality works locally without it
+* External service requires explicit user consent and license activation
+* You can disable external service at any time to return to local-only processing
+* By default, the plugin uses local processing only
 
 == Privacy Policy ==
 

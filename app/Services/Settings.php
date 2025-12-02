@@ -8,8 +8,6 @@
 
 namespace FluxMedia\App\Services;
 
-use FluxMedia\App\Services\ExternalApiClient;
-use FluxMedia\App\Services\Logger;
 
 /**
  * Settings management class with constants and centralized getter/setter methods.
@@ -64,6 +62,7 @@ class Settings {
 	const DEFAULT_LOG_LEVEL = 'info';
 	const DEFAULT_ENABLE_LOGGING = false;
 	const DEFAULT_EXTERNAL_SERVICE_ENABLED = false;
+	const DEFAULT_LICENSE_LAST_VALID_DATE = null;
 
 	/**
 	 * WordPress option name.
@@ -107,6 +106,7 @@ class Settings {
 			// Note: license_key is stored in flux-plugins_license_key site option for cross-plugin compatibility.
 			// Use Settings::get_license_key() and Settings::set_license_key() methods instead.
 			'external_service_enabled' => self::DEFAULT_EXTERNAL_SERVICE_ENABLED,
+			'license_last_valid_date' => self::DEFAULT_LICENSE_LAST_VALID_DATE,
 		];
 	}
 
@@ -406,6 +406,7 @@ class Settings {
 	 * Stored in flux-plugins_license_key site option for cross-plugin compatibility.
 	 *
 	 * @since 0.1.0
+	 * @since 3.0.0 Modified to use site option (flux-plugins_license_key) instead of plugin options for cross-plugin compatibility.
 	 * @return string License key.
 	 */
 	public static function get_license_key() {
@@ -416,34 +417,17 @@ class Settings {
 	 * Set the license key for future SaaS API authentication.
 	 *
 	 * Stores in flux-plugins_license_key site option for cross-plugin compatibility.
-	 * Activates the license with external service if the key has changed.
+	 * Note: License activation with external service is handled by OptionsController,
+	 * not in this method, to provide better error reporting and separation of concerns.
 	 *
 	 * @since 0.1.0
+	 * @since 3.0.0 Modified to use site option (flux-plugins_license_key) instead of plugin options. License activation moved to OptionsController.
 	 * @param string $license_key License key.
 	 * @return bool True on success, false on failure.
 	 */
 	public static function set_license_key( $license_key ) {
 		$license_key = sanitize_text_field( $license_key );
-		$old_license_key = self::get_license_key();
-		
-		// Only activate if license key has changed or is being set for the first time.
-		$should_activate = ( $old_license_key !== $license_key ) && ! empty( $license_key );
-		
-		$result = update_site_option( 'flux-plugins_license_key', $license_key );
-		
-		// Activate license with external service if key changed.
-		if ( $result && $should_activate ) {
-			$logger = new Logger();
-			$api_client = new ExternalApiClient( $logger );
-			$activation_result = $api_client->activate_license( $license_key );
-			
-			if ( ! $activation_result['success'] ) {
-				// Log error but don't prevent license key from being saved.
-				$logger->error( "License activation failed: " . ( $activation_result['error'] ?? 'Unknown error' ) );
-			}
-		}
-		
-		return $result;
+		return update_site_option( 'flux-plugins_license_key', $license_key );
 	}
 
 	/**
@@ -451,7 +435,7 @@ class Settings {
 	 *
 	 * UUID is generated on plugin initialization and never changes.
 	 *
-	 * @since TBD
+	 * @since 3.0.0
 	 * @return string Account ID (UUID) or empty string if not set.
 	 */
 	public static function get_account_id() {
@@ -463,7 +447,7 @@ class Settings {
 	 *
 	 * External service cannot be enabled without a license key.
 	 *
-	 * @since TBD
+	 * @since 3.0.0
 	 * @return bool True if external service is enabled and license key exists.
 	 */
 	public static function is_external_service_enabled() {
@@ -477,11 +461,50 @@ class Settings {
 	/**
 	 * Set external service enabled state.
 	 *
-	 * @since TBD
+	 * @since 3.0.0
 	 * @param bool $enabled Whether external service is enabled.
 	 * @return bool True on success, false on failure.
 	 */
 	public static function set_external_service_enabled( $enabled ) {
 		return self::set( 'external_service_enabled', (bool) $enabled );
+	}
+
+	/**
+	 * Get the last valid date for the license (GMT).
+	 *
+	 * Returns null if license has never been validated or is invalid.
+	 *
+	 * @since 3.0.0
+	 * @return string|null Last valid date in GMT format (Y-m-d H:i:s) or null.
+	 */
+	public static function get_license_last_valid_date() {
+		$date = self::get( 'license_last_valid_date', self::DEFAULT_LICENSE_LAST_VALID_DATE );
+		return $date ? (string) $date : null;
+	}
+
+	/**
+	 * Set the last valid date for the license (GMT).
+	 *
+	 * @since 3.0.0
+	 * @param string|null $date Last valid date in GMT format (Y-m-d H:i:s) or null to mark as invalid.
+	 * @return bool True on success, false on failure.
+	 */
+	public static function set_license_last_valid_date( $date ) {
+		if ( $date === null ) {
+			return self::set( 'license_last_valid_date', null );
+		}
+		return self::set( 'license_last_valid_date', sanitize_text_field( $date ) );
+	}
+
+	/**
+	 * Check if license is currently valid.
+	 *
+	 * License is considered valid if last_valid_date is set (not null).
+	 *
+	 * @since 3.0.0
+	 * @return bool True if license is valid, false otherwise.
+	 */
+	public static function is_license_valid() {
+		return self::get_license_last_valid_date() !== null;
 	}
 }

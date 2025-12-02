@@ -23,11 +23,15 @@ export const useUpdateOptions = () => {
   return useMutation({
     mutationFn: (data) => {
       // Pass the data directly to the consolidated updateOptions method
+      // The response will include license_activation if activation occurred
       return apiService.updateOptions(data);
     },
-    onSuccess: () => {
-      // Invalidate and refetch options
+    onSuccess: (responseData) => {
+      // Invalidate and refetch options to get updated data including license_activation
       queryClient.invalidateQueries({ queryKey: ['options'] });
+      
+      // Return the response data so callers can access license_activation
+      return responseData;
     },
     onError: (error) => {
       console.error('Failed to update options:', error);

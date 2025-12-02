@@ -37,6 +37,11 @@ if ( ! defined( 'FLUX_MEDIA_OPTIMIZER_EXTERNAL_SERVICE_URL' ) ) {
 	define( 'FLUX_MEDIA_OPTIMIZER_EXTERNAL_SERVICE_URL', 'https://api.fluxplugins.com' );
 }
 
+// Define external service timeout constant (can be overridden in wp-config.php).
+if ( ! defined( 'FLUX_MEDIA_OPTIMIZER_EXTERNAL_SERVICE_TIMEOUT' ) ) {
+	define( 'FLUX_MEDIA_OPTIMIZER_EXTERNAL_SERVICE_TIMEOUT', 15 );
+}
+
 // Check PHP version compatibility.
 if ( version_compare( PHP_VERSION, '7.4', '<' ) ) {
 	add_action( 'admin_notices', 'flux_media_optimizer_php_version_notice' );
@@ -125,7 +130,7 @@ function flux_media_optimizer_init() {
  * Generates and stores UUID on first plugin load if it doesn't exist.
  * This UUID is persistent and never changes, even if license keys change.
  *
- * @since TBD
+ * @since 3.0.0
  * @return void
  */
 function flux_media_optimizer_ensure_account_id() {
@@ -141,7 +146,7 @@ function flux_media_optimizer_ensure_account_id() {
 /**
  * Generate a UUID v4.
  *
- * @since TBD
+ * @since 3.0.0
  * @return string UUID v4 string.
  */
 function flux_media_optimizer_generate_uuid() {

@@ -71,7 +71,7 @@ class ExternalApiClient {
 			];
 		}
 
-		$endpoint = trailingslashit( $this->base_url ) . 'api/v1/jobs';
+		$endpoint = trailingslashit( $this->base_url ) . 'api/v1/upload/init';
 		
 		$body = [
 			'account_id'     => $account_id,
@@ -128,7 +128,7 @@ class ExternalApiClient {
 			];
 		}
 
-		$this->logger->info( "Job submitted successfully: {$data['job_id']} for attachment {$attachment_id}" );
+		$this->logger->debug( "Job submitted successfully: {$data['job_id']} for attachment {$attachment_id}" );
 
 		return [
 			'success' => true,

@@ -26,6 +26,9 @@ use FluxMedia\App\Services\ExternalOptimizationProvider;
 use FluxMedia\App\Services\ConversionTracker;
 use FluxMedia\App\Services\LogsService;
 use FluxMedia\App\Services\Database;
+use FluxMedia\App\Services\LicenseValidationCache;
+use FluxMedia\App\Services\MediaProcessingServiceLocator;
+use FluxMedia\App\Services\BulkConverter;
 
 /**
  * Main plugin class that initializes all components.
@@ -97,8 +100,24 @@ class Plugin {
         // Initialize WordPress provider
         $this->wordpress_provider = new WordPressProvider( $this->image_converter, $this->video_converter );
         
-        // Register WordPress hooks
-        $this->wordpress_provider->register_hooks();
+        // Initialize service locator and set it on WordPress provider
+        $conversion_tracker = new ConversionTracker( $this->logger );
+        $bulk_converter = new BulkConverter( $this->logger, $this->image_converter, $this->video_converter, $conversion_tracker );
+        $license_cache = new LicenseValidationCache( $this->logger );
+        $service_locator = new MediaProcessingServiceLocator(
+            $license_cache,
+            $this->image_converter,
+            $this->video_converter,
+            $conversion_tracker,
+            $bulk_converter,
+            $this->logger,
+            $this->wordpress_provider
+        );
+        $service_locator->init();
+        $this->wordpress_provider->set_service_locator( $service_locator );
+        
+        // Initialize WordPress provider (registers hooks)
+        $this->wordpress_provider->init();
         
         // Initialize admin functionality
         $this->init_admin();

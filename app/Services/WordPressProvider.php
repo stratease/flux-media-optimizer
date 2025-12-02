@@ -20,7 +20,7 @@ use FluxMedia\App\Services\Settings;
 use FluxMedia\App\Services\Converter;
 use FluxMedia\App\Services\AttachmentMetaHandler;
 use FluxMedia\App\Services\GifAnimationDetector;
-use FluxMedia\App\Services\ExternalOptimizationProvider;
+use FluxMedia\App\Services\MediaProcessingServiceLocator;
 
 /**
  * WordPress provider that handles all WordPress integration.
@@ -86,12 +86,12 @@ class WordPressProvider {
     private $video_renderer;
 
     /**
-     * External optimization provider instance.
+     * Media processing service locator instance.
      *
      * @since 3.0.0
-     * @var ExternalOptimizationProvider|null
+     * @var MediaProcessingServiceLocator
      */
-    private $external_provider;
+    private $service_locator;
 
     /**
      * Constructor.
@@ -111,18 +111,24 @@ class WordPressProvider {
     }
 
     /**
+     * Set the service locator instance.
+     *
+     * @since 3.0.0
+     * @param MediaProcessingServiceLocator $service_locator Service locator instance.
+     * @return void
+     */
+    public function set_service_locator( MediaProcessingServiceLocator $service_locator ) {
+        $this->service_locator = $service_locator;
+    }
+
+    /**
      * Initialize the provider and register WordPress hooks.
      *
      * @since 0.1.0
      * @return void
      */
     public function init() {
-        // Initialize external provider if external service is enabled.
-        if ( Settings::is_external_service_enabled() ) {
-            $this->external_provider = new ExternalOptimizationProvider( $this->logger );
-            $this->external_provider->init();
-        }
-        
+        // Service locator initialization is handled by Plugin class.
         $this->register_hooks();
     }
 
@@ -135,30 +141,26 @@ class WordPressProvider {
     public function register_hooks() {
         // ===== CONVERT MEDIA =====
         // Media upload hooks (handles both images and videos)
-        // Only register local processing hooks if external service is not enabled.
-        if ( ! Settings::is_external_service_enabled() ) {
-            add_action( 'add_attachment', [ $this, 'handle_media_upload' ] );
-        }
+        // Detection of local vs external processing happens inside callbacks.
+        add_action( 'add_attachment', [ $this, 'handle_media_upload' ] );
         add_action( 'wp_generate_attachment_metadata', [ $this, 'handle_image_metadata_generation' ], 10, 2 );
         
         // Ensure conversions run when attachments are edited or files are replaced
-        // Only register if external service is not enabled.
-        if ( ! Settings::is_external_service_enabled() ) {
-            add_filter( 'wp_update_attachment_metadata', [ $this, 'handle_update_attachment_metadata' ], 10, 2 );
-            add_filter( 'update_attached_file', [ $this, 'handle_update_attached_file' ], 10, 2 );
-            add_filter( 'wp_save_image_editor_file', [ $this, 'handle_wp_save_image_editor_file' ], 10, 5 );
-        }
+        // Detection of local vs external processing happens inside callbacks.
+        add_filter( 'wp_update_attachment_metadata', [ $this, 'handle_update_attachment_metadata' ], 10, 2 );
+        add_filter( 'update_attached_file', [ $this, 'handle_update_attached_file' ], 10, 2 );
+        add_filter( 'wp_save_image_editor_file', [ $this, 'handle_wp_save_image_editor_file' ], 10, 5 );
         
         // AJAX handlers for attachment actions
         add_action( 'wp_ajax_flux_media_optimizer_convert_attachment', [ $this, 'handle_ajax_convert_attachment' ] );
         add_action( 'wp_ajax_flux_media_optimizer_disable_conversion', [ $this, 'handle_ajax_disable_conversion' ] );
         add_action( 'wp_ajax_flux_media_optimizer_enable_conversion', [ $this, 'handle_ajax_enable_conversion' ] );
-        // Cron job for individual video processing (only if external service not enabled)
-        if ( ! Settings::is_external_service_enabled() ) {
-            add_action( 'flux_media_optimizer_process_video', [ $this, 'handle_process_video_cron' ], 10, 2 );
-        }
-        // Cron job for bulk conversion (only if enabled and external service not enabled)
-        if ( Settings::is_bulk_conversion_enabled() && ! Settings::is_external_service_enabled() ) {
+        // Cron job for individual video processing
+        // Detection of local vs external processing happens inside callback.
+        add_action( 'flux_media_optimizer_process_video', [ $this, 'handle_process_video_cron' ], 10, 2 );
+        // Cron job for bulk conversion
+        // Detection of local vs external processing happens inside callback.
+        if ( Settings::is_bulk_conversion_enabled() ) {
             add_action( 'flux_media_optimizer_bulk_conversion', [ $this, 'handle_bulk_conversion_cron' ] );
             
             // Schedule cron job if not already scheduled
@@ -223,28 +225,12 @@ class WordPressProvider {
             return;
         }
 
-        $file_path = get_attached_file( $attachment_id );
-        if ( ! $file_path ) {
-            return;
-        }
-        
-        $filetype = wp_check_filetype( $file_path );
-        if ( empty( $filetype['ext'] ) ) {
+        if ( ! $this->service_locator ) {
             return;
         }
 
-        // Determine file type and process accordingly
-        if ( $this->image_converter->is_supported_image( $file_path ) ) {
-            // Check if image auto-conversion is enabled
-            if ( Settings::is_image_auto_convert_enabled() ) {
-                $this->process_image_conversion( $attachment_id, $file_path );
-            }
-        } elseif ( $this->video_converter->is_supported_video( $file_path ) ) {
-            // Check if video auto-conversion is enabled
-            if ( Settings::is_video_auto_convert_enabled() ) {
-                $this->enqueue_video_processing( $attachment_id, $file_path );
-            }
-        }
+        $processor = $this->service_locator->get_processor();
+        $processor->process_media_upload( $attachment_id );
     }
 
     /**
@@ -309,7 +295,7 @@ class WordPressProvider {
      * @param string $file_path Source file path.
      * @return void
      */
-    private function process_image_conversion( $attachment_id, $file_path ) {
+    public function process_image_conversion( $attachment_id, $file_path ) {
         // Verify file exists before processing
         if ( ! file_exists( $file_path ) ) {
             $this->logger->warning( "Source file does not exist for attachment {$attachment_id}: {$file_path}" );
@@ -692,7 +678,7 @@ class WordPressProvider {
      * @param string $file_path Source file path.
      * @return void
      */
-    private function process_video_conversion( $attachment_id, $file_path ) {
+    public function process_video_conversion( $attachment_id, $file_path ) {
         // Get upload directory info
         $file_info = pathinfo( $file_path );
         $file_dir = $file_info['dirname'];
@@ -1990,7 +1976,7 @@ class WordPressProvider {
      * @param string $file_path Source file path.
      * @return void
      */
-    private function enqueue_video_processing( $attachment_id, $file_path ) {
+    public function enqueue_video_processing( $attachment_id, $file_path ) {
         // Check if a cron job is already scheduled for this attachment
         $cron_hook = 'flux_media_optimizer_process_video';
         $cron_args = [ $attachment_id, $file_path ];
@@ -2015,32 +2001,18 @@ class WordPressProvider {
      * @return void
      */
     public function handle_process_video_cron( $attachment_id, $file_path ) {
-        // Verify attachment still exists
-        if ( ! get_post( $attachment_id ) ) {
-            $this->logger->warning( "Video processing cron skipped: attachment {$attachment_id} no longer exists" );
-            return;
-        }
-
         // Check if conversion is disabled for this attachment
         if ( AttachmentMetaHandler::is_conversion_disabled( $attachment_id ) ) {
             $this->logger->info( "Video processing cron skipped: conversion disabled for attachment {$attachment_id}" );
             return;
         }
 
-        // Verify file still exists
-        if ( ! file_exists( $file_path ) ) {
-            $this->logger->warning( "Video processing cron skipped: file not found for attachment {$attachment_id}: {$file_path}" );
+        if ( ! $this->service_locator ) {
             return;
         }
 
-        // Verify it's still a supported video
-        if ( ! $this->video_converter->is_supported_video( $file_path ) ) {
-            $this->logger->warning( "Video processing cron skipped: unsupported video format for attachment {$attachment_id}" );
-            return;
-        }
-
-        // Process the video conversion
-        $this->process_video_conversion( $attachment_id, $file_path );
+        $processor = $this->service_locator->get_processor();
+        $processor->process_video_cron( $attachment_id, $file_path );
     }
 
     /**
@@ -2050,20 +2022,12 @@ class WordPressProvider {
      * @return void
      */
     public function handle_bulk_conversion_cron() {
-        // Check if bulk conversion is enabled
-        if ( ! Settings::is_bulk_conversion_enabled() ) {
+        if ( ! $this->service_locator ) {
             return;
         }
 
-        // Check if auto-conversion is enabled
-        if ( ! Settings::is_image_auto_convert_enabled() && ! Settings::is_video_auto_convert_enabled() ) {
-            return;
-        }
-
-        // Process bulk conversion with small batch size for cron
-        $results = $this->bulk_converter->process_bulk_conversion( 5 );
-
-        $this->logger->info( 'Bulk conversion cron completed. Processed: ' . $results['processed'] . ', Converted: ' . $results['converted'] . ', Errors: ' . $results['errors'] );
+        $processor = $this->service_locator->get_processor();
+        $processor->process_bulk_conversion_cron();
     }
 
     /**
@@ -2085,21 +2049,17 @@ class WordPressProvider {
             return $override;
         }
 
-        // Bail if conversion disabled for this attachment
+        // Check if conversion is disabled for this attachment
         if ( AttachmentMetaHandler::is_conversion_disabled( $post_id ) ) {
             return $override;
         }
 
-        if ( ! $filename || ! wp_check_filetype( $filename )['ext'] ) {
+        if ( ! $this->service_locator ) {
             return $override;
         }
 
-        // Only process supported images
-        if ( $this->image_converter->is_supported_image( $filename ) ) {
-            $this->process_image_conversion( (int) $post_id, $filename );
-        }
-
-        return $override;
+        $processor = $this->service_locator->get_processor();
+        return $processor->process_image_editor_save( $override, $filename, $image, $mime_type, $post_id );
     }
 
     /**
@@ -2113,33 +2073,17 @@ class WordPressProvider {
      * @return array Unmodified metadata array.
      */
     public function handle_update_attachment_metadata( $data, $attachment_id ) {
-        // Bail if conversion disabled for this attachment
+        // Check if conversion is disabled for this attachment
         if ( AttachmentMetaHandler::is_conversion_disabled( $attachment_id ) ) {
             return $data;
         }
 
-        $file_path = get_attached_file( $attachment_id );
-        if ( ! $file_path ) {
-            return $data;
-        }
-        
-        $filetype = wp_check_filetype( $file_path );
-        if ( empty( $filetype['ext'] ) ) {
+        if ( ! $this->service_locator ) {
             return $data;
         }
 
-        // Process based on file type
-        if ( $this->image_converter->is_supported_image( $file_path ) ) {
-            if ( Settings::is_image_auto_convert_enabled() ) {
-                $this->process_image_conversion( $attachment_id, $file_path );
-            }
-        } elseif ( $this->video_converter->is_supported_video( $file_path ) ) {
-            if ( Settings::is_video_auto_convert_enabled() ) {
-                $this->enqueue_video_processing( $attachment_id, $file_path );
-            }
-        }
-
-        return $data;
+        $processor = $this->service_locator->get_processor();
+        return $processor->process_metadata_update( $data, $attachment_id );
     }
 
     /**
@@ -2154,27 +2098,17 @@ class WordPressProvider {
      * @return string File path (unmodified).
      */
     public function handle_update_attached_file( $file, $attachment_id ) {
-        // Bail if conversion disabled for this attachment
+        // Check if conversion is disabled for this attachment
         if ( AttachmentMetaHandler::is_conversion_disabled( $attachment_id ) ) {
             return $file;
         }
 
-        if ( ! $file || ! wp_check_filetype( $file )['ext'] ) {
+        if ( ! $this->service_locator ) {
             return $file;
         }
 
-        // Process based on file type
-        if ( $this->image_converter->is_supported_image( $file ) ) {
-            if ( Settings::is_image_auto_convert_enabled() ) {
-                $this->process_image_conversion( $attachment_id, $file );
-            }
-        } elseif ( $this->video_converter->is_supported_video( $file ) ) {
-            if ( Settings::is_video_auto_convert_enabled() ) {
-                $this->enqueue_video_processing( $attachment_id, $file );
-            }
-        }
-
-        return $file;
+        $processor = $this->service_locator->get_processor();
+        return $processor->process_file_update( $file, $attachment_id );
     }
 
     /**

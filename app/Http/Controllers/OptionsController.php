@@ -10,6 +10,7 @@ namespace FluxMedia\App\Http\Controllers;
 
 use FluxMedia\App\Services\Settings;
 use FluxMedia\App\Services\ExternalApiClient;
+use FluxMedia\App\Services\LicenseValidationCache;
 use WP_REST_Request;
 use WP_REST_Response;
 
@@ -278,22 +279,15 @@ class OptionsController extends BaseController {
 				return $this->create_error_response( 'No license key found', 'license_key_not_found', 400 );
 			}
 
-			$api_client = new ExternalApiClient( $this->logger );
-			$validation_result = $api_client->validate_license( $license_key );
+			// Use LicenseValidationCache to validate and update cache.
+			// This will handle validation and date updates internally.
+			$license_cache = new LicenseValidationCache( $this->logger );
 
-			// Update validation date based on result.
-			if ( $validation_result['success'] && isset( $validation_result['valid'] ) && $validation_result['valid'] ) {
-				// Validation successful and license is valid - save date.
-				Settings::set_license_last_valid_date( current_time( 'mysql', true ) );
-			} else {
-				// Validation failed or license is invalid - clear date.
-				Settings::set_license_last_valid_date( null );
-			}
 
 			$response_data = [
 				'license_key' => Settings::get_license_key(),
 				'license_last_valid_date' => Settings::get_license_last_valid_date(),
-				'license_is_valid' => Settings::is_license_valid(),
+				'license_is_valid' => $license_cache->is_license_valid(),
 			];
 
 			return $this->create_success_response( $response_data, 'License validation completed' );

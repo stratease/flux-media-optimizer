@@ -44,22 +44,6 @@ class ExternalProcessingService implements ProcessingServiceInterface {
 	private $api_client;
 
 	/**
-	 * Image converter instance.
-	 *
-	 * @since 3.0.0
-	 * @var ImageConverter
-	 */
-	private $image_converter;
-
-	/**
-	 * Video converter instance.
-	 *
-	 * @since 3.0.0
-	 * @var VideoConverter
-	 */
-	private $video_converter;
-
-	/**
 	 * Constructor.
 	 *
 	 * @since 3.0.0
@@ -69,8 +53,6 @@ class ExternalProcessingService implements ProcessingServiceInterface {
 		$this->external_provider = $external_provider;
 		$this->logger = new Logger();
 		$this->api_client = new ExternalApiClient( $this->logger );
-		$this->image_converter = new ImageConverter( $this->logger );
-		$this->video_converter = new VideoConverter( $this->logger );
 	}
 
 	/**
@@ -182,19 +164,26 @@ class ExternalProcessingService implements ProcessingServiceInterface {
 	/**
 	 * Submit a processing job to the external service.
 	 *
+	 * For images and videos: builds operations array with formats and sizes (if applicable).
+	 * For all other file types: sends simple operation with 'full' key_name for CDN storage.
+	 *
 	 * @since 3.0.0
 	 * @param int    $attachment_id Attachment ID.
 	 * @param string $file_path     File path.
 	 * @return void
 	 */
 	private function submit_processing_job( $attachment_id, $file_path ) {
-		// Determine file type.
-		$is_image = $this->image_converter->is_supported_image( $file_path );
-		$is_video = $this->video_converter->is_supported_video( $file_path );
-
-		if ( ! $is_image && ! $is_video ) {
-			return;
+		// Get mimetype for file type detection.
+		$mimetype = get_post_mime_type( $attachment_id );
+		if ( ! $mimetype ) {
+			$mimetype = wp_check_filetype( $file_path )['type'] ?? '';
 		}
+		
+		// Determine file type based on MIME type.
+		// All standard image MIME types start with 'image/' (e.g., image/jpeg, image/png, image/webp, image/avif).
+		// All standard video MIME types start with 'video/' (e.g., video/mp4, video/webm, video/ogg).
+		$is_image = ! empty( $mimetype ) && strpos( $mimetype, 'image/' ) === 0;
+		$is_video = ! empty( $mimetype ) && strpos( $mimetype, 'video/' ) === 0;
 
 		// Check if auto-conversion is enabled.
 		if ( $is_image && ! Settings::is_image_auto_convert_enabled() ) {
@@ -213,12 +202,6 @@ class ExternalProcessingService implements ProcessingServiceInterface {
 
 		// Get webhook URL.
 		$webhook_url = WebhookController::get_webhook_url();
-		
-		// Get mimetype.
-		$mimetype = get_post_mime_type( $attachment_id );
-		if ( ! $mimetype ) {
-			$mimetype = wp_check_filetype( $file_path )['type'] ?? '';
-		}
 		
 		// Build operations array.
 		$operations = [];
@@ -254,10 +237,16 @@ class ExternalProcessingService implements ProcessingServiceInterface {
 					$operations[] = $operation;
 				}
 			}
-		} else {
+		} elseif($is_video) {
 			// Videos only have full size.
 			$operations[] = [
 				'formats'  => $formats,
+				'key_name' => 'full',
+			];
+		} else {
+			// For all other file types, send simple CDN storage operation.
+			// The 'full' key_name is reserved and the original file is automatically preserved under it.
+			$operations[] = [
 				'key_name' => 'full',
 			];
 		}

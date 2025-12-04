@@ -94,6 +94,14 @@ class WordPressProvider {
     private $service_locator;
 
     /**
+     * Track processed attachments per request to prevent duplicate processing.
+     *
+     * @since 3.0.0
+     * @var array Array of attachment IDs that have been processed in this request.
+     */
+    private static $processed_attachments = [];
+
+    /**
      * Constructor.
      *
      * @since 0.1.0
@@ -213,6 +221,28 @@ class WordPressProvider {
     }
 
     /**
+     * Check if an attachment has already been processed in this request.
+     *
+     * @since 3.0.0
+     * @param int $attachment_id Attachment ID.
+     * @return bool True if already processed, false otherwise.
+     */
+    private function is_attachment_processed( $attachment_id ) {
+        return isset( self::$processed_attachments[ $attachment_id ] );
+    }
+
+    /**
+     * Mark an attachment as processed in this request.
+     *
+     * @since 3.0.0
+     * @param int $attachment_id Attachment ID.
+     * @return void
+     */
+    private function mark_attachment_processed( $attachment_id ) {
+        self::$processed_attachments[ $attachment_id ] = true;
+    }
+
+    /**
      * Handle media upload (images and videos).
      *
      * @since 2.0.1
@@ -225,12 +255,20 @@ class WordPressProvider {
             return;
         }
 
+        // Check if already processed in this request
+        if ( $this->is_attachment_processed( $attachment_id ) ) {
+            return;
+        }
+
         if ( ! $this->service_locator ) {
             return;
         }
 
         $processor = $this->service_locator->get_processor();
         $processor->process_media_upload( $attachment_id );
+        
+        // Mark as processed
+        $this->mark_attachment_processed( $attachment_id );
     }
 
     /**
@@ -1148,6 +1186,11 @@ class WordPressProvider {
             return $metadata;
         }
 
+        // Check if already processed in this request
+        if ( $this->is_attachment_processed( $attachment_id ) ) {
+            return $metadata;
+        }
+
         // Only process images
         $file_path = get_attached_file( $attachment_id );
         if ( ! $file_path || ! $this->image_converter->is_supported_image( $file_path ) ) {
@@ -1350,6 +1393,9 @@ class WordPressProvider {
                 AttachmentMetaHandler::set_converted_formats( $attachment_id, $all_formats );
                 AttachmentMetaHandler::set_conversion_date_now( $attachment_id );
             }
+
+            // Mark as processed to prevent duplicate processing in this request
+            $this->mark_attachment_processed( $attachment_id );
         }
 
         return $metadata;
@@ -2054,12 +2100,22 @@ class WordPressProvider {
             return $override;
         }
 
+        // Check if already processed in this request
+        if ( $this->is_attachment_processed( $post_id ) ) {
+            return $override;
+        }
+
         if ( ! $this->service_locator ) {
             return $override;
         }
 
         $processor = $this->service_locator->get_processor();
-        return $processor->process_image_editor_save( $override, $filename, $image, $mime_type, $post_id );
+        $result = $processor->process_image_editor_save( $override, $filename, $image, $mime_type, $post_id );
+        
+        // Mark as processed
+        $this->mark_attachment_processed( $post_id );
+        
+        return $result;
     }
 
     /**
@@ -2078,12 +2134,22 @@ class WordPressProvider {
             return $data;
         }
 
+        // Check if already processed in this request
+        if ( $this->is_attachment_processed( $attachment_id ) ) {
+            return $data;
+        }
+
         if ( ! $this->service_locator ) {
             return $data;
         }
 
         $processor = $this->service_locator->get_processor();
-        return $processor->process_metadata_update( $data, $attachment_id );
+        $result = $processor->process_metadata_update( $data, $attachment_id );
+        
+        // Mark as processed
+        $this->mark_attachment_processed( $attachment_id );
+        
+        return $result;
     }
 
     /**
@@ -2103,12 +2169,22 @@ class WordPressProvider {
             return $file;
         }
 
+        // Check if already processed in this request
+        if ( $this->is_attachment_processed( $attachment_id ) ) {
+            return $file;
+        }
+
         if ( ! $this->service_locator ) {
             return $file;
         }
 
         $processor = $this->service_locator->get_processor();
-        return $processor->process_file_update( $file, $attachment_id );
+        $result = $processor->process_file_update( $file, $attachment_id );
+        
+        // Mark as processed
+        $this->mark_attachment_processed( $attachment_id );
+        
+        return $result;
     }
 
     /**

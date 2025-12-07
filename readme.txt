@@ -189,11 +189,12 @@ By default, all image and video processing happens locally on your server. Your 
 **Optional External Service:**
 This plugin includes an optional external service integration that provides:
 * **External File Processing**: Offloads heavy image and video conversion tasks to external servers, reducing load on your server
-* **CDN Integration**: Stores optimized files on a global CDN for faster delivery worldwide
+* **CDN Integration**: Stores all media files on a global CDN for faster delivery worldwide. Images and videos are processed and optimized, while other file types (PDFs, documents, etc.) are stored directly for CDN delivery
 
 **What Data is Sent:**
 When the external service is enabled (requires explicit user activation and a license key), the following data is sent to the external service:
-* Media files (images and videos) that you upload or request to be converted
+* All media files (images, videos, PDFs, documents, etc.) that you upload
+* Images and videos are processed and optimized; other file types are stored directly on the CDN
 * Attachment metadata (file names, sizes, formats)
 * License key for authentication
 * Account ID (UUID) for service identification

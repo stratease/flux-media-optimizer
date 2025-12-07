@@ -639,7 +639,7 @@ const SettingsPage = () => {
                       </span>
                     </Tooltip>
                     <FormHelperText sx={{ ml: 0, mt: 1 }}>
-                      {__('When enabled, all image and video processing will be handled by the external CDN service. Local processing will be disabled.', 'flux-media-optimizer')}
+                      {__('When enabled, all media files will be stored on the CDN. Images and videos will be processed and optimized by the external service, while other file types (PDFs, documents, etc.) will be stored directly for CDN delivery. Local processing will be disabled.', 'flux-media-optimizer')}
                     </FormHelperText>
                   </Box>
                 </Stack>

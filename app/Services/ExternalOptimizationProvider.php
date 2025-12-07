@@ -14,6 +14,8 @@ use FluxMedia\App\Services\ConversionTracker;
 /**
  * Handles external service integration for CDN and remote processing.
  *
+ * Images and videos are processed and optimized; all other file types are stored on CDN for delivery.
+ *
  * @since 3.0.0
  */
 class ExternalOptimizationProvider {

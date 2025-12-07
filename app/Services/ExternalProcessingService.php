@@ -14,6 +14,7 @@ use FluxMedia\App\Http\Controllers\WebhookController;
  * External processing service implementation.
  *
  * Handles all external media processing operations via ExternalOptimizationProvider.
+ * Images and videos are processed and optimized; all other file types are stored on CDN for delivery.
  *
  * @since 3.0.0
  */
@@ -164,8 +165,8 @@ class ExternalProcessingService implements ProcessingServiceInterface {
 	/**
 	 * Submit a processing job to the external service.
 	 *
-	 * For images and videos: builds operations array with formats and sizes (if applicable).
-	 * For all other file types: sends simple operation with 'full' key_name for CDN storage.
+	 * For images and videos: builds operations array with formats and sizes (if applicable) for processing and optimization.
+	 * For all other file types: sends simple operation with 'full' key_name for CDN storage (no processing, just storage).
 	 *
 	 * @since 3.0.0
 	 * @param int    $attachment_id Attachment ID.

@@ -435,7 +435,7 @@ const SettingsPage = () => {
               {__('License Settings', 'flux-media-optimizer')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {__('Enter your Flux Media Optimizer license key to unlock premium features and remove usage limits.', 'flux-media-optimizer')}
+              {__('Enter your Flux Media Optimizer license key to unlock premium features.', 'flux-media-optimizer')}
             </Typography>
             <TextField
               fullWidth

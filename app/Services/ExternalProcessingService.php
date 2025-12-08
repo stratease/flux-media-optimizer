@@ -163,6 +163,42 @@ class ExternalProcessingService implements ProcessingServiceInterface {
 	}
 
 	/**
+	 * Check if external job is in a "done" state (completed or failed).
+	 *
+	 * @since 3.0.0
+	 * @param int $attachment_id Attachment ID.
+	 * @return bool True if job is completed or failed, false otherwise.
+	 */
+	private function is_job_done( $attachment_id ) {
+		$state = AttachmentMetaHandler::get_external_job_state( $attachment_id );
+		return in_array( $state, [ 'completed', 'failed' ], true );
+	}
+
+	/**
+	 * Check if external job is currently processing (queued or processing).
+	 *
+	 * @since 3.0.0
+	 * @param int $attachment_id Attachment ID.
+	 * @return bool True if job is queued or processing, false otherwise.
+	 */
+	private function is_job_processing( $attachment_id ) {
+		$state = AttachmentMetaHandler::get_external_job_state( $attachment_id );
+		return in_array( $state, [ 'queued', 'processing' ], true );
+	}
+
+	/**
+	 * Update external job state for an attachment.
+	 *
+	 * @since 3.0.0
+	 * @param int    $attachment_id Attachment ID.
+	 * @param string $state         Job state ('queued', 'processing', 'completed', 'failed').
+	 * @return void
+	 */
+	private function update_job_state( $attachment_id, $state ) {
+		AttachmentMetaHandler::set_external_job_state( $attachment_id, $state );
+	}
+
+	/**
 	 * Submit a processing job to the external service.
 	 *
 	 * For images and videos: builds operations array with formats and sizes (if applicable) for processing and optimization.
@@ -174,6 +210,15 @@ class ExternalProcessingService implements ProcessingServiceInterface {
 	 * @return void
 	 */
 	private function submit_processing_job( $attachment_id, $file_path ) {
+		// Check if job is already in progress or done - prevent resubmission.
+		if ( $this->is_job_processing( $attachment_id ) ) {
+			$this->logger->debug( "Skipping job submission for attachment {$attachment_id}: job already in progress" );
+			return;
+		}
+
+		// Update state to 'queued' before submission.
+		$this->update_job_state( $attachment_id, 'queued' );
+
 		// Get mimetype for file type detection.
 		$mimetype = get_post_mime_type( $attachment_id );
 		if ( ! $mimetype ) {
@@ -201,9 +246,6 @@ class ExternalProcessingService implements ProcessingServiceInterface {
 			return;
 		}
 
-		// Get webhook URL.
-		$webhook_url = WebhookController::get_webhook_url();
-		
 		// Build operations array.
 		$operations = [];
 		
@@ -251,16 +293,20 @@ class ExternalProcessingService implements ProcessingServiceInterface {
 				'key_name' => 'full',
 			];
 		}
-		
+
 		// Submit job to external service.
-		$result = $this->api_client->submit_job( $attachment_id, $operations, $mimetype, $webhook_url );
+		$result = $this->api_client->submit_job( $attachment_id, $operations, $mimetype );
 		
 		if ( ! $result['success'] ) {
+			// Update state to 'failed' on submission error.
+			$this->update_job_state( $attachment_id, 'failed' );
 			$this->logger->error( "Failed to submit job for attachment {$attachment_id}: " . ( $result['error'] ?? 'Unknown error' ) );
 			return;
 		}
 
-		$this->logger->debug( "Job submitted successfully for attachment {$attachment_id}: {$result['job_id']}" );
+		// Update state to 'processing' on successful submission.
+		$this->update_job_state( $attachment_id, 'processing' );
+		$this->logger->debug( "Job submitted successfully for attachment {$attachment_id}" );
 	}
 }
 

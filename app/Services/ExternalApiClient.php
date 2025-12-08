@@ -8,6 +8,8 @@
 
 namespace FluxMedia\App\Services;
 
+use FluxMedia\App\Http\Controllers\WebhookController;
+
 /**
  * Handles communication with external CDN and processing service.
  *
@@ -49,10 +51,9 @@ class ExternalApiClient {
 	 * @param int    $attachment_id Attachment ID.
 	 * @param array  $operations    Array of operations to perform.
 	 * @param string $mimetype     MIME type of the file.
-	 * @param string $webhook_url  Webhook URL for callback.
-	 * @return array Response array with 'success', 'job_id', 'status', 'base_url', or 'error'.
+	 * @return array Response array with 'success', 'status', or 'error'.
 	 */
-	public function submit_job( $attachment_id, $operations = [], $mimetype = '', $webhook_url = '' ) {
+	public function submit_job( $attachment_id, $operations = [], $mimetype = '' ) {
 		$account_id = Settings::get_account_id();
 
 		if ( empty( $account_id ) ) {
@@ -69,6 +70,27 @@ class ExternalApiClient {
 				'success' => false,
 				'error' => 'Could not get attachment URL',
 			];
+		}
+
+		// Generate webhook URL.
+		$webhook_url = WebhookController::get_webhook_url();
+
+		// Parse FLUX_MEDIA_OPTIMIZER_PULL_FILE_URL_DOMAIN for dev testing purposes into both pull_file_url and webhook_url for consistent integration domain.
+		if ( defined( 'FLUX_MEDIA_OPTIMIZER_PULL_FILE_URL_DOMAIN' ) ) {
+			$parsed_url = wp_parse_url( $pull_file_url );
+			if ( $parsed_url && isset( $parsed_url['path'] ) ) {
+				$new_domain = rtrim( FLUX_MEDIA_OPTIMIZER_PULL_FILE_URL_DOMAIN, '/' );
+				$path = $parsed_url['path'];
+				$query = isset( $parsed_url['query'] ) ? '?' . $parsed_url['query'] : '';
+				$pull_file_url = $new_domain . $path . $query;
+				// Parse webhook url domain.
+				$parsed_webhook = wp_parse_url( $webhook_url );
+				if ( $parsed_webhook && isset( $parsed_webhook['path'] ) ) {
+					$webhook_path = $parsed_webhook['path'];
+					$webhook_query = isset( $parsed_webhook['query'] ) ? '?' . $parsed_webhook['query'] : '';
+					$webhook_url = $new_domain . $webhook_path . $webhook_query;
+				}
+			}
 		}
 
 		$endpoint = trailingslashit( $this->base_url ) . 'api/v1/upload/init';
@@ -120,7 +142,7 @@ class ExternalApiClient {
 			];
 		}
 
-		if ( ! isset( $data['job_id'] ) || ! isset( $data['status'] ) ) {
+		if ( ! isset( $data['status'] ) ) {
 			$this->logger->error( "Invalid response from external service: " . wp_json_encode( $data ) );
 			return [
 				'success' => false,
@@ -128,78 +150,14 @@ class ExternalApiClient {
 			];
 		}
 
-		$this->logger->debug( "Job submitted successfully: {$data['job_id']} for attachment {$attachment_id}" );
+		$this->logger->debug( "Job submitted successfully for attachment {$attachment_id}" );
 
 		return [
 			'success' => true,
-			'job_id' => sanitize_text_field( $data['job_id'] ),
 			'status' => sanitize_text_field( $data['status'] ),
-			'base_url' => isset( $data['base_url'] ) ? esc_url_raw( $data['base_url'] ) : null,
 		];
 	}
 
-	/**
-	 * Get job status from external service.
-	 *
-	 * @since 3.0.0
-	 * @param string $job_id Job ID.
-	 * @return array Response array with 'success', 'status', 'base_url', or 'error'.
-	 */
-	public function get_job_status( $job_id ) {
-		$account_id = Settings::get_account_id();
-
-		if ( empty( $account_id ) ) {
-			return [
-				'success' => false,
-				'error' => 'Account ID not found',
-			];
-		}
-
-		$endpoint = trailingslashit( $this->base_url ) . 'api/v1/jobs/' . urlencode( $job_id );
-		$endpoint = add_query_arg( 'account_id', $account_id, $endpoint );
-		
-		$response = wp_remote_get( $endpoint, [
-			'timeout' => FLUX_MEDIA_OPTIMIZER_EXTERNAL_SERVICE_TIMEOUT,
-			'headers' => [
-				'Content-Type' => 'application/json',
-			],
-		] );
-
-		if ( is_wp_error( $response ) ) {
-			$error_message = $response->get_error_message();
-			$this->logger->error( "Failed to get job status from external service: {$error_message}" );
-			return [
-				'success' => false,
-				'error' => $error_message,
-			];
-		}
-
-		$status_code = wp_remote_retrieve_response_code( $response );
-		$body = wp_remote_retrieve_body( $response );
-		$data = json_decode( $body, true );
-
-		if ( $status_code !== 200 ) {
-			$error = isset( $data['error'] ) ? $data['error'] : 'Unknown error from external service';
-			$this->logger->error( "External service returned error: {$error} (Status: {$status_code})" );
-			return [
-				'success' => false,
-				'error' => $error,
-			];
-		}
-
-		if ( isset( $data['error'] ) ) {
-			return [
-				'success' => false,
-				'error' => $data['error'],
-			];
-		}
-
-		return [
-			'success' => true,
-			'status' => isset( $data['status'] ) ? sanitize_text_field( $data['status'] ) : 'unknown',
-			'base_url' => isset( $data['base_url'] ) ? esc_url_raw( $data['base_url'] ) : null,
-		];
-	}
 
 	/**
 	 * Activate license key with external service.

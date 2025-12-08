@@ -60,6 +60,17 @@ class AttachmentMetaHandler {
 	const META_KEY_CONVERSION_DISABLED = '_flux_media_optimizer_conversion_disabled';
 
 	/**
+	 * Meta key for external job state.
+	 *
+	 * Stores the state of external processing job: 'queued', 'processing', 'completed', or 'failed'.
+	 * 'queued' and 'processing' are treated identically (job in progress).
+	 *
+	 * @since 3.0.0
+	 * @var string
+	 */
+	const META_KEY_EXTERNAL_JOB_STATE = '_flux_media_optimizer_external_job_state';
+
+	/**
 	 * Meta key for converted files by size.
 	 *
 	 * Stores converted files organized by size with URLs/paths and file sizes together.
@@ -680,5 +691,44 @@ class AttachmentMetaHandler {
 		$files_by_size[ $size_name ][ $format ] = $storage_data;
 		
 		return self::set_converted_files_grouped_by_size( $attachment_id, $files_by_size );
+	}
+
+	/**
+	 * Get external job state for an attachment.
+	 *
+	 * @since 3.0.0
+	 * @param int $attachment_id Attachment ID.
+	 * @return string|null Job state ('queued', 'processing', 'completed', 'failed') or null if not set.
+	 */
+	public static function get_external_job_state( $attachment_id ) {
+		$state = get_post_meta( $attachment_id, self::META_KEY_EXTERNAL_JOB_STATE, true );
+		return ! empty( $state ) ? $state : null;
+	}
+
+	/**
+	 * Set external job state for an attachment.
+	 *
+	 * @since 3.0.0
+	 * @param int    $attachment_id Attachment ID.
+	 * @param string $state         Job state ('queued', 'processing', 'completed', 'failed').
+	 * @return bool|int Meta ID if the key didn't exist, true on successful update, false on failure.
+	 */
+	public static function set_external_job_state( $attachment_id, $state ) {
+		$valid_states = [ 'queued', 'processing', 'completed', 'failed' ];
+		if ( ! in_array( $state, $valid_states, true ) ) {
+			return false;
+		}
+		return update_post_meta( $attachment_id, self::META_KEY_EXTERNAL_JOB_STATE, $state );
+	}
+
+	/**
+	 * Delete external job state meta for an attachment.
+	 *
+	 * @since 3.0.0
+	 * @param int $attachment_id Attachment ID.
+	 * @return bool True on success, false on failure.
+	 */
+	public static function delete_external_job_state( $attachment_id ) {
+		return delete_post_meta( $attachment_id, self::META_KEY_EXTERNAL_JOB_STATE );
 	}
 }

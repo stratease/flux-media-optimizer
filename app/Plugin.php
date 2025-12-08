@@ -178,8 +178,7 @@ class Plugin {
         
         // Register webhook controller if external service is enabled
         if ( Settings::is_external_service_enabled() ) {
-            $external_provider = new ExternalOptimizationProvider( $this->logger );
-            $webhook_controller = new WebhookController( $external_provider );
+            $webhook_controller = new WebhookController();
             $webhook_controller->register_routes();
         }
     }

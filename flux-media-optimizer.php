@@ -14,6 +14,8 @@
  * Tested up to: 6.8
  * Requires PHP: 8.0
  *
+ * Copyright 2025 Flux Plugins
+ *
  * @package FluxMedia
  * @since 1.0.0
  */
@@ -43,8 +45,17 @@ if ( ! defined( 'FLUX_MEDIA_OPTIMIZER_EXTERNAL_SERVICE_TIMEOUT' ) ) {
 }
 
 // Check PHP version compatibility.
-if ( version_compare( PHP_VERSION, '7.4', '<' ) ) {
+// @since 3.0.0 Updated PHP version requirement from 7.4 to 8.0.
+if ( version_compare( PHP_VERSION, '8.0', '<' ) ) {
 	add_action( 'admin_notices', 'flux_media_optimizer_php_version_notice' );
+	return;
+}
+
+// Check WordPress version compatibility.
+// @since 3.0.0 Added WordPress version requirement check.
+global $wp_version;
+if ( version_compare( $wp_version, '6.2', '<' ) ) {
+	add_action( 'admin_notices', 'flux_media_optimizer_wp_version_notice' );
 	return;
 }
 
@@ -52,6 +63,7 @@ if ( version_compare( PHP_VERSION, '7.4', '<' ) ) {
  * Display PHP version compatibility notice.
  *
  * @since 0.1.0
+ * @since 3.0.0 Updated PHP version requirement from 7.4 to 8.0.
  */
 function flux_media_optimizer_php_version_notice() {
 	?>
@@ -62,7 +74,30 @@ function flux_media_optimizer_php_version_notice() {
 				/* translators: 1: Current PHP version, 2: Required PHP version */
 				esc_html__( 'Flux Media Optimizer requires PHP %2$s or higher. You are running PHP %1$s.', 'flux-media-optimizer' ),
 				PHP_VERSION,
-				'7.4'
+				'8.0'
+			);
+			?>
+		</p>
+	</div>
+	<?php
+}
+
+/**
+ * Display WordPress version compatibility notice.
+ *
+ * @since 3.0.0 Added WordPress version requirement check.
+ */
+function flux_media_optimizer_wp_version_notice() {
+	global $wp_version;
+	?>
+	<div class="notice notice-error">
+		<p>
+			<?php
+			printf(
+				/* translators: 1: Current WordPress version, 2: Required WordPress version */
+				esc_html__( 'Flux Media Optimizer requires WordPress %2$s or higher. You are running WordPress %1$s.', 'flux-media-optimizer' ),
+				esc_html( $wp_version ),
+				'6.2'
 			);
 			?>
 		</p>
@@ -103,6 +138,20 @@ add_action( 'plugins_loaded', 'flux_media_optimizer_init' );
 
 // Handle activation redirect.
 add_action( 'admin_init', 'flux_media_optimizer_activation_redirect' );
+
+/**
+ * Load plugin translations.
+ *
+ * @since 3.0.0
+ */
+function flux_media_optimizer_load_translations() {
+	load_plugin_textdomain(
+		'flux-media-optimizer',
+		false,
+		dirname( plugin_basename( FLUX_MEDIA_OPTIMIZER_PLUGIN_FILE ) ) . '/languages/'
+	);
+}
+add_action( 'init', 'flux_media_optimizer_load_translations' );
 
 /**
  * Initialize the Flux Media Optimizer plugin.
@@ -163,15 +212,52 @@ function flux_media_optimizer_generate_uuid() {
 }
 
 /**
+ * Check if Flux Media Optimizer is activated on the network.
+ *
+ * @since 3.0.0
+ *
+ * @return bool True if Flux Media Optimizer is activated on the network.
+ */
+function flux_media_optimizer_is_active_for_network() {
+	static $is;
+
+	if ( isset( $is ) ) {
+		return $is;
+	}
+
+	if ( ! is_multisite() ) {
+		$is = false;
+		return $is;
+	}
+
+	if ( ! function_exists( 'is_plugin_active_for_network' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+	}
+
+	$is = is_plugin_active_for_network( plugin_basename( FLUX_MEDIA_OPTIMIZER_PLUGIN_FILE ) );
+
+	return $is;
+}
+
+/**
  * Handle activation redirect to admin page.
  *
  * @since 0.1.0
+ * @since 3.0.0 Added multisite support for activation redirect transients.
  */
 function flux_media_optimizer_activation_redirect() {
 	// Only redirect if transient is set and user has proper capabilities
-	if ( get_transient( 'flux_media_optimizer_activation_redirect' ) && current_user_can( 'manage_options' ) ) {
+	$redirect_transient = flux_media_optimizer_is_active_for_network()
+		? get_site_transient( 'flux_media_optimizer_activation_redirect' )
+		: get_transient( 'flux_media_optimizer_activation_redirect' );
+
+	if ( $redirect_transient && current_user_can( 'manage_options' ) ) {
 		// Delete the transient
-		delete_transient( 'flux_media_optimizer_activation_redirect' );
+		if ( flux_media_optimizer_is_active_for_network() ) {
+			delete_site_transient( 'flux_media_optimizer_activation_redirect' );
+		} else {
+			delete_transient( 'flux_media_optimizer_activation_redirect' );
+		}
 		
 		// Redirect to admin page
 		wp_redirect( admin_url( 'admin.php?page=flux-media-optimizer' ) );
@@ -188,8 +274,15 @@ register_uninstall_hook( __FILE__, 'flux_media_optimizer_uninstall' );
  * Plugin activation handler.
  *
  * @since 0.1.0
+ * @since 3.0.0 Added requirements check before activation and multisite support for activation redirect.
  */
 function flux_media_optimizer_activate() {
+	// Check requirements before activation.
+	global $wp_version;
+	if ( version_compare( PHP_VERSION, '8.0', '<' ) || version_compare( $wp_version, '6.2', '<' ) ) {
+		return;
+	}
+
 	// Create database tables
 	FluxMedia\App\Services\Database::create_tables();
 	
@@ -203,10 +296,11 @@ function flux_media_optimizer_activate() {
 	}
 	
 	// Set transient to redirect to admin page after activation
-	set_transient( 'flux_media_optimizer_activation_redirect', true, 60 );
-	
-	// TODO: Initialize SaaS API integration with license key validation
-	// This will be implemented when the SaaS service is available
+	if ( flux_media_optimizer_is_active_for_network() ) {
+		set_site_transient( 'flux_media_optimizer_activation_redirect', true, 60 );
+	} else {
+		set_transient( 'flux_media_optimizer_activation_redirect', true, 60 );
+	}
 }
 
 /**
@@ -227,8 +321,11 @@ function flux_media_optimizer_deactivate() {
  * Plugin uninstall handler.
  *
  * @since 2.0.1
+ * @since 3.0.0 Added WP_UNINSTALL_PLUGIN security check and account ID cleanup for privacy compliance.
  */
 function flux_media_optimizer_uninstall() {
+	defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
+
 	global $wpdb;
 
 	// Initialize WordPress filesystem.
@@ -251,6 +348,7 @@ function flux_media_optimizer_uninstall() {
 		'flux_media_optimizer_settings',
 		'flux_media_optimizer_version',
 		'flux_media_optimizer_activation_redirect',
+		'flux-plugins_account_id',
 	];
 
 	foreach ( $options as $option ) {

@@ -214,7 +214,11 @@ class WordPressProvider {
         add_filter( 'wp_calculate_image_srcset', [ $this, 'handle_image_srcset_filter' ], 10, 5 );
         add_filter( 'wp_content_img_tag', [ $this, 'handle_content_images_filter' ], 25, 3 );
         add_filter( 'the_content', [ $this, 'handle_post_content_images_filter' ], 20 );
-        add_filter( 'render_block', [ $this, 'handle_render_block_filter' ], 10, 2 );
+        // Only register render_block filter if hybrid approach is enabled
+        // For non-hybrid, URLs are embedded in block content when edited, so no runtime modification needed
+        if ( Settings::is_image_hybrid_approach_enabled() ) {
+            add_filter( 'render_block', [ $this, 'handle_render_block_filter' ], 10, 2 );
+        }
         // Featured image filters
         add_filter( 'post_thumbnail_html', [ $this, 'handle_post_thumbnail_html' ], 10, 5 );
         add_filter( 'wp_get_attachment_image', [ $this, 'handle_wp_get_attachment_image' ], 10, 5 );
@@ -1096,7 +1100,7 @@ class WordPressProvider {
         // Get CDN meta
         $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
         if ( empty( $converted_files_by_size ) ) {
-            return $default; // Return false to allow WordPress fallback
+            return $default;
         }
 
         // Resolve size name from WordPress size parameter
@@ -1110,7 +1114,7 @@ class WordPressProvider {
         // Get converted files for the resolved size
         $converted_files = $converted_files_by_size[ $size_name ] ?? [];
         if ( empty( $converted_files ) ) {
-            return $default; // Return false to allow WordPress fallback
+            return $default;
         }
 
         // Format priority: AVIF > WebP > original

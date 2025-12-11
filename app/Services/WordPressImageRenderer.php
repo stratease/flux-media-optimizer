@@ -255,13 +255,17 @@ class WordPressImageRenderer {
     /**
      * Modify image block content for optimized display.
      *
+     * Only handles hybrid approach (picture element). For non-hybrid, URLs are
+     * embedded in block content when edited, so no runtime modification is needed.
+     *
      * @since 1.0.0
+     * @since 3.0.0 Updated to only handle hybrid approach; non-hybrid URLs are embedded at edit time.
      * @param string $block_content The block content.
      * @param array  $block The block data.
      * @return string Modified block content.
      */
     private function modify_image_block( $block_content, $block ) {
-
+        // This method is only called when hybrid approach is enabled (hook registration is conditional)
         // Get block attributes
         $attributes = $block['attrs'] ?? [];
         
@@ -289,14 +293,9 @@ class WordPressImageRenderer {
 
         // Check if we have converted formats available
         if ( isset( $converted_files[ Converter::FORMAT_AVIF ] ) || isset( $converted_files[ Converter::FORMAT_WEBP ] ) ) {
-            if ( Settings::is_image_hybrid_approach_enabled() ) {
-                // Hybrid approach: Use picture element with sources and fallback
-                $this->enqueue_picture_css();
-                return $this->create_block_picture_element( $attachment_id, $converted_files, $block_content, $attributes );
-            } else {
-                // Single format approach: Replace src with best available format
-                return $this->replace_block_img_src( $block_content, $attachment_id, $converted_files );
-            }
+            // Hybrid approach: Use picture element with sources and fallback
+            $this->enqueue_picture_css();
+            return $this->create_block_picture_element( $attachment_id, $converted_files, $block_content, $attributes );
         }
 
         return $block_content;
@@ -305,14 +304,17 @@ class WordPressImageRenderer {
     /**
      * Modify featured image block content for optimized display.
      *
-     * Reuses conversion logic from image blocks, differs only in attachment ID retrieval.
+     * Only handles hybrid approach (picture element). For non-hybrid, URLs are
+     * embedded in block content when edited, so no runtime modification is needed.
      *
      * @since 1.0.0
+     * @since 3.0.0 Updated to only handle hybrid approach; non-hybrid URLs are embedded at edit time.
      * @param string $block_content The block content.
      * @param array  $block The block data.
      * @return string Modified block content.
      */
     private function modify_featured_image_block( $block_content, $block ) {
+        // This method is only called when hybrid approach is enabled (hook registration is conditional)
         // Get the post ID from context or block attributes
         $post_id = get_the_ID();
         if ( ! $post_id ) {
@@ -339,16 +341,10 @@ class WordPressImageRenderer {
         
         // Check if we have converted formats available
         if ( isset( $converted_files[ Converter::FORMAT_AVIF ] ) || isset( $converted_files[ Converter::FORMAT_WEBP ] ) ) {
-            if ( Settings::is_image_hybrid_approach_enabled() ) {
-                // Hybrid approach: Use picture element with sources and fallback
-                $this->enqueue_picture_css();
-                // Reuse existing method - pass empty attributes since featured images don't have block attributes
-                return $this->create_block_picture_element( $attachment_id, $converted_files, $block_content, [] );
-            } else {
-                // Single format approach: Replace src with best available format
-                // Reuse existing method
-                return $this->replace_block_img_src( $block_content, $attachment_id, $converted_files );
-            }
+            // Hybrid approach: Use picture element with sources and fallback
+            $this->enqueue_picture_css();
+            // Reuse existing method - pass empty attributes since featured images don't have block attributes
+            return $this->create_block_picture_element( $attachment_id, $converted_files, $block_content, [] );
         }
         
         return $block_content;

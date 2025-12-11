@@ -59,45 +59,8 @@ class AttachmentIdResolver {
 			return $attachment_id;
 		}
 
-		// If that fails, try database lookup for WordPress URLs.
-		$attachment_id = self::from_wordpress_url( $url );
-		if ( $attachment_id ) {
-			return $attachment_id;
-		}
-
-		// If it's a CDN URL, try to resolve from CDN URL.
+		// If it's a CDN URL, try to resolve from CDN URL meta.
 		return self::from_cdn_url( $url );
-	}
-
-	/**
-	 * Resolve attachment ID from a WordPress URL using database lookup.
-	 *
-	 * @since 3.0.0
-	 * @param string $url WordPress URL.
-	 * @return int|null Attachment ID or null if not found.
-	 */
-	private static function from_wordpress_url( $url ) {
-		global $wpdb;
-
-		// Extract file path from URL.
-		$upload_dir = wp_upload_dir();
-		$base_url = $upload_dir['baseurl'];
-		
-		if ( strpos( $url, $base_url ) !== 0 ) {
-			return null;
-		}
-
-		// Get relative path.
-		$relative_path = str_replace( $base_url, '', $url );
-		$relative_path = ltrim( $relative_path, '/' );
-
-		// Query by _wp_attached_file meta.
-		$attachment_id = $wpdb->get_var( $wpdb->prepare(
-			"SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND meta_value = %s LIMIT 1",
-			$relative_path
-		) );
-
-		return $attachment_id ? (int) $attachment_id : null;
 	}
 
 	/**
@@ -116,7 +79,7 @@ class AttachmentIdResolver {
 
 		// Normalize path.
 		$file_path = wp_normalize_path( $file_path );
-		
+
 		// Get upload directory.
 		$upload_dir = wp_upload_dir();
 		$upload_path = wp_normalize_path( $upload_dir['basedir'] );
@@ -141,7 +104,7 @@ class AttachmentIdResolver {
 	/**
 	 * Resolve attachment ID from a CDN URL.
 	 *
-	 * Queries attachment meta for matching CDN URLs.
+	 * Queries attachment meta for matching CDN URLs using AttachmentMetaHandler.
 	 *
 	 * @since 3.0.0
 	 * @param string $cdn_url CDN URL to resolve.
@@ -159,7 +122,8 @@ class AttachmentIdResolver {
 	/**
 	 * Resolve attachment ID from CDN URL stored in attachment meta.
 	 *
-	 * Uses dedicated CDN URLs meta field for efficient lookup.
+	 * Uses AttachmentMetaHandler CDN URLs meta field for efficient lookup.
+	 * Also checks converted files structure for additional URL matches.
 	 *
 	 * @since 3.0.0
 	 * @param string $cdn_url CDN URL to find.
@@ -170,7 +134,7 @@ class AttachmentIdResolver {
 
 		// Use dedicated CDN URLs meta field for efficient lookup.
 		$meta_key = AttachmentMetaHandler::META_KEY_CDN_URLS;
-		
+
 		// Query attachments with this meta key and search for matching URL.
 		// Use LIKE to find the URL in the serialized array.
 		$results = $wpdb->get_results( $wpdb->prepare(
@@ -187,11 +151,62 @@ class AttachmentIdResolver {
 
 			// Check if the CDN URL exists in the array.
 			if ( in_array( $cdn_url, $meta_value, true ) ) {
-							return (int) $row['post_id'];
+				return (int) $row['post_id'];
+			}
+		}
+
+		// Fallback: Check converted files structure for CDN URLs.
+		// This handles cases where URLs might be stored in the converted files meta.
+		$converted_files_meta_key = AttachmentMetaHandler::META_KEY_CONVERTED_FILES_BY_SIZE;
+		$converted_results = $wpdb->get_results( $wpdb->prepare(
+			"SELECT post_id, meta_value FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value LIKE %s",
+			$converted_files_meta_key,
+			'%' . $wpdb->esc_like( $cdn_url ) . '%'
+		), ARRAY_A );
+
+		foreach ( $converted_results as $row ) {
+			$meta_value = maybe_unserialize( $row['meta_value'] );
+			if ( ! is_array( $meta_value ) ) {
+				continue;
+			}
+
+			// Recursively search for the URL in the converted files structure.
+			if ( self::search_url_in_converted_files( $meta_value, $cdn_url ) ) {
+				return (int) $row['post_id'];
 			}
 		}
 
 		return null;
 	}
-}
 
+	/**
+	 * Recursively search for a URL in the converted files structure.
+	 *
+	 * @since 3.0.0
+	 * @param array  $data Structure to search (can be nested arrays).
+	 * @param string $url  URL to find.
+	 * @return bool True if URL is found, false otherwise.
+	 */
+	private static function search_url_in_converted_files( $data, $url ) {
+		if ( ! is_array( $data ) ) {
+			return false;
+		}
+
+		foreach ( $data as $value ) {
+			if ( is_array( $value ) ) {
+				// Check if this is a file data structure with 'url' key.
+				if ( isset( $value['url'] ) && $value['url'] === $url ) {
+					return true;
+				}
+				// Recursively search nested arrays.
+				if ( self::search_url_in_converted_files( $value, $url ) ) {
+					return true;
+				}
+			} elseif ( is_string( $value ) && $value === $url ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+}

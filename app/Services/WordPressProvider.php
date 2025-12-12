@@ -103,14 +103,6 @@ class WordPressProvider {
     private $action_scheduler_service;
 
     /**
-     * Track processed attachments per request to prevent duplicate processing.
-     *
-     * @since 3.0.0
-     * @var array Array of attachment IDs that have been processed in this request.
-     */
-    private static $processed_attachments = [];
-
-    /**
      * Track attachments pending processing after metadata stabilizes.
      *
      * @since 3.0.0
@@ -271,45 +263,23 @@ class WordPressProvider {
     }
 
     /**
-     * Check if an attachment has already been processed in this request.
-     *
-     * @since 3.0.0
-     * @param int $attachment_id Attachment ID.
-     * @return bool True if already processed, false otherwise.
-     */
-    private function is_attachment_processed( $attachment_id ) {
-        return isset( self::$processed_attachments[ $attachment_id ] );
-    }
-
-    /**
-     * Mark an attachment as processed in this request.
-     *
-     * @since 3.0.0
-     * @param int $attachment_id Attachment ID.
-     * @return void
-     */
-    private function mark_attachment_processed( $attachment_id ) {
-        self::$processed_attachments[ $attachment_id ] = true;
-    }
-
-    /**
      * Check if attachment can be processed.
      *
-     * Prevents processing if conversion is disabled, already processed in this request, or external job is in progress.
-     * Allows reprocessing if job is 'completed' or 'failed'.
+     * Prevents processing if conversion is disabled, already queued for processing,
+     * or external job is in progress. Allows reprocessing if job is 'completed' or 'failed'.
      *
      * @since 3.0.0
      * @param int $attachment_id Attachment ID.
      * @return bool True if processing should be skipped, false if processing can proceed.
      */
     private function should_skip_processing( $attachment_id ) {
-        // Check if conversion is disabled for this attachment
-        if ( AttachmentMetaHandler::is_conversion_disabled( $attachment_id ) ) {
+        // Check if already queued for processing
+        if ( in_array( $attachment_id, self::$pending_attachments, true ) ) {
             return true;
         }
 
-        // Check if already processed in this request
-        if ( $this->is_attachment_processed( $attachment_id ) ) {
+        // Check if conversion is disabled for this attachment
+        if ( AttachmentMetaHandler::is_conversion_disabled( $attachment_id ) ) {
             return true;
         }
 
@@ -1691,12 +1661,11 @@ class WordPressProvider {
     /**
      * Manually convert an attachment.
      *
-     * Uses service locator to route to appropriate processor (local or external).
-     * Images are processed synchronously (local) or submitted as jobs (external).
-     * Videos are enqueued for async processing.
+     * Queues attachment for processing on shutdown hook to ensure metadata is stable.
+     * Returns success response indicating the conversion has been queued.
      *
      * @since 1.0.0
-     * @since 3.0.0 Updated to use service locator pattern for consistent processing routing.
+     * @since 3.0.0 Updated to queue processing via shutdown hook instead of processing directly.
      * @param int $attachment_id WordPress attachment ID.
      * @return array Conversion results.
      */
@@ -1709,14 +1678,6 @@ class WordPressProvider {
             ];
         }
 
-        // Check if processing should be skipped
-        if ( $this->should_skip_processing( $attachment_id ) ) {
-            return [
-                'success' => false,
-                'errors' => ['Processing skipped: conversion disabled, already processed, or job in progress'],
-            ];
-        }
-
         if ( ! $this->service_locator ) {
             return [
                 'success' => false,
@@ -1724,48 +1685,17 @@ class WordPressProvider {
             ];
         }
 
-        // Determine file type for response building
-        $is_image = $this->image_converter->is_supported_image( $file_path );
-        $is_video = $this->video_converter->is_supported_video( $file_path );
-
-        // Process via service locator
-        $processor = $this->service_locator->get_processor();
-        $success = $processor->process( $attachment_id );
-        
-        if ( ! $success ) {
-            return [
-                'success' => false,
-                'errors' => ['Unsupported file format or processing failed'],
-            ];
-        }
-
-        // Mark as processed to prevent duplicate processing
-        $this->mark_attachment_processed( $attachment_id );
-
-        // Build response array based on file type
-        if ( $is_image ) {
-            return [
-                'success' => true,
-                'type' => 'image',
-                'converted_files' => AttachmentMetaHandler::get_converted_files_for_size( $attachment_id, 'full' ),
-            ];
-        } elseif ( $is_video ) {
-            return [
-                'success' => true,
-                'type' => 'video',
-                'queued' => true,
-                'message' => 'Video conversion has been queued for processing',
-                'converted_files' => AttachmentMetaHandler::get_converted_files_for_size( $attachment_id, 'full' ),
-            ];
-        } else {
+        // Queue for processing on shutdown hook
+        // queue_attachment_processing() handles all skip logic centrally
+        $this->queue_attachment_processing( $attachment_id );
             // For external service, other file types are also processed
             return [
                 'success' => true,
                 'type' => 'other',
                 'queued' => true,
-                'message' => 'File processing job submitted',
+                'message' => 'File processing job has been queued',
             ];
-        }
+    
     }
 
     /**
@@ -1891,29 +1821,17 @@ class WordPressProvider {
     /**
      * Handle video processing cron job.
      *
-     * Processes video conversion asynchronously via WordPress cron.
+     * Queues video conversion for processing on shutdown hook to ensure metadata is stable.
      *
      * @since 1.0.0
-     * @since 3.0.0 Updated to use service locator pattern for consistent processing routing.
+     * @since 3.0.0 Updated to queue processing via shutdown hook instead of processing directly.
      * @param int    $attachment_id Attachment ID.
-     * @param string $file_path Source file path.
+     * @param string $file_path Source file path (unused, kept for compatibility).
      * @return void
      */
     public function handle_process_video_cron( $attachment_id, $file_path ) {
-        // Check if processing should be skipped
-        if ( $this->should_skip_processing( $attachment_id ) ) {
-            return;
-        }
-
-        if ( ! $this->service_locator ) {
-            return;
-        }
-
-        $processor = $this->service_locator->get_processor();
-        $processor->process_video_cron( $attachment_id, $file_path );
-        
-        // Mark as processed
-        $this->mark_attachment_processed( $attachment_id );
+        // Queue for processing on shutdown hook
+        $this->queue_attachment_processing( $attachment_id );
     }
 
     /**
@@ -1936,10 +1854,10 @@ class WordPressProvider {
      * Handle image editor file save to reconvert edited images.
      *
      * Runs when the WP image editor saves a file (e.g., crop/rotate/scale).
-     * Routes to service locator for processing without overriding core behavior.
+     * Queues attachment for processing on shutdown hook to ensure metadata is stable.
      *
      * @since 1.0.0
-     * @since 3.0.0 Updated to use service locator pattern for consistent processing routing.
+     * @since 3.0.0 Updated to queue processing via shutdown hook instead of processing directly.
      * @param mixed       $override   Override value from other filters (usually null).
      * @param string      $filename   Saved filename for the edited image.
      * @param object      $image      Image editor instance.
@@ -1952,28 +1870,53 @@ class WordPressProvider {
             return $override;
         }
 
-        // Check if processing should be skipped
-        if ( $this->should_skip_processing( $post_id ) ) {
-            return $override;
+        // Queue for processing on shutdown hook
+        $this->queue_attachment_processing( $post_id );
+        
+        return $override;
+    }
+
+    /**
+     * Queue attachment for processing on shutdown hook.
+     *
+     * Unified method to queue attachments for processing. Ensures all data is available
+     * (file_path in metadata, finalized file metadata) before processing occurs.
+     * All processing callbacks should use this method to queue attachments.
+     *
+     * @since 3.0.0
+     * @param int $attachment_id Attachment ID to queue.
+     * @return void
+     */
+    private function queue_attachment_processing( $attachment_id ) {
+        // Validate attachment ID
+        if ( ! $attachment_id || ! is_numeric( $attachment_id ) ) {
+            return;
+        }
+
+        // Check if processing should be skipped (includes pending_attachments check)
+        if ( $this->should_skip_processing( $attachment_id ) ) {
+            return;
         }
 
         if ( ! $this->service_locator ) {
-            return $override;
+            return;
         }
 
-        $processor = $this->service_locator->get_processor();
-        $result = $processor->process_image_editor_save( $override, $filename, $image, $mime_type, $post_id );
+        // Register shutdown hook to process pending attachments after all metadata updates are complete.
+        // shutdown hook runs at the very end of the request, ensuring all metadata is stable.
+        // Only register once to avoid duplicate processing.
+        if ( ! has_action( 'shutdown', [ $this, 'process_queued_attachments' ] ) ) {
+            add_action( 'shutdown', [ $this, 'process_queued_attachments' ] );
+        }
         
-        // Mark as processed
-        $this->mark_attachment_processed( $post_id );
-        
-        return $result;
+        // Add to pending attachments queue
+        self::$pending_attachments[] = $attachment_id;
     }
 
     /**
      * Schedule metadata processing for later execution.
      *
-     * Early hook that detects metadata updates and schedules processing via shutdown hook.
+     * Early hook that detects metadata updates and queues processing via shutdown hook.
      * Necessary because wp_update_attachment_metadata can be called multiple times during upload.
      *
      * @since 3.0.0
@@ -1982,43 +1925,23 @@ class WordPressProvider {
      * @return array Unmodified metadata.
      */
     public function schedule_metadata_processing( $data, $attachment_id ) {
-        // Check if processing should be skipped
-
-        if ( $this->should_skip_processing( $attachment_id ) ) {
-            return $data;
-        }
-
-        if ( ! $this->service_locator ) {
-            return $data;
-        }
-
-        // Register shutdown hook to process pending attachments after all metadata updates are complete.
-        // shutdown hook runs at the very end of the request, ensuring all metadata is stable.
-        // Only register once to avoid duplicate processing.
-        if ( ! has_action( 'shutdown', [ $this, 'handle_final_metadata_processing' ] ) ) {
-            add_action( 'shutdown', [ $this, 'handle_final_metadata_processing' ] );
-        }
-        
-        // Mark this attachment as pending processing.
-        // The actual processing will happen in handle_final_metadata_processing() during shutdown.
-        if ( ! in_array( $attachment_id, self::$pending_attachments, true ) ) {
-            self::$pending_attachments[] = $attachment_id;
-        }
-
+        $this->queue_attachment_processing( $attachment_id );
         return $data;
     }
 
     /**
-     * Handle final metadata processing after all other callbacks have run.
+     * Process all queued attachments on shutdown hook.
      *
-     * Runs during shutdown hook when metadata is stable. Handles all file types via service locator.
+     * Runs during shutdown hook when all metadata is stable. Processes all queued attachments
+     * via service locator. Handles all file types (images, videos, other files).
      * For images: all sizes are generated. For non-images: processes immediately.
      * Local processing uses incremental conversion; external processing submits jobs with all sizes.
+     * Uses unified process() method which fetches file path internally from attachment meta.
      *
      * @since 3.0.0
      * @return void
      */
-    public function handle_final_metadata_processing() {
+    public function process_queued_attachments() {
         // If no pending attachments, nothing to process
         if ( empty( self::$pending_attachments ) ) {
             return;
@@ -2035,19 +1958,9 @@ class WordPressProvider {
         // Process each pending attachment
         $processor = $this->service_locator->get_processor();
         foreach ( $pending as $attachment_id ) {
-            // Check if processing should be skipped (double-check in case state changed)
-            if ( $this->should_skip_processing( $attachment_id ) ) {
-                continue;
-            }
-
-            // Process all file types via service locator with stable metadata
-            $processor->process_metadata_update(
-                wp_get_attachment_metadata( $attachment_id ), 
-                $attachment_id 
-            );
-            
-            // Mark as processed
-            $this->mark_attachment_processed( $attachment_id );
+            // Process all file types via unified process() method
+            // process() will fetch file_path internally from attachment meta
+            $processor->process( $attachment_id );
         }
     }
 
@@ -2055,10 +1968,10 @@ class WordPressProvider {
     /**
      * Handle file updates for attachments to trigger reconversion.
      *
-     * Routes to service locator for processing file replacements.
+     * Queues attachment for processing on shutdown hook to ensure metadata is stable.
      *
      * @since 1.0.0
-     * @since 3.0.0 Updated to use service locator pattern and bail early if inside upload callback.
+     * @since 3.0.0 Updated to queue processing via shutdown hook instead of processing directly.
      * @param string $file New file path for the attachment.
      * @param int    $attachment_id Attachment ID.
      * @return string File path (unmodified).
@@ -2072,22 +1985,10 @@ class WordPressProvider {
             return $file;
         }
 
-        // Check if processing should be skipped
-        if ( $this->should_skip_processing( $attachment_id ) ) {
-            return $file;
-        }
-
-        if ( ! $this->service_locator ) {
-            return $file;
-        }
-
-        $processor = $this->service_locator->get_processor();
-        $result = $processor->process_file_update( $file, $attachment_id );
+        // Queue for processing on shutdown hook
+        $this->queue_attachment_processing( $attachment_id );
         
-        // Mark as processed
-        $this->mark_attachment_processed( $attachment_id );
-        
-        return $result;
+        return $file;
     }
 
     /**

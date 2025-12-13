@@ -37,11 +37,12 @@ Transform your WordPress site's media performance. Flux Media Optimizer by Flux 
 * Agencies managing multiple client sites
 * Anyone serious about website performance and SEO
 
-**💡 Pro Features (Coming Soon):**
-* **Unlimited cloud processing** - Offload heavy conversions to our secure cloud infrastructure
-* **Best optimizations** - Servers built with optimal image and video processing libraries to get the best results
-* **CDN integration** - Global content delivery for lightning-fast image serving
-* **Priority support** - Get help when you need it most
+**💡 Optional External Services (Coming Soon):**
+All plugin features work fully without these services. These are optional enhancements:
+* **Optional cloud processing** - Offload heavy conversions to secure cloud infrastructure (all processing works locally by default)
+* **Enhanced optimizations** - Optional servers with optimal image and video processing libraries
+* **CDN integration** - Optional global content delivery for image serving
+* **Priority support** - Optional support tier for external service users
 
 **🔒 Privacy & Security:**
 * All processing happens locally on your server by default
@@ -174,7 +175,7 @@ Yes! Flux Media Optimizer supports both static and animated GIFs. However, anima
 * WordPress integration with Gutenberg blocks
 * Quality control settings
 * Conversion statistics and performance metrics
-* Privacy-compliant architecture ready for Pro features
+* Privacy-compliant architecture ready for optional external service integrations
 
 == Upgrade Notice ==
 

@@ -152,9 +152,6 @@ function flux_media_optimizer_activate() {
 	
 	// Set transient to redirect to admin page after activation
 	set_transient( 'flux_media_optimizer_activation_redirect', true, 60 );
-	
-	// TODO: Initialize SaaS API integration with license key validation
-	// This will be implemented when the SaaS service is available
 }
 
 /**

@@ -435,7 +435,7 @@ const SettingsPage = () => {
               {__('License Settings', 'flux-media-optimizer')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {__('Enter your Flux Media Optimizer license key to unlock premium features.', 'flux-media-optimizer')}
+              {__('Enter your license key to enable external media processing and CDN storage services. All plugin features work fully without external services.', 'flux-media-optimizer')}
             </Typography>
             <TextField
               fullWidth
@@ -447,7 +447,7 @@ const SettingsPage = () => {
               variant="outlined"
               size="small"
               sx={{ maxWidth: 400 }}
-              helperText={__('Your license key will be securely stored and used to validate premium features.', 'flux-media-optimizer')}
+              helperText={__('Used for optional external processing and CDN storage services. All image and video optimization features are available without a license key.', 'flux-media-optimizer')}
             />
           </Box>
         </Grid>

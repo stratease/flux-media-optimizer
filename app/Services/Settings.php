@@ -395,7 +395,10 @@ class Settings {
 	}
 
 	/**
-	 * Get the license key for future SaaS API authentication.
+	 * Get the license key for optional external service processing.
+	 *
+	 * License keys are optional and only used for external processing service access.
+	 * All plugin functionality works without a license key.
 	 *
 	 * @since 2.0.1
 	 * @return string License key.
@@ -405,7 +408,10 @@ class Settings {
 	}
 
 	/**
-	 * Set the license key for future SaaS API authentication.
+	 * Set the license key for optional external service processing.
+	 *
+	 * License keys are optional and only used for external processing service access.
+	 * All plugin functionality works without a license key.
 	 *
 	 * @since 2.0.1
 	 * @param string $license_key License key.

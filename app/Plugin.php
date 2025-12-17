@@ -30,6 +30,9 @@ use FluxMedia\App\Services\LicenseValidationCache;
 use FluxMedia\App\Services\MediaProcessingServiceLocator;
 use FluxMedia\App\Services\BulkConverter;
 use FluxMedia\App\Services\ActionSchedulerService;
+use FluxMedia\App\Services\CompatibilityValidator;
+use FluxMedia\App\Services\CompatibilityNoticeHandler;
+use FluxMedia\App\Services\ExternalApiClient;
 
 /**
  * Main plugin class that initializes all components.
@@ -125,11 +128,43 @@ class Plugin {
         // Initialize WordPress provider (registers hooks)
         $this->wordpress_provider->init();
         
+        // Initialize compatibility validation system.
+        $this->init_compatibility_validation();
+        
         // Initialize admin functionality
         $this->init_admin();
         
         // Initialize REST API
         $this->init_rest_api();
+    }
+
+    /**
+     * Initialize compatibility validation system.
+     *
+     * Runs compatibility check and displays notices if needed.
+     * This runs after plugin bootstrap but before external API operations.
+     *
+     * @since 3.0.0
+     * @return void
+     */
+    private function init_compatibility_validation() {
+        // Initialize external API client for compatibility checks.
+        $api_client = new ExternalApiClient( $this->logger );
+        
+        // Initialize compatibility validator.
+        $compatibility_validator = new CompatibilityValidator( $this->logger, $api_client );
+        
+        // Set compatibility validator on API client so it can check before requests.
+        $api_client->set_compatibility_validator( $compatibility_validator );
+        
+        // Invalidate cache on version change.
+        $compatibility_validator->invalidate_on_version_change();
+        
+        // Initialize notice handler.
+        $notice_handler = new CompatibilityNoticeHandler( $compatibility_validator );
+        $notice_handler->init();
+        
+        // Compatibility checks will be performed before external API requests (activate, validate, upload).
     }
 
     /**

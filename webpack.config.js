@@ -5,6 +5,7 @@ module.exports = {
   entry: {
     admin: './assets/js/src/admin/index.js',
     attachment: './assets/js/src/admin/attachment.js',
+    'compatibility-dismiss': './assets/js/src/admin/compatibility-dismiss.js',
   },
   output: {
     path: path.resolve(__dirname, 'assets/js/dist'),
@@ -24,6 +25,7 @@ module.exports = {
         exclude: [
           /node_modules/,
           path.resolve(__dirname, 'assets/js/src/admin/attachment.js'),
+          path.resolve(__dirname, 'assets/js/src/admin/compatibility-dismiss.js'),
         ],
         use: {
           loader: 'babel-loader',
@@ -48,6 +50,7 @@ module.exports = {
         exclude: /node_modules/,
         include: [
           path.resolve(__dirname, 'assets/js/src/admin/attachment.js'),
+          path.resolve(__dirname, 'assets/js/src/admin/compatibility-dismiss.js'),
         ],
         use: {
           loader: 'babel-loader',

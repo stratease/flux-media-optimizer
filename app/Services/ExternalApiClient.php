@@ -9,6 +9,8 @@
 namespace FluxMedia\App\Services;
 
 use FluxMedia\App\Http\Controllers\WebhookController;
+use FluxMedia\App\Services\CompatibilityResponse;
+use FluxMedia\App\Services\CompatibilityValidator;
 
 /**
  * Handles communication with external CDN and processing service.
@@ -34,14 +36,59 @@ class ExternalApiClient {
 	private $base_url;
 
 	/**
+	 * Compatibility validator instance.
+	 *
+	 * @since 3.0.0
+	 * @var CompatibilityValidator|null
+	 */
+	private $compatibility_validator;
+
+	/**
 	 * Constructor.
 	 *
 	 * @since 3.0.0
-	 * @param LoggerInterface $logger Logger instance.
+	 * @param LoggerInterface         $logger                Logger instance.
+	 * @param CompatibilityValidator $compatibility_validator Optional compatibility validator instance.
 	 */
-	public function __construct( LoggerInterface $logger ) {
-		$this->logger = $logger;
-		$this->base_url = FLUX_MEDIA_OPTIMIZER_EXTERNAL_SERVICE_URL;
+	public function __construct( LoggerInterface $logger, CompatibilityValidator $compatibility_validator = null ) {
+		$this->logger                 = $logger;
+		$this->base_url               = FLUX_MEDIA_OPTIMIZER_EXTERNAL_SERVICE_URL;
+		$this->compatibility_validator = $compatibility_validator;
+	}
+
+	/**
+	 * Set compatibility validator.
+	 *
+	 * @since 3.0.0
+	 * @param CompatibilityValidator $validator Compatibility validator instance.
+	 * @return void
+	 */
+	public function set_compatibility_validator( CompatibilityValidator $validator ) {
+		$this->compatibility_validator = $validator;
+	}
+
+	/**
+	 * Check compatibility before making external API request.
+	 *
+	 * @since 3.0.0
+	 * @return bool True if compatible and can proceed, false if blocked.
+	 */
+	private function check_compatibility_before_request() {
+		if ( $this->compatibility_validator === null ) {
+			// No validator set, allow request to proceed.
+			return true;
+		}
+
+		// Check compatibility (uses cache if available).
+		$result = $this->compatibility_validator->check_compatibility();
+
+		// Block if operations should be blocked.
+		if ( $result->should_block_operations() ) {
+			$this->logger->warning( 'External API request blocked due to compatibility check failure' );
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
@@ -54,6 +101,15 @@ class ExternalApiClient {
 	 * @return array Response array with 'success', 'status', or 'error'.
 	 */
 	public function submit_job( $attachment_id, $operations = [], $mimetype = '' ) {
+		// Check compatibility before making API request.
+		if ( ! $this->check_compatibility_before_request() ) {
+			$this->logger->warning( "Job submission blocked for attachment {$attachment_id}: Compatibility check failed" );
+			return [
+				'success' => false,
+				'error' => 'Compatibility check failed. Please update the plugin or check compatibility status.',
+			];
+		}
+
 		$account_id = Settings::get_account_id();
 
 		if ( empty( $account_id ) ) {
@@ -171,6 +227,16 @@ class ExternalApiClient {
 	 * @return array Response array with 'success', 'valid', 'error', and 'message'.
 	 */
 	public function activate_license( $license_key ) {
+		// Check compatibility before making API request.
+		if ( ! $this->check_compatibility_before_request() ) {
+			$this->logger->warning( 'License activation blocked: Compatibility check failed' );
+			return [
+				'success' => false,
+				'error' => 'compatibility_check_failed',
+				'message' => 'Compatibility check failed. Please update the plugin or check compatibility status.',
+			];
+		}
+
 		$account_id = Settings::get_account_id();
 		
 		if ( empty( $account_id ) ) {
@@ -352,6 +418,17 @@ class ExternalApiClient {
 	 * @return array Response array with 'success', 'valid', 'error', and 'message'.
 	 */
 	public function validate_license( $license_key ) {
+		// Check compatibility before making API request.
+		if ( ! $this->check_compatibility_before_request() ) {
+			$this->logger->warning( 'License validation blocked: Compatibility check failed' );
+			return [
+				'success' => false,
+				'error' => 'compatibility_check_failed',
+				'message' => 'Compatibility check failed. Please update the plugin or check compatibility status.',
+				'status_code' => null,
+			];
+		}
+
 		$account_id = Settings::get_account_id();
 		
 		if ( empty( $account_id ) ) {
@@ -503,6 +580,100 @@ class ExternalApiClient {
 		}
 		
 		$this->logger->error( "License validation unexpected response: {$message} (Status: {$status_code})", [ 'response' => $data ] );
+		return [
+			'success' => false,
+			'error' => $error,
+			'message' => $message,
+			'status_code' => $status_code,
+		];
+	}
+
+	/**
+	 * Check plugin compatibility with external service.
+	 *
+	 * This endpoint validates version compatibility between the plugin and API service.
+	 * It is independent of license validation and focuses solely on version requirements.
+	 *
+	 * @since 3.0.0
+	 * @param string $plugin_identifier Plugin identifier (e.g., 'flux-media-optimizer').
+	 * @param string $plugin_version   Current plugin version.
+	 * @return CompatibilityResponse|array Response object or array with 'success' and error info on failure.
+	 */
+	public function check_compatibility( $plugin_identifier, $plugin_version ) {
+		$endpoint = trailingslashit( $this->base_url ) . 'api/v1/compatibility/check';
+		
+		$request_body = [
+			'plugin_identifier' => sanitize_text_field( $plugin_identifier ),
+			'plugin_version'    => sanitize_text_field( $plugin_version ),
+		];
+
+		$this->logger->debug( "Checking compatibility for plugin {$plugin_identifier} version {$plugin_version}" );
+		
+		$response = wp_remote_post( $endpoint, [
+			'timeout' => FLUX_MEDIA_OPTIMIZER_EXTERNAL_SERVICE_TIMEOUT,
+			'headers' => [
+				'Content-Type' => 'application/json',
+			],
+			'body' => wp_json_encode( $request_body ),
+		] );
+
+		if ( is_wp_error( $response ) ) {
+			$error_message = $response->get_error_message();
+			$this->logger->warning( "Compatibility check network error: {$error_message}" );
+			return [
+				'success' => false,
+				'error' => 'network_error',
+				'message' => $error_message,
+			];
+		}
+
+		$status_code = wp_remote_retrieve_response_code( $response );
+		$body = wp_remote_retrieve_body( $response );
+		$data = json_decode( $body, true );
+
+		// Handle validation errors (422) - unexpected, indicates a bug in our request.
+		if ( $status_code === 422 ) {
+			$error = isset( $data['error'] ) ? $data['error'] : 'validation_failed';
+			$message = isset( $data['message'] ) ? $data['message'] : 'Invalid request parameters';
+			$errors = isset( $data['errors'] ) ? $data['errors'] : [];
+			
+			$this->logger->error( "Compatibility check validation failed: {$message}", [ 'errors' => $errors, 'request_body' => $request_body ] );
+			return [
+				'success' => false,
+				'error' => $error,
+				'message' => $message,
+				'errors' => $errors,
+				'status_code' => $status_code,
+			];
+		}
+
+		// Handle server errors (500) - unexpected server-side errors.
+		if ( $status_code === 500 ) {
+			$error = isset( $data['error'] ) ? $data['error'] : 'internal_error';
+			$message = isset( $data['message'] ) ? $data['message'] : 'An internal error occurred while processing the compatibility check';
+			
+			$this->logger->error( "Compatibility check server error: {$error} - {$message} (Status: {$status_code})", [ 'response' => $data ] );
+			return [
+				'success' => false,
+				'error' => $error,
+				'message' => $message,
+				'status_code' => $status_code,
+			];
+		}
+
+		// Handle success (200) - expected successful response.
+		if ( $status_code === 200 ) {
+			$this->logger->debug( "Compatibility check successful for plugin {$plugin_identifier} version {$plugin_version}" );
+			
+			// Return CompatibilityResponse object.
+			return new CompatibilityResponse( $data );
+		}
+
+		// Handle unexpected status codes.
+		$error = isset( $data['error'] ) ? $data['error'] : 'unknown_error';
+		$message = isset( $data['message'] ) ? $data['message'] : "Unexpected response status: {$status_code}";
+		
+		$this->logger->error( "Compatibility check unexpected response: {$message} (Status: {$status_code})", [ 'response' => $data ] );
 		return [
 			'success' => false,
 			'error' => $error,

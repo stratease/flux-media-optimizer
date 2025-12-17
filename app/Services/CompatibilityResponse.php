@@ -225,11 +225,13 @@ class CompatibilityResponse {
 	 * Check if any response indicates operations should be blocked.
 	 *
 	 * Operations should be blocked if any response item has enabled set to false.
+	 * This is an internal method - use CompatibilityValidator::should_block_operations() for public API.
 	 *
 	 * @since 3.0.0
+	 * @internal
 	 * @return bool True if operations should be blocked, false otherwise.
 	 */
-	public function should_block_operations() {
+	public function has_disabled_items() {
 		foreach ( $this->compatibility_responses as $response ) {
 			if ( ! $response->is_enabled() ) {
 				return true;

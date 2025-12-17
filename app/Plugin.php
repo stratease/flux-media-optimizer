@@ -148,14 +148,9 @@ class Plugin {
      * @return void
      */
     private function init_compatibility_validation() {
-        // Initialize external API client for compatibility checks.
-        $api_client = new ExternalApiClient( $this->logger );
-        
-        // Initialize compatibility validator.
-        $compatibility_validator = new CompatibilityValidator( $this->logger, $api_client );
-        
-        // Set compatibility validator on API client so it can check before requests.
-        $api_client->set_compatibility_validator( $compatibility_validator );
+        // Initialize compatibility validator using factory (singleton pattern).
+        // Dependencies are initialized internally, so no parameters needed.
+        $compatibility_validator = CompatibilityValidator::get_instance();
         
         // Invalidate cache on version change.
         $compatibility_validator->invalidate_on_version_change();
@@ -165,6 +160,7 @@ class Plugin {
         $notice_handler->init();
         
         // Compatibility checks will be performed before external API requests (activate, validate, upload).
+        // The ExternalApiClient will use CompatibilityValidator::get_instance() to access the validator.
     }
 
     /**

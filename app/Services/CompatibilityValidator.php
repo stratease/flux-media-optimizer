@@ -12,6 +12,8 @@
 namespace FluxMedia\App\Services;
 
 use FluxMedia\App\Services\CompatibilityResponse;
+use FluxMedia\App\Services\Logger;
+use FluxMedia\App\Services\ExternalApiClient;
 
 /**
  * Compatibility validator class.
@@ -19,6 +21,14 @@ use FluxMedia\App\Services\CompatibilityResponse;
  * @since 3.0.0
  */
 class CompatibilityValidator {
+
+	/**
+	 * Singleton instance.
+	 *
+	 * @since 3.0.0
+	 * @var CompatibilityValidator|null
+	 */
+	private static $instance = null;
 
 	/**
 	 * Logger instance.
@@ -63,14 +73,44 @@ class CompatibilityValidator {
 	/**
 	 * Constructor.
 	 *
+	 * Initializes dependencies internally to avoid dependency injection complexity.
+	 *
 	 * @since 3.0.0
-	 * @param LoggerInterface   $logger     Logger instance.
-	 * @param ExternalApiClient $api_client External API client instance.
 	 */
-	public function __construct( LoggerInterface $logger, ExternalApiClient $api_client ) {
-		$this->logger          = $logger;
-		$this->api_client      = $api_client;
+	private function __construct() {
+		// Initialize logger internally.
+		$this->logger = new Logger();
+		
+		// Initialize external API client internally.
+		$this->api_client = new ExternalApiClient( $this->logger );
+		
 		$this->plugin_identifier = FLUX_MEDIA_OPTIMIZER_PLUGIN_SLUG;
+	}
+
+	/**
+	 * Get singleton instance of CompatibilityValidator.
+	 *
+	 * Factory method that creates and returns the singleton instance.
+	 * Dependencies are initialized internally, so no parameters are needed.
+	 *
+	 * @since 3.0.0
+	 * @return CompatibilityValidator Singleton instance.
+	 */
+	public static function get_instance() {
+		if ( self::$instance === null ) {
+			self::$instance = new self();
+		}
+		return self::$instance;
+	}
+
+	/**
+	 * Reset singleton instance (for testing purposes).
+	 *
+	 * @since 3.0.0
+	 * @return void
+	 */
+	public static function reset_instance() {
+		self::$instance = null;
 	}
 
 	/**
@@ -99,9 +139,9 @@ class CompatibilityValidator {
 		$result = $this->fetch_compatibility_from_api();
 
 		// Cache the result if valid and cache is not disabled.
-		if ( $result !== null && ! $cache_disabled ) {
+		if ( $result !== null ) {
 			$this->cache_result( $result );
-		} elseif ( $result === null && ! $cache_disabled ) {
+		} elseif ( $result === null ) {
 			// If API is unreachable, try to use stale cache.
 			$stale_cache = $this->get_cached_result( true );
 			if ( $stale_cache !== null ) {
@@ -196,11 +236,6 @@ class CompatibilityValidator {
 	 * @return void
 	 */
 	private function cache_result( CompatibilityResponse $result ) {
-		// If cache is disabled via constant, don't cache.
-		if ( defined( 'FLUX_MEDIA_OPTIMIZER_DISABLE_CACHE' ) && FLUX_MEDIA_OPTIMIZER_DISABLE_CACHE ) {
-			return;
-		}
-
 		$ttl = $result->get_cache_ttl_seconds();
 		if ( $ttl <= 0 ) {
 			$ttl = $this->default_cache_ttl;
@@ -235,24 +270,43 @@ class CompatibilityValidator {
 	/**
 	 * Check if operations should be blocked.
 	 *
+	 * This is the single source of truth for checking if operations should be blocked.
+	 * Uses cached data if available (including stale cache), otherwise returns false (allow operations).
+	 * This method never triggers API calls - use check_compatibility() if fresh data is needed.
+	 *
 	 * @since 3.0.0
 	 * @return bool True if operations should be blocked, false otherwise.
 	 */
 	public function should_block_operations() {
-		$result = $this->check_compatibility();
-		return $result->should_block_operations();
+		// Only check cached data - don't trigger API calls here.
+		$result = $this->get_cached_result( true ); // Include stale cache.
+
+		// If no cache, assume operations are allowed (fail open).
+		if ( $result === null ) {
+			return false;
+		}
+
+		// Use internal method to check if any items are disabled.
+		return $result->has_disabled_items();
 	}
 
 	/**
 	 * Get all notice data for admin display.
 	 *
 	 * Returns all compatibility response items that have messages to display.
+	 * This method only uses cached data and never makes API calls.
 	 *
 	 * @since 3.0.0
 	 * @return array Array of notice data arrays, or empty array if no notices.
 	 */
 	public function get_notices() {
-		$result = $this->check_compatibility();
+		// Only use cached data - never make API calls from here.
+		$result = $this->get_cached_result( true ); // Include stale cache for display.
+
+		// If no cache available, return empty array (no notices to show).
+		if ( $result === null ) {
+			return [];
+		}
 
 		if ( ! $result->has_responses() ) {
 			return [];

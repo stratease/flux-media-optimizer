@@ -36,55 +36,37 @@ class ExternalApiClient {
 	private $base_url;
 
 	/**
-	 * Compatibility validator instance.
-	 *
-	 * @since 3.0.0
-	 * @var CompatibilityValidator|null
-	 */
-	private $compatibility_validator;
-
-	/**
 	 * Constructor.
 	 *
 	 * @since 3.0.0
-	 * @param LoggerInterface         $logger                Logger instance.
-	 * @param CompatibilityValidator $compatibility_validator Optional compatibility validator instance.
+	 * @param LoggerInterface $logger Logger instance.
 	 */
-	public function __construct( LoggerInterface $logger, CompatibilityValidator $compatibility_validator = null ) {
-		$this->logger                 = $logger;
-		$this->base_url               = FLUX_MEDIA_OPTIMIZER_EXTERNAL_SERVICE_URL;
-		$this->compatibility_validator = $compatibility_validator;
-	}
-
-	/**
-	 * Set compatibility validator.
-	 *
-	 * @since 3.0.0
-	 * @param CompatibilityValidator $validator Compatibility validator instance.
-	 * @return void
-	 */
-	public function set_compatibility_validator( CompatibilityValidator $validator ) {
-		$this->compatibility_validator = $validator;
+	public function __construct( LoggerInterface $logger ) {
+		$this->logger = $logger;
+		$this->base_url = FLUX_MEDIA_OPTIMIZER_EXTERNAL_SERVICE_URL;
 	}
 
 	/**
 	 * Check compatibility before making external API request.
 	 *
+	 * Ensures we have fresh compatibility data before operations. Uses cache if valid,
+	 * otherwise fetches from API and caches the result. Then checks if operations should be blocked.
+	 *
 	 * @since 3.0.0
 	 * @return bool True if compatible and can proceed, false if blocked.
 	 */
 	private function check_compatibility_before_request() {
-		if ( $this->compatibility_validator === null ) {
-			// No validator set, allow request to proceed.
-			return true;
-		}
+		// Get singleton instance of compatibility validator.
+		// The validator initializes its dependencies internally, so this always returns an instance.
+		$validator = CompatibilityValidator::get_instance();
 
-		// Check compatibility (uses cache if available).
-		$result = $this->compatibility_validator->check_compatibility();
+		// Ensure we have fresh compatibility data (uses cache if valid, fetches if needed).
+		// This ensures we have up-to-date compatibility info before operations.
+		$validator->check_compatibility();
 
-		// Block if operations should be blocked.
-		if ( $result->should_block_operations() ) {
-			$this->logger->warning( 'External API request blocked due to compatibility check failure' );
+		// Check if operations should be blocked using the cached/fresh data.
+		if ( $validator->should_block_operations() ) {
+			$this->logger->warning( 'External API request blocked: Compatibility check indicates operations are disabled' );
 			return false;
 		}
 

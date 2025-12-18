@@ -234,4 +234,5 @@ Flux Media Optimizer is committed to protecting your privacy. By default, all im
 Key points:
 * Local processing by default - no external data sharing
 * Email collection for marketing purposes only with opt-in consent
+* Account ID (UUID) generation: The plugin generates a unique identifier (UUID) locally on your server for service identification purposes. This UUID is stored only in your WordPress database and is used to match webhook requests and license validation when you explicitly enable external services. The UUID is NOT used for user tracking or analytics. It is automatically removed when you uninstall the plugin. The UUID is only transmitted to external services when you explicitly enable external processing AND provide a license key.
 * Full compliance with WordPress.org guidelines and privacy regulations

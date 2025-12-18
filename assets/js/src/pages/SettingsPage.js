@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Typography, Box, Grid, Switch, FormControlLabel, Alert, Divider, TextField, Stack, FormHelperText, Skeleton, Button, CircularProgress, InputAdornment, Tooltip, IconButton, Link } from '@mui/material';
+import { Typography, Box, Grid, Switch, FormControlLabel, Alert, Divider, TextField, Stack, FormHelperText, Skeleton, Button, CircularProgress, InputAdornment, Tooltip, IconButton, Link, Collapse } from '@mui/material';
 import { CheckCircle, Error as ErrorIcon, Refresh } from '@mui/icons-material';
 import { __, _x } from '@wordpress/i18n';
 import { useAutoSaveForm } from '@flux-media-optimizer/hooks/useAutoSaveForm';
@@ -199,6 +199,7 @@ const SettingsPage = () => {
   
   // Check if data is still loading
   const isLoading = optionsLoading || systemLoading;
+  const shouldEnableQualitySettings = !(licenseData?.license_is_valid && settings?.external_service_enabled) ;
 
   return (
     <Box>
@@ -420,152 +421,158 @@ const SettingsPage = () => {
         </Grid>
 
         {/* Image Quality Settings - Left Column */}
+        {/* Hide when license is valid and CDN is enabled (external service handles quality) */}
         <Grid item xs={12} md={6}>
-          <Box>
-            <Typography variant="h5" gutterBottom>
-              {__('Image Quality Settings', 'flux-media-optimizer')}
-            </Typography>
-            <Stack spacing={3}>
-              {/* WebP Quality */}
-              <Box sx={{ opacity: isWebPSupported() ? 1 : 0.5 }}>
-                <Typography variant="subtitle1" gutterBottom>
-                  {__('WebP Quality', 'flux-media-optimizer')}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  {__('Current:', 'flux-media-optimizer')} {settings?.image_webp_quality}% ({__('Higher values produce larger files with better quality', 'flux-media-optimizer')})
-                </Typography>
-                <input
-                  type="range"
-                  min="1"
-                  max="100"
-                  value={settings?.image_webp_quality}
-                  disabled={isLoading || !isWebPSupported()}
-                  onChange={handleSettingChange('image_webp_quality')}
-                  style={{ width: '100%' }}
-                />
-              </Box>
+          <Collapse in={shouldEnableQualitySettings} timeout="auto" unmountOnExit>
+            <Box>
+              <Typography variant="h5" gutterBottom>
+                {__('Image Quality Settings', 'flux-media-optimizer')}
+              </Typography>
+              <Stack spacing={3}>
+                {/* WebP Quality */}
+                <Box sx={{ opacity: isWebPSupported() ? 1 : 0.5 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    {__('WebP Quality', 'flux-media-optimizer')}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    {__('Current:', 'flux-media-optimizer')} {settings?.image_webp_quality}% ({__('Higher values produce larger files with better quality', 'flux-media-optimizer')})
+                  </Typography>
+                  <input
+                    type="range"
+                    min="1"
+                    max="100"
+                    value={settings?.image_webp_quality}
+                    disabled={isLoading || !isWebPSupported()}
+                    onChange={handleSettingChange('image_webp_quality')}
+                    style={{ width: '100%' }}
+                  />
+                </Box>
 
-              {/* AVIF Quality */}
-              <Box sx={{ opacity: isAVIFSupported() ? 1 : 0.5 }}>
-                <Typography variant="subtitle1" gutterBottom>
-                  {__('AVIF Quality', 'flux-media-optimizer')}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  {__('Current:', 'flux-media-optimizer')} {settings?.image_avif_quality}% ({__('AVIF typically needs lower quality for similar file size', 'flux-media-optimizer')})
-                </Typography>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={settings?.image_avif_quality}
-                  disabled={isLoading || !isAVIFSupported()}
-                  onChange={handleSettingChange('image_avif_quality')}
-                  style={{ width: '100%' }}
-                />
-              </Box>
+                {/* AVIF Quality */}
+                <Box sx={{ opacity: isAVIFSupported() ? 1 : 0.5 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    {__('AVIF Quality', 'flux-media-optimizer')}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    {__('Current:', 'flux-media-optimizer')} {settings?.image_avif_quality}% ({__('AVIF typically needs lower quality for similar file size', 'flux-media-optimizer')})
+                  </Typography>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={settings?.image_avif_quality}
+                    disabled={isLoading || !isAVIFSupported()}
+                    onChange={handleSettingChange('image_avif_quality')}
+                    style={{ width: '100%' }}
+                  />
+                </Box>
 
-              {/* AVIF Speed */}
-              <Box sx={{ opacity: isAVIFSupported() ? 1 : 0.5 }}>
-                <Typography variant="subtitle1" gutterBottom>
-                  {__('AVIF Speed', 'flux-media-optimizer')}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  {__('Current:', 'flux-media-optimizer')} {settings?.image_avif_speed} ({__('Lower values = slower encoding but better compression', 'flux-media-optimizer')})
-                </Typography>
-                <input
-                  type="range"
-                  min="0"
-                  max="10"
-                  value={settings?.image_avif_speed}
-                  disabled={isLoading || !isAVIFSupported()}
-                  onChange={handleSettingChange('image_avif_speed')}
-                  style={{ width: '100%' }}
-                />
-              </Box>
-            </Stack>
-          </Box>
+                {/* AVIF Speed */}
+                <Box sx={{ opacity: isAVIFSupported() ? 1 : 0.5 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    {__('AVIF Speed', 'flux-media-optimizer')}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    {__('Current:', 'flux-media-optimizer')} {settings?.image_avif_speed} ({__('Lower values = slower encoding but better compression', 'flux-media-optimizer')})
+                  </Typography>
+                  <input
+                    type="range"
+                    min="0"
+                    max="10"
+                    value={settings?.image_avif_speed}
+                    disabled={isLoading || !isAVIFSupported()}
+                    onChange={handleSettingChange('image_avif_speed')}
+                    style={{ width: '100%' }}
+                  />
+                </Box>
+              </Stack>
+            </Box>
+          </Collapse>
         </Grid>
 
         {/* Video Quality Settings - Right Column */}
+        {/* Hide when license is valid and CDN is enabled (external service handles quality) */}
         <Grid item xs={12} md={6}>
-          <Box>
-            <Typography variant="h5" gutterBottom>
-              {__('Video Quality Settings', 'flux-media-optimizer')}
-            </Typography>
-            <Stack spacing={3}>
-              <Box>
-                <Typography variant="subtitle1" gutterBottom>
-                  {__('AV1 CRF (Constant Rate Factor)', 'flux-media-optimizer')}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  {__('Current:', 'flux-media-optimizer')} {settings?.video_av1_crf} ({__('Lower values = higher quality, larger files', 'flux-media-optimizer')})
-                </Typography>
-                <input
-                  type="range"
-                  min="18"
-                  max="50"
-                  value={settings?.video_av1_crf}
-                  disabled={isLoading}
-                  onChange={handleSettingChange('video_av1_crf')}
-                  style={{ width: '100%' }}
-                />
-              </Box>
+          <Collapse in={shouldEnableQualitySettings} timeout="auto" unmountOnExit>
+            <Box>
+              <Typography variant="h5" gutterBottom>
+                {__('Video Quality Settings', 'flux-media-optimizer')}
+              </Typography>
+              <Stack spacing={3}>
+                <Box>
+                  <Typography variant="subtitle1" gutterBottom>
+                    {__('AV1 CRF (Constant Rate Factor)', 'flux-media-optimizer')}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    {__('Current:', 'flux-media-optimizer')} {settings?.video_av1_crf} ({__('Lower values = higher quality, larger files', 'flux-media-optimizer')})
+                  </Typography>
+                  <input
+                    type="range"
+                    min="18"
+                    max="50"
+                    value={settings?.video_av1_crf}
+                    disabled={isLoading}
+                    onChange={handleSettingChange('video_av1_crf')}
+                    style={{ width: '100%' }}
+                  />
+                </Box>
 
-              <Box>
-                <Typography variant="subtitle1" gutterBottom>
-                  {__('WebM CRF (Constant Rate Factor)', 'flux-media-optimizer')}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  {__('Current:', 'flux-media-optimizer')} {settings?.video_webm_crf} ({__('Lower values = higher quality, larger files', 'flux-media-optimizer')})
-                </Typography>
-                <input
-                  type="range"
-                  min="18"
-                  max="50"
-                  value={settings?.video_webm_crf}
-                  disabled={isLoading}
-                  onChange={handleSettingChange('video_webm_crf')}
-                  style={{ width: '100%' }}
-                />
-              </Box>
+                <Box>
+                  <Typography variant="subtitle1" gutterBottom>
+                    {__('WebM CRF (Constant Rate Factor)', 'flux-media-optimizer')}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    {__('Current:', 'flux-media-optimizer')} {settings?.video_webm_crf} ({__('Lower values = higher quality, larger files', 'flux-media-optimizer')})
+                  </Typography>
+                  <input
+                    type="range"
+                    min="18"
+                    max="50"
+                    value={settings?.video_webm_crf}
+                    disabled={isLoading}
+                    onChange={handleSettingChange('video_webm_crf')}
+                    style={{ width: '100%' }}
+                  />
+                </Box>
 
-              <Box>
-                <Typography variant="subtitle1" gutterBottom>
-                  {__('AV1 CPU Used', 'flux-media-optimizer')}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  {__('Current:', 'flux-media-optimizer')} {settings?.video_av1_cpu_used} ({__('Controls encoding speed vs file size. Lower values = slower encoding but smaller files at same quality (0-8)', 'flux-media-optimizer')})
-                </Typography>
-                <input
-                  type="range"
-                  min="0"
-                  max="8"
-                  value={settings?.video_av1_cpu_used}
-                  disabled={isLoading}
-                  onChange={handleSettingChange('video_av1_cpu_used')}
-                  style={{ width: '100%' }}
-                />
-              </Box>
+                <Box>
+                  <Typography variant="subtitle1" gutterBottom>
+                    {__('AV1 CPU Used', 'flux-media-optimizer')}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    {__('Current:', 'flux-media-optimizer')} {settings?.video_av1_cpu_used} ({__('Controls encoding speed vs file size. Lower values = slower encoding but smaller files at same quality (0-8)', 'flux-media-optimizer')})
+                  </Typography>
+                  <input
+                    type="range"
+                    min="0"
+                    max="8"
+                    value={settings?.video_av1_cpu_used}
+                    disabled={isLoading}
+                    onChange={handleSettingChange('video_av1_cpu_used')}
+                    style={{ width: '100%' }}
+                  />
+                </Box>
 
-              <Box>
-                <Typography variant="subtitle1" gutterBottom>
-                  {__('WebM Speed', 'flux-media-optimizer')}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  {__('Current:', 'flux-media-optimizer')} {settings?.video_webm_speed} ({__('Controls encoding speed vs file size. Lower values = slower encoding but smaller files at same quality (0-9)', 'flux-media-optimizer')})
-                </Typography>
-                <input
-                  type="range"
-                  min="0"
-                  max="9"
-                  value={settings?.video_webm_speed}
-                  disabled={isLoading}
-                  onChange={handleSettingChange('video_webm_speed')}
-                  style={{ width: '100%' }}
-                />
-              </Box>
-            </Stack>
-          </Box>
+                <Box>
+                  <Typography variant="subtitle1" gutterBottom>
+                    {__('WebM Speed', 'flux-media-optimizer')}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    {__('Current:', 'flux-media-optimizer')} {settings?.video_webm_speed} ({__('Controls encoding speed vs file size. Lower values = slower encoding but smaller files at same quality (0-9)', 'flux-media-optimizer')})
+                  </Typography>
+                  <input
+                    type="range"
+                    min="0"
+                    max="9"
+                    value={settings?.video_webm_speed}
+                    disabled={isLoading}
+                    onChange={handleSettingChange('video_webm_speed')}
+                    style={{ width: '100%' }}
+                  />
+                </Box>
+              </Stack>
+            </Box>
+          </Collapse>
         </Grid>
 
         {/* License Settings */}

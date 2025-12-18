@@ -180,6 +180,14 @@ function flux_media_optimizer_init() {
  * Generates and stores UUID on first plugin load if it doesn't exist.
  * This UUID is persistent and never changes, even if license keys change.
  *
+ * Privacy & Usage:
+ * - UUID is generated locally and stored only in WordPress site options
+ * - UUID is used for service identification (matching webhooks, license validation)
+ * - UUID is NOT used for user tracking or analytics
+ * - UUID is only transmitted to external service when user explicitly enables external service AND provides a license key
+ * - UUID is automatically removed on plugin uninstall for privacy compliance
+ * - See readme.txt Privacy Policy section for full details
+ *
  * @since 3.0.0
  * @return void
  */
@@ -243,25 +251,42 @@ function flux_media_optimizer_is_active_for_network() {
 /**
  * Handle activation redirect to admin page.
  *
+ * This is a one-time redirect that occurs only immediately after plugin activation.
+ * The redirect helps users discover the plugin settings page after installation.
+ *
+ * Safety measures to prevent dashboard hijacking:
+ * - Only redirects if transient is set (created only on activation)
+ * - Transient expires after 60 seconds (failsafe)
+ * - Transient is immediately deleted on redirect (ensures one-time only)
+ * - Only redirects users with 'manage_options' capability (admins only)
+ * - Redirects to plugin's own settings page (not external site)
+ * - Only runs on admin_init hook (not on frontend)
+ *
  * @since 0.1.0
  * @since 3.0.0 Added multisite support for activation redirect transients.
+ * @return void
  */
 function flux_media_optimizer_activation_redirect() {
-	// Only redirect if transient is set and user has proper capabilities
+	// Only redirect in admin area and if transient is set.
+	if ( ! is_admin() ) {
+		return;
+	}
+
+	// Only redirect if transient is set and user has proper capabilities.
 	$redirect_transient = flux_media_optimizer_is_active_for_network()
 		? get_site_transient( 'flux_media_optimizer_activation_redirect' )
 		: get_transient( 'flux_media_optimizer_activation_redirect' );
 
 	if ( $redirect_transient && current_user_can( 'manage_options' ) ) {
-		// Delete the transient
+		// Delete the transient immediately to ensure this only happens once.
 		if ( flux_media_optimizer_is_active_for_network() ) {
 			delete_site_transient( 'flux_media_optimizer_activation_redirect' );
 		} else {
-		delete_transient( 'flux_media_optimizer_activation_redirect' );
+			delete_transient( 'flux_media_optimizer_activation_redirect' );
 		}
 		
-		// Redirect to admin page
-		wp_redirect( admin_url( 'admin.php?page=flux-media-optimizer' ) );
+		// Redirect to plugin's own admin settings page (not external site).
+		wp_safe_redirect( admin_url( 'admin.php?page=flux-media-optimizer' ) );
 		exit;
 	}
 }
@@ -300,7 +325,7 @@ function flux_media_optimizer_activate() {
 	if ( flux_media_optimizer_is_active_for_network() ) {
 		set_site_transient( 'flux_media_optimizer_activation_redirect', true, 60 );
 	} else {
-		set_transient( 'flux_media_optimizer_activation_redirect', true, 60 );
+	set_transient( 'flux_media_optimizer_activation_redirect', true, 60 );
 	}
 }
 

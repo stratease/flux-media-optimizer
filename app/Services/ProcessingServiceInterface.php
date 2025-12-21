@@ -88,5 +88,18 @@ interface ProcessingServiceInterface {
 	 * @return bool True if conversion was initiated successfully, false otherwise.
 	 */
 	public function process( $attachment_id, $file_path = null );
+
+	/**
+	 * Delete attachment from service.
+	 *
+	 * Handles deletion of attachment data from the processing service.
+	 * For external services: deletes from CDN/external storage.
+	 * For local services: typically a no-op as local files are cleaned up separately.
+	 *
+	 * @since 3.0.0
+	 * @param int $attachment_id Attachment ID.
+	 * @return bool True if deletion was successful or not needed, false on error.
+	 */
+	public function delete_attachment( $attachment_id );
 }
 

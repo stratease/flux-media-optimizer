@@ -236,6 +236,10 @@ The plugin includes a sophisticated GIF animation detector:
 - **Interface Segregation**: Define clear contracts for all services
 - **Single Responsibility**: Each service has one clear purpose
 - **Error Handling**: Comprehensive error handling with structured logging
+- **Processor Pattern**: WordPressProvider delegates operations to processors via `ProcessingServiceInterface`
+  - Processing: `$processor->process($attachment_id)` handles both external and local processing
+  - Deletion: `$processor->delete_attachment($attachment_id)` handles service-specific deletion logic
+  - WordPressProvider never directly accesses service-specific implementations (e.g., `ExternalApiClient`)
 
 #### Converter Interface
 - **Fluent API**: Chainable method calls for clean code

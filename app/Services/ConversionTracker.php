@@ -182,18 +182,21 @@ class ConversionTracker {
 	 * Delete all conversion records for an attachment.
 	 *
 	 * @since 0.1.0
+	 * @since 3.0.0 Changed to static method for centralized use in AttachmentMetaHandler.
 	 * @param int $attachment_id WordPress attachment ID.
 	 * @return bool True on success, false on failure.
 	 */
-	public function delete_attachment_conversions( $attachment_id ) {
+	public static function delete_attachment_conversions( $attachment_id ) {
 		global $wpdb;
 
 		if ( ! $attachment_id ) {
 			return false;
 		}
 
+		$table_name = $wpdb->prefix . 'flux_media_optimizer_conversions';
+
 		$result = $wpdb->delete(
-			$this->table_name,
+			$table_name,
 			[ 'attachment_id' => $attachment_id ],
 			[ '%d' ]
 		);

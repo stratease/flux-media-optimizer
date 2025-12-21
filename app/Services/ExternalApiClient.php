@@ -101,8 +101,32 @@ class ExternalApiClient {
 			];
 		}
 
-		// Get file URL from attachment ID.
-		$pull_file_url = wp_get_attachment_url( $attachment_id );
+		// Get original file URL from attachment ID (not CDN URL).
+		// Use get_attached_file() to get the file path, then convert to URL.
+		// This bypasses any wp_get_attachment_url filters that might return CDN URLs.
+		$file_path = get_attached_file( $attachment_id );
+		if ( ! $file_path || ! file_exists( $file_path ) ) {
+			return [
+				'success' => false,
+				'error' => 'Could not get attachment file path',
+			];
+		}
+		
+		// Convert file path to URL using WordPress upload directory
+		$upload_dir = wp_upload_dir();
+		$base_dir = $upload_dir['basedir'];
+		$base_url = $upload_dir['baseurl'];
+		
+		// Replace the base directory path with the base URL
+		if ( strpos( $file_path, $base_dir ) === 0 ) {
+			$pull_file_url = str_replace( $base_dir, $base_url, $file_path );
+			// Normalize path separators for URLs
+			$pull_file_url = str_replace( '\\', '/', $pull_file_url );
+		} else {
+			// Fallback: try wp_get_attachment_url but this might return CDN URL
+			$pull_file_url = wp_get_attachment_url( $attachment_id );
+		}
+		
 		if ( ! $pull_file_url ) {
 			return [
 				'success' => false,
@@ -656,6 +680,86 @@ class ExternalApiClient {
 		$message = isset( $data['message'] ) ? $data['message'] : "Unexpected response status: {$status_code}";
 		
 		$this->logger->error( "Compatibility check unexpected response: {$message} (Status: {$status_code})", [ 'response' => $data ] );
+		return [
+			'success' => false,
+			'error' => $error,
+			'message' => $message,
+			'status_code' => $status_code,
+		];
+	}
+
+	/**
+	 * Delete attachment from external service.
+	 *
+	 * Notifies the external service to delete files associated with an attachment.
+	 * This should be called when an attachment is deleted from WordPress.
+	 *
+	 * @since 3.0.0
+	 * @param int $attachment_id Attachment ID.
+	 * @return array Response array with 'success' and optional 'error' or 'message'.
+	 */
+	public function delete_attachment( $attachment_id ) {
+		// Do not Check compatibility before making API request. We want to avoid orphan data when files are being deleted, even if this fails we at least try.
+
+		$account_id = Settings::get_account_id();
+		
+		if ( empty( $account_id ) ) {
+			$this->logger->error( "Attachment deletion failed for attachment {$attachment_id}: Account ID not found" );
+			return [
+				'success' => false,
+				'error' => 'account_id_required',
+				'message' => 'Account ID not found',
+			];
+		}
+
+		$endpoint = trailingslashit( $this->base_url ) . 'api/v1/upload/delete';
+		
+		$request_body = [
+			'account_id'    => $account_id,
+			'attachment_id' => (string) $attachment_id,
+		];
+
+		$this->logger->debug( "Deleting attachment {$attachment_id} from external service for account {$account_id}" );
+		
+		$response = wp_remote_post( $endpoint, [
+			'timeout' => FLUX_MEDIA_OPTIMIZER_EXTERNAL_SERVICE_TIMEOUT,
+			'headers' => [
+				'Content-Type' => 'application/json',
+			],
+			'body' => wp_json_encode( $request_body ),
+		] );
+
+		if ( is_wp_error( $response ) ) {
+			$error_message = $response->get_error_message();
+			$this->logger->error( "Failed to delete attachment {$attachment_id} from external service: {$error_message}" );
+			return [
+				'success' => false,
+				'error' => 'network_error',
+				'message' => $error_message,
+			];
+		}
+
+		$status_code = wp_remote_retrieve_response_code( $response );
+		$body = wp_remote_retrieve_body( $response );
+		$data = json_decode( $body, true );
+
+		// Handle success (200) - expected successful response.
+		if ( $status_code === 200 ) {
+			$this->logger->debug( "Attachment {$attachment_id} deleted successfully from external service" );
+			
+			return [
+				'success' => true,
+				'message' => isset( $data['message'] ) ? $data['message'] : 'Attachment deleted successfully',
+			];
+		}
+
+		// Handle other status codes - log but don't fail hard (deletion is best-effort)
+		$error = isset( $data['error'] ) ? $data['error'] : 'unknown_error';
+		$message = isset( $data['message'] ) ? $data['message'] : "Unexpected response status: {$status_code}";
+		
+		// Log as warning since deletion failure shouldn't block WordPress deletion
+		$this->logger->warning( "Attachment deletion returned unexpected status: {$message} (Status: {$status_code})", [ 'response' => $data ] );
+		
 		return [
 			'success' => false,
 			'error' => $error,

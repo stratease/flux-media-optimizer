@@ -9,6 +9,7 @@
 namespace FluxMedia\App\Services;
 
 use FluxMedia\App\Http\Controllers\WebhookController;
+use FluxMedia\App\Services\AttachmentMetaHandler;
 
 /**
  * External processing service implementation.
@@ -356,6 +357,41 @@ class ExternalProcessingService implements ProcessingServiceInterface {
 		// Update state to 'processing' on successful submission.
 		$this->update_job_state( $attachment_id, 'processing' );
 		$this->logger->debug( "Job submitted successfully for attachment {$attachment_id}" );
+	}
+
+	/**
+	 * Delete attachment from external service.
+	 *
+	 * Notifies the external service to delete files associated with an attachment
+	 * and clears all conversion-related meta data.
+	 *
+	 * @since 3.0.0
+	 * @param int $attachment_id Attachment ID.
+	 * @return bool True if deletion was successful or not needed, false on error.
+	 */
+	public function delete_attachment( $attachment_id ) {
+		// Check if we have CDN data - if not, nothing to delete from external service
+		$cdn_urls = AttachmentMetaHandler::get_cdn_urls( $attachment_id );
+		if ( empty( $cdn_urls ) ) {
+			// No CDN data, nothing to delete
+			$this->logger->debug( "No CDN data found for attachment {$attachment_id}, skipping external deletion" );
+			// Still clear meta in case there's stale data
+			AttachmentMetaHandler::clear_all_attachment_meta( $attachment_id );
+			return true;
+		}
+
+		// Delete from external service via API client
+		$result = $this->api_client->delete_attachment( $attachment_id );
+		
+		if ( ! $result['success'] ) {
+			$this->logger->warning( "Failed to delete attachment {$attachment_id} from external service: " . ( $result['message'] ?? 'Unknown error' ) );
+			return false;
+		}
+
+		AttachmentMetaHandler::clear_all_attachment_meta( $attachment_id );
+
+		$this->logger->debug( "Attachment {$attachment_id} deleted from external service successfully" );
+		return true;
 	}
 }
 

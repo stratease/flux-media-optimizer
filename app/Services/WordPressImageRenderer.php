@@ -964,10 +964,7 @@ class WordPressImageRenderer {
                         $html .= '<strong>' . __( 'Size:', 'flux-media-optimizer' ) . '</strong> ' . size_format( $file_size ) . '<br>';
                     }
                     if ( $converted_url ) {
-                        // Check if URL is from CDN by checking if it's a URL (starts with http/https).
-                        $is_cdn = AttachmentMetaHandler::is_file_url( $converted_url );
-                        $url_label = $is_cdn ? __( 'CDN URL:', 'flux-media-optimizer' ) : __( 'URL:', 'flux-media-optimizer' );
-                        $html .= '<strong>' . esc_html( $url_label ) . '</strong> <a href="' . esc_url( $converted_url ) . '" target="_blank" style="color: #0073aa; text-decoration: none; word-break: break-all;">' . esc_html( $converted_url ) . '</a>';
+                        $html .= '<strong>' . esc_html( __( 'URL:', 'flux-media-optimizer' ) ) . '</strong> <a href="' . esc_url( $converted_url ) . '" target="_blank" style="color: #0073aa; text-decoration: none; word-break: break-all;">' . esc_html( $converted_url ) . '</a>';
                     }
                     $html .= '</div>';
                     $html .= '</div>';
@@ -1017,10 +1014,7 @@ class WordPressImageRenderer {
                     $html .= '<strong>' . __( 'Size:', 'flux-media-optimizer' ) . '</strong> ' . size_format( $file_size ) . '<br>';
                 }
                 if ( $converted_url ) {
-                    // Check if URL is from CDN by checking if it's a URL (starts with http/https).
-                    $is_cdn = AttachmentMetaHandler::is_file_url( $converted_url );
-                    $url_label = $is_cdn ? __( 'CDN URL:', 'flux-media-optimizer' ) : __( 'URL:', 'flux-media-optimizer' );
-                    $html .= '<strong>' . esc_html( $url_label ) . '</strong> <a href="' . esc_url( $converted_url ) . '" target="_blank" style="color: #0073aa; text-decoration: none; word-break: break-all;">' . esc_html( $converted_url ) . '</a>';
+                    $html .= '<strong>' . esc_html( __( 'URL:', 'flux-media-optimizer' ) ) . '</strong> <a href="' . esc_url( $converted_url ) . '" target="_blank" style="color: #0073aa; text-decoration: none; word-break: break-all;">' . esc_html( $converted_url ) . '</a>';
                 }
                 $html .= '</div>';
                 $html .= '</div>';

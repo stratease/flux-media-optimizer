@@ -304,5 +304,78 @@ class LocalProcessingService implements ProcessingServiceInterface {
 
 		return true;
 	}
+
+	/**
+	 * Delete attachment from local service.
+	 *
+	 * Handles deletion of local converted files and clears all conversion-related meta data.
+	 *
+	 * @since 3.0.0
+	 * @param int $attachment_id Attachment ID.
+	 * @return bool True if deletion was successful or not needed, false on error.
+	 */
+	public function delete_attachment( $attachment_id ) {
+		// Get converted files by size
+		$converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
+		
+		if ( empty( $converted_files_by_size ) ) {
+			// No converted files, nothing to delete
+			$this->logger->debug( "No converted files found for attachment {$attachment_id}, skipping local deletion" );
+			// Still clear meta in case there's stale data
+			AttachmentMetaHandler::clear_all_attachment_meta( $attachment_id );
+			return true;
+		}
+
+		// Initialize WordPress filesystem
+		if ( ! function_exists( 'WP_Filesystem' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+		WP_Filesystem();
+		
+		global $wp_filesystem;
+		
+		$deleted_count = 0;
+		$total_count = 0;
+
+		// Delete local files from size-specific structure
+		foreach ( $converted_files_by_size as $size_name => $size_formats ) {
+			if ( ! is_array( $size_formats ) ) {
+				continue;
+			}
+			foreach ( $size_formats as $format => $data ) {
+				// Extract URL/path from unified structure
+				$url_or_path = null;
+				if ( is_array( $data ) && isset( $data['url'] ) ) {
+					$url_or_path = $data['url'];
+				} elseif ( is_string( $data ) ) {
+					$url_or_path = $data;
+				}
+				
+				// Skip if invalid or CDN URL (local service only deletes local files)
+				if ( ! is_string( $url_or_path ) || empty( $url_or_path ) ) {
+					continue;
+				}
+				
+				// Skip CDN URLs (only remove from meta, don't delete)
+				if ( AttachmentMetaHandler::is_file_url( $url_or_path ) ) {
+					continue;
+				}
+				
+				$total_count++;
+				if ( $wp_filesystem && $wp_filesystem->exists( $url_or_path ) && $wp_filesystem->delete( $url_or_path ) ) {
+					$deleted_count++;
+					$this->logger->info( "Deleted converted file: {$url_or_path} (size: {$size_name}, format: {$format})" );
+				} else {
+					$this->logger->warning( "Failed to delete converted file: {$url_or_path} (size: {$size_name}, format: {$format})" );
+				}
+			}
+		}
+
+		// Clear all meta data (includes conversion tracking)
+		AttachmentMetaHandler::clear_all_attachment_meta( $attachment_id );
+
+		$this->logger->info( "Deleted {$deleted_count}/{$total_count} converted files for attachment {$attachment_id}" );
+		return true;
+	}
 }
 

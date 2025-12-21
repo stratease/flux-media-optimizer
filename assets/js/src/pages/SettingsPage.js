@@ -17,6 +17,7 @@ const SettingsPage = () => {
   const [licenseKey, setLicenseKey] = useState('');
   const [licenseActivationError, setLicenseActivationError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isLicenseInitialized, setIsLicenseInitialized] = useState(false);
   
   // React Query hooks for data fetching
   const { data: serverSettings, isLoading: optionsLoading, error: optionsError } = useOptions();
@@ -42,13 +43,15 @@ const SettingsPage = () => {
   }, [serverSettings, isInitialized]);
 
   // Initialize license key ONCE from license data on first load only
+  // This is independent from settings initialization
   useEffect(() => {
-    if (!isInitialized && licenseData && typeof licenseData === 'object') {
+    if (!isLicenseInitialized && licenseData && typeof licenseData === 'object') {
       if (licenseData.license_key !== undefined) {
         setLicenseKey(licenseData.license_key || '');
+        setIsLicenseInitialized(true);
       }
     }
-  }, [licenseData, isInitialized]);
+  }, [licenseData, isLicenseInitialized]);
 
   // Debounced license activation function
   const debouncedActivateLicense = useCallback((key) => {

@@ -299,12 +299,22 @@ class WordPressProvider {
     /**
      * Handle attachment deletion.
      *
+     * Delegates deletion to the processing service (local or external).
+     *
      * @since 0.1.0
+     * @since 3.0.0 Delegates deletion to the processing service (local or external).
      * @param int $attachment_id Attachment ID.
      * @return void
      */
     public function handle_attachment_deletion( $attachment_id ) {
-        $this->cleanup_converted_files( $attachment_id );
+        if ( ! $this->service_locator ) {
+            return;
+        }
+
+        // Delegate deletion to the processor
+        // The processor handles service-specific deletion logic (file deletion and meta cleanup)
+        $processor = $this->service_locator->get_processor();
+        $processor->delete_attachment( $attachment_id );
     }
 
 
@@ -1721,6 +1731,10 @@ class WordPressProvider {
             wp_send_json_error( 'Invalid attachment ID' );
         }
 
+        // Clear external job state to allow forced re-conversion
+        // This removes any 'queued' or 'processing' state that might be blocking conversion
+        AttachmentMetaHandler::delete_external_job_state( $attachment_id );
+
         $result = $this->convert_attachment( $attachment_id );
         
         if ( $result['success'] ) {
@@ -1734,6 +1748,7 @@ class WordPressProvider {
      * Handle AJAX request to disable conversion for attachment.
      *
      * @since 0.1.0
+     * 
      * @return void
      */
     public function handle_ajax_disable_conversion() {
@@ -1753,14 +1768,18 @@ class WordPressProvider {
             wp_send_json_error( 'Invalid attachment ID' );
         }
 
-        // Delete all converted files
-        $this->delete_converted_files( $attachment_id );
+        if ( ! $this->service_locator ) {
+            wp_send_json_error( 'Service locator not available' );
+        }
 
-        // Mark as conversion disabled
+        // Delegate deletion to the processor
+        // The processor handles service-specific deletion logic (file deletion and meta cleanup)
+        $processor = $this->service_locator->get_processor();
+        $processor->delete_attachment( $attachment_id );
+
+        // After deletion, mark conversion as disabled
+        // (The processor's delete_attachment() clears the disabled flag, so we set it again here)
         AttachmentMetaHandler::disable_conversion( $attachment_id );
-
-        // Remove from conversion tracking
-        $this->conversion_tracker->delete_attachment_conversions( $attachment_id );
 
         wp_send_json_success( 'Conversion disabled successfully' );
     }

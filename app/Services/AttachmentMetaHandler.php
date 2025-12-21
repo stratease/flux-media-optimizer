@@ -382,6 +382,36 @@ class AttachmentMetaHandler {
 	}
 
 	/**
+	 * Clear all conversion-related meta data for an attachment.
+	 *
+	 * Centralized method to clear all conversion-related meta data including:
+	 * - Converted formats
+	 * - Conversion date
+	 * - Conversion disabled flag
+	 * - External job state
+	 * - CDN URLs
+	 * - Converted files by size
+	 * - Conversion tracking data (database table)
+	 *
+	 * @since 3.0.0
+	 * @param int $attachment_id Attachment ID.
+	 * @return void
+	 */
+	public static function clear_all_attachment_meta( $attachment_id ) {
+		// Clear all meta keys
+		self::delete_converted_formats( $attachment_id );
+		self::delete_conversion_date( $attachment_id );
+		// Enable conversion (which deletes the disabled flag meta)
+		self::enable_conversion( $attachment_id );
+		self::delete_external_job_state( $attachment_id );
+		self::delete_cdn_urls( $attachment_id );
+		self::delete_converted_files_grouped_by_size( $attachment_id );
+
+		// Clear conversion tracking data (database table)
+		\FluxMedia\App\Services\ConversionTracker::delete_attachment_conversions( $attachment_id );
+	}
+
+	/**
 	 * Get converted file size for a specific format and size.
 	 *
 	 * Extracts filesize from the unified structure.

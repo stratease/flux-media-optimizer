@@ -1896,6 +1896,53 @@ class WordPressProvider {
     }
 
     /**
+     * Check if attachment is a media upload (not plugin/theme upload).
+     *
+     * Verifies that the attachment is a media file in the uploads directory,
+     * not a plugin or theme file. Only media uploads should be processed.
+     *
+     * @since 3.0.0
+     * @param int $attachment_id Attachment ID to check.
+     * @return bool True if media attachment, false otherwise.
+     */
+    private function is_media_attachment( $attachment_id ) {
+        // Verify post type is attachment
+        $post_type = get_post_type( $attachment_id );
+        if ( 'attachment' !== $post_type ) {
+            return false;
+        }
+
+        // Get file path
+        $file_path = get_attached_file( $attachment_id );
+        if ( empty( $file_path ) ) {
+            return false;
+        }
+
+        // Normalize paths for comparison
+        $file_path = wp_normalize_path( $file_path );
+        $upload_dir = wp_upload_dir();
+        $upload_basedir = wp_normalize_path( $upload_dir['basedir'] );
+
+        // Check if file is in uploads directory
+        // Plugin/theme uploads are in wp-content/plugins or wp-content/themes, not in uploads
+        if ( strpos( $file_path, $upload_basedir ) !== 0 ) {
+            return false;
+        }
+
+        // Additional check: ensure it's not in plugins or themes directories
+        $wp_content_dir = wp_normalize_path( WP_CONTENT_DIR );
+        $plugins_dir = trailingslashit( $wp_content_dir ) . 'plugins';
+        $themes_dir = trailingslashit( $wp_content_dir ) . 'themes';
+
+        // If file is in plugins or themes directory, it's not a media upload
+        if ( strpos( $file_path, $plugins_dir ) === 0 || strpos( $file_path, $themes_dir ) === 0 ) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Queue attachment for processing on shutdown hook.
      *
      * Unified method to queue attachments for processing. Ensures all data is available
@@ -1909,6 +1956,11 @@ class WordPressProvider {
     private function queue_attachment_processing( $attachment_id ) {
         // Validate attachment ID
         if ( ! $attachment_id || ! is_numeric( $attachment_id ) ) {
+            return;
+        }
+
+        // Only process media attachments (skip plugin/theme uploads)
+        if ( ! $this->is_media_attachment( $attachment_id ) ) {
             return;
         }
 

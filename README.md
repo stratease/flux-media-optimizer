@@ -57,8 +57,14 @@ All plugin features work fully without these services. These are optional enhanc
 This plugin uses webpack to build JavaScript and CSS assets from source code.
 
 ### Source Code Location
-- **JavaScript Source**: `assets/js/src/` - React components and application code
+- **JavaScript Source**: [`assets/js/src/`](https://github.com/stratease/flux-media/tree/master/assets/js/src) - React components and application code
 - **Build Output**: `assets/js/dist/` - Compiled and minified production bundles
+
+### Third-Party Libraries
+- [React](https://react.dev/) - UI framework
+- [Material-UI (MUI)](https://mui.com/) - Component library
+- [React Router](https://reactrouter.com/) - Routing
+- [TanStack Query](https://tanstack.com/query) - Data fetching
 
 ### Build Tools
 - **Build Tool**: webpack (configured in `package.json`)

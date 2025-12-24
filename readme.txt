@@ -78,7 +78,7 @@ All production dependencies are included in the plugin package and do not requir
 This plugin uses webpack to build JavaScript and CSS assets from source code.
 
 **Source Code Location:**
-* JavaScript Source: [`assets/js/src/`](https://github.com/stratease/flux-media/tree/master/assets/js/src) - React components and application code
+* JavaScript Source: [`assets/js/src/`](https://github.com/stratease/flux-media-optimizer/tree/master/assets/js/src) - React components and application code
 * Build Output: `assets/js/dist/` - Compiled and minified production bundles
 
 **Third-Party Libraries:**
@@ -101,7 +101,7 @@ To build the plugin from source:
 2. Build production assets: `npm run build`
 3. For development with hot reload: `npm run start`
 
-The source code is available in the GitHub repository: https://github.com/stratease/flux-media
+The source code is available in the GitHub repository: https://github.com/stratease/flux-media-optimizer
 
 **🎨 Works with any theme** - Flux Media Optimizer integrates seamlessly with WordPress's image system, so it works with any theme without modifications.
 

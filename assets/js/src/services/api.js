@@ -1,12 +1,12 @@
 /**
- * API service for Flux Media WordPress plugin using WordPress apiFetch
+ * API service for Flux Media Optimizer WordPress plugin using WordPress apiFetch
  */
 
 import apiFetch from '@wordpress/api-fetch';
 
 class ApiService {
   constructor() {
-    this.namespace = 'flux-media/v1';
+    this.namespace = 'flux-media-optimizer/v1';
     
     // Configure apiFetch with proper API root
     const apiRoot = window.fluxMediaAdmin?.apiUrl || '/wp-json/';
@@ -23,7 +23,7 @@ class ApiService {
    */
   async request(endpoint, options = {}) {
     const defaultOptions = {
-      path: `/${this.namespace}${endpoint}`,
+      path: endpoint,
       method: 'GET',
       headers: {
         'X-WP-Nonce': window.fluxMediaAdmin?.nonce || '',
@@ -44,7 +44,6 @@ class ApiService {
       endpoint,
       path: mergedOptions.path,
       method: mergedOptions.method,
-      fullPath: `/${this.namespace}${endpoint}`,
       apiRoot: window.fluxMediaAdmin?.apiUrl,
       nonce: window.fluxMediaAdmin?.nonce,
       headers: mergedOptions.headers,
@@ -80,7 +79,7 @@ class ApiService {
 
   // System endpoints
   async getSystemStatus() {
-    return this.request('/system/status');
+    return this.request('/status');
   }
 
   // Conversion endpoints
@@ -100,14 +99,6 @@ class ApiService {
     return this.request(`/conversions/recent?limit=${limit}`);
   }
 
-  // Quota endpoints
-  async getQuotaProgress() {
-    return this.request('/quota/progress');
-  }
-
-  async getPlanInfo() {
-    return this.request('/quota/plan');
-  }
 
   // Options endpoints
   async getOptions() {
@@ -117,7 +108,7 @@ class ApiService {
   async updateOptions(options) {
     return this.request('/options', {
       method: 'POST',
-      body: JSON.stringify(options),
+      body: JSON.stringify({ options }),
     });
   }
 
@@ -152,12 +143,15 @@ class ApiService {
   }
 
   // Logs
-  async getLogs(level, limit = 100) {
-    const params = new URLSearchParams();
-    if (level) params.append('level', level);
-    params.append('limit', limit.toString());
+  async getLogs(params = {}) {
+    const queryParams = new URLSearchParams();
     
-    return this.request(`/logs?${params.toString()}`);
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.per_page) queryParams.append('per_page', params.per_page.toString());
+    if (params.level) queryParams.append('level', params.level);
+    if (params.search) queryParams.append('search', params.search);
+    
+    return this.request(`/logs?${queryParams.toString()}`);
   }
 
   // Cleanup operations

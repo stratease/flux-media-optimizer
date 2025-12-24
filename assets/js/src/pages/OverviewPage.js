@@ -1,35 +1,113 @@
 import React from 'react';
-import { Typography, Box, Grid } from '@mui/material';
+import { Grid, Typography, Box } from '@mui/material';
 import { __ } from '@wordpress/i18n';
-import { SystemStatusContainer, QuotaProgressContainer } from '@flux-media/components';
+import { ImageStatusCard, VideoStatusCard, PHPConfigurationCard } from '@flux-media-optimizer/components';
+import { useSystemStatus } from '@flux-media-optimizer/hooks/useSystemStatus';
+import { useConversions } from '@flux-media-optimizer/hooks/useConversions';
 
 /**
- * Overview page component
+ * Overview page component showing system status and conversion statistics.
+ *
+ * @since 0.1.0
  */
 const OverviewPage = () => {
+  const { data: systemStatus, isLoading: systemLoading } = useSystemStatus();
+  const { data: conversionsData, isLoading: conversionsLoading } = useConversions();
+
+  const getSavingsStats = () => {
+    if (!conversionsData) return null;
+    
+    const { total_original_bytes, total_converted_bytes, total_savings_bytes, total_savings_percentage } = conversionsData;
+    
+    return {
+      originalSize: total_original_bytes,
+      convertedSize: total_converted_bytes,
+      savings: total_savings_bytes,
+      percentage: total_savings_percentage
+    };
+  };
+
+
   return (
     <Box>
       <Grid container spacing={3}>
-        {/* System Status */}
-        <Grid item xs={12}>
-          <SystemStatusContainer />
+        <Grid item xs={12} md={6}>
+          <ImageStatusCard 
+            status={systemStatus} 
+            loading={systemLoading}
+          />
         </Grid>
+        
+        <Grid item xs={12} md={6}>
+          <VideoStatusCard 
+            status={systemStatus} 
+            loading={systemLoading}
+          />
+        </Grid>
+        <Grid item xs={12} md={6}>
+          {/* PHP Configuration Section */}   
+          <PHPConfigurationCard 
+            status={systemStatus} 
+            loading={systemLoading}
+          />
+        </Grid>
+      </Grid>   
 
-        {/* Quota Progress */}
-        <Grid item xs={12}>
-          <QuotaProgressContainer />
-        </Grid>
+      {/* Conversion Savings Section - without Paper wrapper */}
+      {!conversionsLoading && getSavingsStats() && (
+        <Box sx={{ mt: 4 }}>
+          <Typography variant="h5" component="h2" gutterBottom>
+            {__('Conversion Savings', 'flux-media-optimizer')}
+          </Typography>
+          
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ textAlign: 'center', p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                <Typography variant="h6" color="primary">
+                  {getSavingsStats().percentage}%
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {__('Space Saved', 'flux-media-optimizer')}
+                </Typography>
+              </Box>
+            </Grid>
+            
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ textAlign: 'center', p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                <Typography variant="h6">
+                  {getSavingsStats().originalSize ? (getSavingsStats().originalSize / 1024 / 1024).toFixed(1) + ' MB' : '0 MB'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {__('Original Size', 'flux-media-optimizer')}
+                </Typography>
+              </Box>
+            </Grid>
+            
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ textAlign: 'center', p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                <Typography variant="h6">
+                  {getSavingsStats().convertedSize ? (getSavingsStats().convertedSize / 1024 / 1024).toFixed(1) + ' MB' : '0 MB'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {__('Converted Size', 'flux-media-optimizer')}
+                </Typography>
+              </Box>
+            </Grid>
+            
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ textAlign: 'center', p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                <Typography variant="h6" color="success.main">
+                  {getSavingsStats().savings ? (getSavingsStats().savings / 1024 / 1024).toFixed(1) + ' MB' : '0 MB'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {__('Total Savings', 'flux-media-optimizer')}
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+        </Box>
+      )}
 
-        {/* Conversion Statistics */}
-        <Grid item xs={12}>
-          <Typography variant="h4" gutterBottom>
-            {__('Conversion Statistics', 'flux-media')}
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            {__('Conversion statistics will be displayed here.', 'flux-media')}
-          </Typography>
-        </Grid>
-      </Grid>
     </Box>
   );
 };

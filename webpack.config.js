@@ -4,6 +4,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 module.exports = {
   entry: {
     admin: './assets/js/src/admin/index.js',
+    attachment: './assets/js/src/admin/attachment.js',
   },
   output: {
     path: path.resolve(__dirname, 'assets/js/dist'),
@@ -13,14 +14,17 @@ module.exports = {
   resolve: {
     extensions: ['.js'],
     alias: {
-      '@flux-media': path.resolve(__dirname, 'assets/js/src'),
+      '@flux-media-optimizer': path.resolve(__dirname, 'assets/js/src'),
     },
   },
   module: {
     rules: [
       {
         test: /\.js$/,
-        exclude: /node_modules/,
+        exclude: [
+          /node_modules/,
+          path.resolve(__dirname, 'assets/js/src/admin/attachment.js'),
+        ],
         use: {
           loader: 'babel-loader',
           options: {
@@ -31,7 +35,31 @@ module.exports = {
                 {
                   root: ['./assets/js/src'],
                   alias: {
-                    '@flux-media': './assets/js/src',
+                    '@flux-media-optimizer': './assets/js/src',
+                  },
+                },
+              ],
+            ],
+          },
+        },
+      },
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        include: [
+          path.resolve(__dirname, 'assets/js/src/admin/attachment.js'),
+        ],
+        use: {
+          loader: 'babel-loader',
+          options: {
+            presets: ['@babel/preset-env'],
+            plugins: [
+              [
+                'module-resolver',
+                {
+                  root: ['./assets/js/src'],
+                  alias: {
+                    '@flux-media-optimizer': './assets/js/src',
                   },
                 },
               ],

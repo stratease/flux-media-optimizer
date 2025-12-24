@@ -5,11 +5,11 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Box, Typography, Container, Tabs, Tab, Paper, Grid } from '@mui/material';
 import { __ } from '@wordpress/i18n';
-import { ErrorBoundary, FluxMediaIcon } from '@flux-media/components';
-import OverviewPage from '@flux-media/pages/OverviewPage';
-import SettingsPage from '@flux-media/pages/SettingsPage';
-import theme from '@flux-media/theme';
-import { AutoSaveProvider } from '@flux-media/contexts/AutoSaveContext';
+import { ErrorBoundary, FluxMediaIcon, LogsPage } from '@flux-media-optimizer/components';
+import OverviewPage from '@flux-media-optimizer/pages/OverviewPage';
+import SettingsPage from '@flux-media-optimizer/pages/SettingsPage';
+import theme from '@flux-media-optimizer/theme';
+import { AutoSaveProvider } from '@flux-media-optimizer/contexts/AutoSaveContext';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -35,37 +35,38 @@ const Navigation = () => {
         return 0;
       case '/settings':
         return 1;
+      case '/logs':
+        return 2;
       default:
         return 0;
     }
   };
 
   const handleTabChange = (event, newValue) => {
-    const paths = ['/overview', '/settings'];
+    const paths = ['/overview', '/settings', '/logs'];
     navigate(paths[newValue]);
   };
 
   return (
     <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
       <Grid container alignItems="center" sx={{ mb: 2 }}>
-        <Grid item>
+        <Grid item sx={{ display: 'flex', alignItems: 'center' }}>
           <FluxMediaIcon size={40} sx={{ mr: 2 }} />
-        </Grid>
-        <Grid item>
-          <Typography variant="h4" component="h1">
-            {__('Flux Media', 'flux-media')}
+          <Typography variant="h4" component="h1" sx={{ m: 0, lineHeight: 1 }}>
+            {__('Flux Media Optimizer', 'flux-media-optimizer')}
           </Typography>
         </Grid>
       </Grid>
       <Tabs
         value={getTabValue(location.pathname)}
         onChange={handleTabChange}
-        aria-label={__('Flux Media navigation tabs', 'flux-media')}
+        aria-label={__('Flux Media Optimizer navigation tabs', 'flux-media-optimizer')}
         textColor="primary"
         indicatorColor="primary"
       >
-        <Tab label={__('Overview', 'flux-media')} />
-        <Tab label={__('Settings', 'flux-media')} />
+        <Tab label={__('Overview', 'flux-media-optimizer')} />
+        <Tab label={__('Settings', 'flux-media-optimizer')} />
+        <Tab label={__('Logs', 'flux-media-optimizer')} />
       </Tabs>
     </Box>
   );
@@ -77,7 +78,7 @@ const Navigation = () => {
 const App = () => {
   // Handle initial route from WordPress admin menu
   React.useEffect(() => {
-    const container = document.getElementById('flux-media-app');
+    const container = document.getElementById('flux-media-optimizer-app');
     const initialHash = container?.dataset.initialHash;
     
     if (initialHash) {
@@ -102,6 +103,7 @@ const App = () => {
                   <Routes>
                     <Route path="/overview" element={<OverviewPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/logs" element={<LogsPage />} />
                     <Route path="/" element={<Navigate to="/overview" replace />} />
                   </Routes>
                 </Paper>

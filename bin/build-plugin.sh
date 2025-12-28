@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Build script for Flux Media Optimizer WordPress plugin
-# Builds production files and syncs to wporg/trunk/ for WordPress.org deployment
+# Builds production files directly into wporg/trunk/ (SVN repo root)
 # Use deploy-plugin.sh to commit and tag releases in SVN
 
 set -e
@@ -178,12 +178,8 @@ if [[ "$CONFIRM_BUILD" =~ ^[Nn]$ ]]; then
 fi
 echo ""
 
-# Create build directory
-BUILD_DIR="$PLUGIN_DIR"
-mkdir -p "$BUILD_DIR"
-
 # Create zip file name with version
-ZIP_FILE="$BUILD_DIR/${PLUGIN_NAME}-v${VERSION}.zip"
+ZIP_FILE="$PLUGIN_DIR/${PLUGIN_NAME}-v${VERSION}.zip"
 
 # Remove existing zip if it exists
 if [ -f "$ZIP_FILE" ]; then
@@ -194,6 +190,27 @@ fi
 # Change to plugin directory
 cd "$PLUGIN_DIR"
 
+# Check if SVN is available (needed for checkout)
+if ! command -v svn &> /dev/null; then
+    echo "⚠️  Warning: SVN is not installed. Build will proceed but deploy will require SVN."
+fi
+
+# Setup SVN repo structure
+WPORG_DIR="$PLUGIN_DIR/wporg"
+SVN_REPO_URL="https://plugins.svn.wordpress.org/$PLUGIN_NAME"
+TRUNK_DIR="$WPORG_DIR/trunk"
+
+# Check if SVN repo is checked out, if not, do a shallow checkout
+if [ ! -d "$WPORG_DIR/.svn" ]; then
+    echo "📦 SVN repository not found. Checking out..."
+    echo "   This may take a few moments..."
+    mkdir -p "$WPORG_DIR"
+    svn checkout "$SVN_REPO_URL" "$WPORG_DIR" --depth immediates
+    svn update "$TRUNK_DIR" --set-depth infinity
+    echo "✅ SVN repository checked out."
+    echo ""
+fi
+
 # Install production-only dependencies
 echo "🔧 Installing production-only dependencies..."
 composer install --ignore-platform-reqs --no-dev --optimize-autoloader --no-interaction
@@ -202,72 +219,48 @@ composer install --ignore-platform-reqs --no-dev --optimize-autoloader --no-inte
 echo "🏗️ Building frontend assets..."
 npm run build
 
-# Create wporg directory structure for SVN trunk (single source of truth)
-WPORG_DIR="$PLUGIN_DIR/wporg"
-TRUNK_DIR="$WPORG_DIR/trunk"
+# Build directly into wporg/trunk/ (SVN trunk)
 echo ""
-echo "📦 Syncing files to WordPress.org trunk (single source of truth)..."
+echo "📦 Building files directly into SVN trunk (single source of truth)..."
 
-# Create trunk directory and clean it
+# Ensure trunk directory exists
 mkdir -p "$TRUNK_DIR"
-rm -rf "$TRUNK_DIR"/*
-rm -rf "$TRUNK_DIR"/.[!.]* 2>/dev/null || true
+
+# Remove existing files in trunk (but preserve .svn directory)
+find "$TRUNK_DIR" -mindepth 1 ! -path '*/.svn*' -delete 2>/dev/null || true
 
 # Copy files to trunk with exclusions (single set of exclusions)
 echo "📋 Copying plugin files to trunk (excluding development files)..."
-
-    rsync -av \
-        --exclude='bin' \
-        --exclude='node_modules' \
-        --exclude='.git' \
-        --exclude='.vscode' \
-        --exclude='tests' \
-        --exclude='.htaccess' \
-        --exclude='.git*' \
-        --exclude='.phpunit*' \
-        --exclude='*.zip' \
-        --exclude='*.log' \
-        --exclude='*.xml' \
-        --exclude='*.lock' \
-        --exclude='.gitignore' \
-        --exclude='package.json' \
-        --exclude='package-lock.json' \
-        --exclude='webpack.config.js' \
-        --exclude='.DS_Store' \
-        --exclude='Thumbs.db' \
-        --exclude='*.phar' \
-        --exclude='phpunit.xml' \
-        --exclude='vendor-prefixed/plugins' \
-        --exclude='wporg' \
-        "$PLUGIN_DIR/" "$TRUNK_DIR/"
-
+rsync -av \
+    --exclude='bin' \
+    --exclude='node_modules' \
+    --exclude='.git' \
+    --exclude='.vscode' \
+    --exclude='tests' \
+    --exclude='.htaccess' \
+    --exclude='.git*' \
+    --exclude='.phpunit*' \
+    --exclude='*.zip' \
+    --exclude='*.log' \
+    --exclude='*.xml' \
+    --exclude='*.lock' \
+    --exclude='.gitignore' \
+    --exclude='package.json' \
+    --exclude='package-lock.json' \
+    --exclude='webpack.config.js' \
+    --exclude='.DS_Store' \
+    --exclude='Thumbs.db' \
+    --exclude='*.phar' \
+    --exclude='phpunit.xml' \
+    --exclude='vendor-prefixed/plugins' \
+    --exclude='wporg' \
+    "$PLUGIN_DIR/" "$TRUNK_DIR/"
 
 # Create zip file FROM trunk (ensures zip matches trunk exactly)
+# Only exclude .svn since all other files were already filtered by rsync
 echo "📦 Creating plugin zip file from trunk..."
 cd "$TRUNK_DIR"
-zip -r "$ZIP_FILE" . \
-    -x "bin/*" \
-    -x "node_modules/*" \
-    -x ".git/*" \
-    -x ".vscode/*" \
-    -x "tests/*" \
-    -x ".htaccess" \
-    -x ".git*" \
-    -x ".phpunit*" \
-    -x "*.zip" \
-    -x "*.log" \
-    -x "*.xml" \
-    -x "*.lock" \
-    -x ".gitignore" \
-    -x "package.json" \
-    -x "package-lock.json" \
-    -x "webpack.config.js" \
-    -x ".DS_Store" \
-    -x "Thumbs.db" \
-    -x "*.phar" \
-    -x "phpunit.xml" \
-    -x "vendor-prefixed/plugins/*" \
-    -x "wporg/*"
+zip -r "$ZIP_FILE" . -x ".svn/*"
 
 # Return to plugin directory for cleanup
 cd "$PLUGIN_DIR"
@@ -290,6 +283,7 @@ echo "🏷️  Version: $VERSION"
 echo ""
 echo "📝 Next Step:"
 echo "   Run ./bin/deploy-plugin.sh to commit and tag this version in SVN"
+echo "   Files are ready in: $TRUNK_DIR"
 echo ""
 
 # Output git tag command if version was bumped (at end so it doesn't get lost)

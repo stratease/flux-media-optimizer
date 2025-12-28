@@ -3,15 +3,16 @@
 # Deploy script for Flux Media Optimizer WordPress plugin
 # Commits trunk to SVN and creates version tags
 # Requires: wporg/trunk/ to be built first using build-plugin.sh
+# Note: wporg/ is the SVN repo root directory
 
 set -e
 
 # Get the plugin directory (parent of bin directory)
 PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PLUGIN_NAME="flux-media-optimizer"
-TRUNK_DIR="$PLUGIN_DIR/wporg/trunk"
-SVN_REPO_URL="https://plugins.svn.wordpress.org/$PLUGIN_NAME"
 WPORG_DIR="$PLUGIN_DIR/wporg"
+TRUNK_DIR="$WPORG_DIR/trunk"
+SVN_REPO_URL="https://plugins.svn.wordpress.org/$PLUGIN_NAME"
 
 # Function to extract version from plugin file header
 extract_plugin_header_version() {
@@ -77,21 +78,16 @@ if ! command -v svn &> /dev/null; then
     exit 1
 fi
 
-# Check if SVN repo is checked out
-SVN_DIR="$WPORG_DIR/svn"
-if [ ! -d "$SVN_DIR/.svn" ]; then
-    echo "📦 SVN repository not found. Checking out..."
-    echo "   This may take a few moments..."
-    mkdir -p "$SVN_DIR"
-    svn checkout "$SVN_REPO_URL" "$SVN_DIR" --depth immediates
-    svn update "$SVN_DIR/trunk" --set-depth infinity
-    echo "✅ SVN repository checked out."
-    echo ""
+# Check if SVN repo is checked out (wporg/ is the SVN repo root)
+if [ ! -d "$WPORG_DIR/.svn" ]; then
+    echo "❌ Error: SVN repository not found: $WPORG_DIR"
+    echo "   Please run ./bin/build-plugin.sh first to build and checkout the SVN repository."
+    exit 1
 fi
 
 # Update SVN repository
 echo "🔄 Updating SVN repository..."
-cd "$SVN_DIR"
+cd "$WPORG_DIR"
 svn update
 
 # Display deployment options
@@ -100,8 +96,8 @@ echo "🚀 Deployment Options:"
 echo "   1) Update trunk only (for development/continuous updates)"
 echo "   2) Create/update tag: $TRUNK_VERSION (for versioned release)"
 echo "   3) Both: Update trunk and create tag"
-read -p "   Select option (1, 2, or 3, default: 2): " DEPLOY_OPTION
-DEPLOY_OPTION="${DEPLOY_OPTION:-2}"
+read -p "   Select option (1, 2, or 3, default: 3): " DEPLOY_OPTION
+DEPLOY_OPTION="${DEPLOY_OPTION:-3}"
 
 if [[ ! "$DEPLOY_OPTION" =~ ^[123]$ ]]; then
     echo "❌ Invalid option. Must be 1, 2, or 3."
@@ -120,10 +116,13 @@ if ! validate_version "$TRUNK_VERSION"; then
 fi
 
 # Check if tag already exists
-TAG_DIR="$SVN_DIR/tags/$TRUNK_VERSION"
+TAG_DIR="tags/$TRUNK_VERSION"
 TAG_EXISTS=false
+cd "$WPORG_DIR"
 if [ -d "$TAG_DIR" ] && svn info "$TAG_DIR" &> /dev/null; then
     TAG_EXISTS=true
+fi
+cd "$PLUGIN_DIR"
     if [[ "$DEPLOY_OPTION" == "2" || "$DEPLOY_OPTION" == "3" ]]; then
         echo ""
         echo "⚠️  Warning: Tag $TRUNK_VERSION already exists in SVN."
@@ -165,22 +164,13 @@ fi
 # Deploy to trunk
 if [[ "$DEPLOY_OPTION" == "1" || "$DEPLOY_OPTION" == "3" ]]; then
     echo ""
-    echo "📦 Updating trunk..."
+    echo "📦 Committing trunk changes..."
     
-    # Sync files from wporg/trunk to SVN trunk
-    if command -v rsync &> /dev/null; then
-        rsync -av --delete \
-            --exclude='.svn' \
-            "$TRUNK_DIR/" "$SVN_DIR/trunk/"
-    else
-        # Fallback: remove all and copy fresh
-        find "$SVN_DIR/trunk" -mindepth 1 ! -path '*/.svn*' -delete 2>/dev/null || true
-        cp -r "$TRUNK_DIR"/* "$SVN_DIR/trunk/" 2>/dev/null || true
-        find "$TRUNK_DIR" -maxdepth 1 -name '.*' ! -name '.' ! -name '..' -exec cp -r {} "$SVN_DIR/trunk/" \; 2>/dev/null || true
-    fi
+    # Files are already in wporg/trunk/ from build script
+    # Just need to add/remove files and commit
+    cd "$TRUNK_DIR"
     
     # Add new files to SVN
-    cd "$SVN_DIR/trunk"
     svn add --force . 2>/dev/null || true
     
     # Remove deleted files from SVN
@@ -208,6 +198,11 @@ if [[ "$DEPLOY_OPTION" == "2" || "$DEPLOY_OPTION" == "3" ]]; then
     echo ""
     echo "🏷️  Creating/updating tag: $TRUNK_VERSION"
     
+    # Change to SVN repo root
+    cd "$WPORG_DIR"
+    
+    TAG_DIR="tags/$TRUNK_VERSION"
+    
     if [ "$TAG_EXISTS" = true ]; then
         # Remove existing tag directory
         svn rm "$TAG_DIR" -m "Remove existing tag $TRUNK_VERSION for update"
@@ -215,7 +210,7 @@ if [[ "$DEPLOY_OPTION" == "2" || "$DEPLOY_OPTION" == "3" ]]; then
     
     # Copy trunk to tag
     echo "   Copying trunk to tags/$TRUNK_VERSION..."
-    svn cp "$SVN_DIR/trunk" "$TAG_DIR" -m "Tag version $TRUNK_VERSION"
+    svn cp trunk "$TAG_DIR" -m "Tag version $TRUNK_VERSION"
     
     echo "   ✅ Tag created successfully!"
     echo ""
@@ -226,7 +221,7 @@ echo ""
 echo "✅ Deployment completed successfully!"
 echo ""
 echo "📝 Next Steps:"
-echo "   - Review the changes in: $SVN_DIR"
+echo "   - Review the changes in: $WPORG_DIR"
 echo "   - The plugin will be available on WordPress.org after SVN sync (usually within minutes)"
 if [[ "$DEPLOY_OPTION" == "2" || "$DEPLOY_OPTION" == "3" ]]; then
     echo "   - Tag URL: $SVN_REPO_URL/tags/$TRUNK_VERSION/"

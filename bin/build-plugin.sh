@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Build script for Flux Media Optimizer WordPress plugin
-# Creates a zip file excluding development files and directories
+# Builds production files and syncs to wporg/trunk/ for WordPress.org deployment
+# Use deploy-plugin.sh to commit and tag releases in SVN
 
 set -e
 
@@ -169,6 +170,7 @@ echo ""
 echo "🚀 Build Configuration:"
 echo "   Version: $VERSION"
 echo "   Output: ${PLUGIN_NAME}-v${VERSION}.zip"
+echo "   SVN Trunk: wporg/trunk/"
 read -p "   Proceed with build? (Y/n): " CONFIRM_BUILD
 if [[ "$CONFIRM_BUILD" =~ ^[Nn]$ ]]; then
     echo "❌ Build cancelled."
@@ -180,7 +182,7 @@ echo ""
 BUILD_DIR="$PLUGIN_DIR"
 mkdir -p "$BUILD_DIR"
 
-# Create zip file name with version (no quotes)
+# Create zip file name with version
 ZIP_FILE="$BUILD_DIR/${PLUGIN_NAME}-v${VERSION}.zip"
 
 # Remove existing zip if it exists
@@ -200,59 +202,94 @@ composer install --ignore-platform-reqs --no-dev --optimize-autoloader --no-inte
 echo "🏗️ Building frontend assets..."
 npm run build
 
-# Create temporary directory for WordPress.org structure
-TEMP_BUILD_DIR="/tmp/flux-media-optimizer-build-$$"
-mkdir -p "$TEMP_BUILD_DIR/$PLUGIN_NAME"
+# Create wporg directory structure for SVN trunk (single source of truth)
+WPORG_DIR="$PLUGIN_DIR/wporg"
+TRUNK_DIR="$WPORG_DIR/trunk"
+echo ""
+echo "📦 Syncing files to WordPress.org trunk (single source of truth)..."
 
-# Copy all files to temp directory with proper structure
-echo "📦 Creating WordPress.org compatible structure..."
-cp -r . "$TEMP_BUILD_DIR/$PLUGIN_NAME/"
+# Create trunk directory and clean it
+mkdir -p "$TRUNK_DIR"
+rm -rf "$TRUNK_DIR"/*
+rm -rf "$TRUNK_DIR"/.[!.]* 2>/dev/null || true
 
-# Change to temp directory
-cd "$TEMP_BUILD_DIR"
+# Copy files to trunk with exclusions (single set of exclusions)
+echo "📋 Copying plugin files to trunk (excluding development files)..."
 
-# Create zip with proper WordPress.org structure
-echo "📦 Creating plugin zip file..."
-zip -r "$ZIP_FILE" "$PLUGIN_NAME/" \
-    -x "$PLUGIN_NAME/bin/*" \
-    -x "$PLUGIN_NAME/node_modules/*" \
-    -x "$PLUGIN_NAME/.git/*" \
-    -x "$PLUGIN_NAME/.vscode/*" \
-    -x "$PLUGIN_NAME/tests/*" \
-    -x "$PLUGIN_NAME/.htaccess" \
-    -x "$PLUGIN_NAME/.git*" \
-    -x "$PLUGIN_NAME/.phpunit*" \
-    -x "$PLUGIN_NAME/*.zip" \
-    -x "$PLUGIN_NAME/*.log" \
-    -x "$PLUGIN_NAME/*.xml" \
-    -x "$PLUGIN_NAME/*.lock" \
-    -x "$PLUGIN_NAME/.gitignore" \
-    -x "$PLUGIN_NAME/package.json" \
-    -x "$PLUGIN_NAME/package-lock.json" \
-    -x "$PLUGIN_NAME/webpack.config.js" \
-    -x "$PLUGIN_NAME/*.log" \
-    -x "$PLUGIN_NAME/.DS_Store" \
-    -x "$PLUGIN_NAME/Thumbs.db" \
-    -x "$PLUGIN_NAME/*.phar" \
-    -x "$PLUGIN_NAME/phpunit.xml" \
-    -x "$PLUGIN_NAME/vendor-prefixed/plugins/*"
+    rsync -av \
+        --exclude='bin' \
+        --exclude='node_modules' \
+        --exclude='.git' \
+        --exclude='.vscode' \
+        --exclude='tests' \
+        --exclude='.htaccess' \
+        --exclude='.git*' \
+        --exclude='.phpunit*' \
+        --exclude='*.zip' \
+        --exclude='*.log' \
+        --exclude='*.xml' \
+        --exclude='*.lock' \
+        --exclude='.gitignore' \
+        --exclude='package.json' \
+        --exclude='package-lock.json' \
+        --exclude='webpack.config.js' \
+        --exclude='.DS_Store' \
+        --exclude='Thumbs.db' \
+        --exclude='*.phar' \
+        --exclude='phpunit.xml' \
+        --exclude='vendor-prefixed/plugins' \
+        --exclude='wporg' \
+        "$PLUGIN_DIR/" "$TRUNK_DIR/"
 
-# Clean up temp directory
-rm -rf "$TEMP_BUILD_DIR"
+
+# Create zip file FROM trunk (ensures zip matches trunk exactly)
+echo "📦 Creating plugin zip file from trunk..."
+cd "$TRUNK_DIR"
+zip -r "$ZIP_FILE" . \
+    -x "bin/*" \
+    -x "node_modules/*" \
+    -x ".git/*" \
+    -x ".vscode/*" \
+    -x "tests/*" \
+    -x ".htaccess" \
+    -x ".git*" \
+    -x ".phpunit*" \
+    -x "*.zip" \
+    -x "*.log" \
+    -x "*.xml" \
+    -x "*.lock" \
+    -x ".gitignore" \
+    -x "package.json" \
+    -x "package-lock.json" \
+    -x "webpack.config.js" \
+    -x ".DS_Store" \
+    -x "Thumbs.db" \
+    -x "*.phar" \
+    -x "phpunit.xml" \
+    -x "vendor-prefixed/plugins/*" \
+    -x "wporg/*"
 
 # Return to plugin directory for cleanup
 cd "$PLUGIN_DIR"
 
 # Restore full development environment
 echo "🔄 Restoring development environment..."
-
 composer install --ignore-platform-reqs --optimize-autoloader --no-interaction
+
+# Calculate sizes
+ZIP_SIZE=$(du -h "$ZIP_FILE" | cut -f1)
+TRUNK_SIZE=$(du -sh "$TRUNK_DIR" | cut -f1)
 
 echo ""
 echo "✅ Plugin built successfully!"
-echo "📦 File: $ZIP_FILE"
-echo "📏 Size: $(du -h "$ZIP_FILE" | cut -f1)"
+echo "📦 Zip File: $ZIP_FILE"
+echo "📏 Zip Size: $ZIP_SIZE"
+echo "📦 SVN Trunk: $TRUNK_DIR"
+echo "📏 Trunk Size: $TRUNK_SIZE"
 echo "🏷️  Version: $VERSION"
+echo ""
+echo "📝 Next Step:"
+echo "   Run ./bin/deploy-plugin.sh to commit and tag this version in SVN"
 echo ""
 
 # Output git tag command if version was bumped (at end so it doesn't get lost)

@@ -114,18 +114,20 @@ fi
 TAG_DIR="tags/$TRUNK_VERSION"
 TAG_EXISTS=false
 cd "$WPORG_DIR"
-if [ -d "$TAG_DIR" ] && svn info "$TAG_DIR" &> /dev/null; then
+# Check if tag exists in SVN (must check via SVN, not just local directory)
+if svn info "$TAG_DIR" &> /dev/null; then
     TAG_EXISTS=true
 fi
 cd "$PLUGIN_DIR"
-    if [[ "$DEPLOY_OPTION" == "2" || "$DEPLOY_OPTION" == "3" ]]; then
-        echo ""
-        echo "⚠️  Warning: Tag $TRUNK_VERSION already exists in SVN."
-        read -p "   Overwrite existing tag? (y/N): " OVERWRITE_TAG
-        if [[ ! "$OVERWRITE_TAG" =~ ^[Yy]$ ]]; then
-            echo "❌ Deployment cancelled."
-            exit 1
-        fi
+
+# Only show warning if tag actually exists and we're creating/updating a tag
+if [ "$TAG_EXISTS" = true ] && [[ "$DEPLOY_OPTION" == "2" || "$DEPLOY_OPTION" == "3" ]]; then
+    echo ""
+    echo "⚠️  Warning: Tag $TRUNK_VERSION already exists in SVN."
+    read -p "   Overwrite existing tag? (y/N): " OVERWRITE_TAG
+    if [[ ! "$OVERWRITE_TAG" =~ ^[Yy]$ ]]; then
+        echo "❌ Deployment cancelled."
+        exit 1
     fi
 fi
 

@@ -196,23 +196,38 @@ if [[ "$DEPLOY_OPTION" == "2" || "$DEPLOY_OPTION" == "3" ]]; then
     echo ""
     echo "🏷️  Creating/updating tag: $TRUNK_VERSION"
     
-    # Change to SVN repo root
-    cd "$WPORG_DIR"
-    
     TAG_DIR="tags/$TRUNK_VERSION"
+    TRUNK_URL="$SVN_REPO_URL/trunk"
+    TAG_URL="$SVN_REPO_URL/$TAG_DIR"
     
-    if [ "$TAG_EXISTS" = true ]; then
-        # Remove existing tag directory
-        svn rm "$TAG_DIR" -m "Remove existing tag $TRUNK_VERSION for update"
+    # Use URL-based copy (recommended for WordPress.org SVN)
+    # This performs a server-side copy and commit, which is more reliable
+    echo "   Copying trunk to tags/$TRUNK_VERSION (server-side copy)..."
+    if svn cp "$TRUNK_URL" "$TAG_URL" -m "Tag version $TRUNK_VERSION"; then
+        echo "   ✅ Tag created successfully in SVN!"
+        echo ""
+        echo "   Tag URL: $TAG_URL"
+        
+        # Update working copy to reflect the new tag (optional, for local visibility)
+        cd "$WPORG_DIR"
+        if [ -d "tags" ]; then
+            echo "   Updating local tags directory..."
+            svn update tags 2>/dev/null || true
+        fi
+        cd "$PLUGIN_DIR"
+    else
+        echo "   ❌ Error: Failed to create tag in SVN."
+        echo "   This may be due to:"
+        echo "   - Authentication issues (check SVN credentials)"
+        echo "   - Network connectivity problems"
+        echo "   - Insufficient permissions"
+        echo ""
+        echo "   Please verify:"
+        echo "   1. SVN credentials are configured (svn auth or ~/.subversion/auth)"
+        echo "   2. You have commit access to the repository"
+        echo "   3. The tag doesn't already exist (or was properly removed)"
+        exit 1
     fi
-    
-    # Copy trunk to tag
-    echo "   Copying trunk to tags/$TRUNK_VERSION..."
-    svn cp trunk "$TAG_DIR" -m "Tag version $TRUNK_VERSION"
-    
-    echo "   ✅ Tag created successfully!"
-    echo ""
-    echo "   Tag URL: $SVN_REPO_URL/tags/$TRUNK_VERSION/"
 fi
 
 echo ""

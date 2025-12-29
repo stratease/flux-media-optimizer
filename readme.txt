@@ -2,9 +2,9 @@
 Contributors: edaniels
 Tags: image optimization, video compression, webp, avif, flux plugins
 Requires at least: 6.2
-Tested up to: 6.8
+Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.0.6
+Stable tag: 2.0.7
 License: GPL-2.0+
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -51,7 +51,7 @@ Yes! Flux Media Optimizer can bulk process all your existing images and videos. 
 
 = How much space will I save? =
 
-Most users see 50-70% reduction in image file sizes and significant savings on videos. The exact savings depend on your original media.
+Currently the original files are still stored on your system for fallback, so there is no storage benefit. It will optimize page load speeds and reduce the download size for your webpages.
 
 = What if my server doesn't support WebP or AVIF? =
 

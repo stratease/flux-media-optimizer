@@ -85,11 +85,6 @@ if [ ! -d "$WPORG_DIR/.svn" ]; then
     exit 1
 fi
 
-# Update SVN repository
-echo "🔄 Updating SVN repository..."
-cd "$WPORG_DIR"
-svn update
-
 # Display deployment options
 echo ""
 echo "🚀 Deployment Options:"
@@ -167,26 +162,27 @@ if [[ "$DEPLOY_OPTION" == "1" || "$DEPLOY_OPTION" == "3" ]]; then
     echo "📦 Committing trunk changes..."
     
     # Files are already in wporg/trunk/ from build script
-    # Just need to add/remove files and commit
-    cd "$TRUNK_DIR"
+    # Perform SVN operations from repo root to properly track all files including assets/
+    cd "$WPORG_DIR"
     
-    # Add new files to SVN
-    svn add --force . 2>/dev/null || true
+    # Add new files to SVN (from repo root, specify trunk path)
+    svn add --force trunk 2>/dev/null || true
     
     # Remove deleted files from SVN
-    svn status | grep '^!' | awk '{print $2}' | xargs svn rm 2>/dev/null || true
+    svn status trunk | grep '^!' | awk '{print $2}' | xargs svn rm 2>/dev/null || true
     
-    # Show status
+    # Show status (filter to show only trunk changes)
     echo "   SVN Status:"
-    svn status | head -20
-    if [ $(svn status | wc -l) -gt 20 ]; then
+    svn status trunk | head -20
+    STATUS_COUNT=$(svn status trunk | wc -l)
+    if [ "$STATUS_COUNT" -gt 20 ]; then
         echo "   ... (showing first 20 changes)"
     fi
     
     echo ""
     read -p "   Commit trunk changes? (Y/n): " COMMIT_TRUNK
     if [[ ! "$COMMIT_TRUNK" =~ ^[Nn]$ ]]; then
-        svn commit -m "Update trunk to version $TRUNK_VERSION"
+        svn commit -m "Update trunk to version $TRUNK_VERSION" trunk
         echo "   ✅ Trunk updated successfully!"
     else
         echo "   ⚠️  Trunk changes not committed."

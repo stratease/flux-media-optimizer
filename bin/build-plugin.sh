@@ -258,9 +258,18 @@ rsync -av \
 
 # Create zip file FROM trunk (ensures zip matches trunk exactly)
 # Only exclude .svn since all other files were already filtered by rsync
+# Zip must contain plugin-name folder at root (WordPress.org requirement)
 echo "📦 Creating plugin zip file from trunk..."
-cd "$TRUNK_DIR"
-zip -r "$ZIP_FILE" . -x ".svn/*"
+# Create temporary directory with plugin name for zip structure
+TEMP_ZIP_DIR="/tmp/flux-media-optimizer-zip-$$"
+mkdir -p "$TEMP_ZIP_DIR/$PLUGIN_NAME"
+# Copy trunk contents to temp directory (excluding .svn)
+rsync -av --exclude='.svn' "$TRUNK_DIR/" "$TEMP_ZIP_DIR/$PLUGIN_NAME/"
+# Create zip from temp directory
+cd "$TEMP_ZIP_DIR"
+zip -r "$ZIP_FILE" "$PLUGIN_NAME/"
+# Clean up temp directory
+rm -rf "$TEMP_ZIP_DIR"
 
 # Return to plugin directory for cleanup
 cd "$PLUGIN_DIR"

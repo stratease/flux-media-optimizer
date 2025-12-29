@@ -4,8 +4,9 @@ One-click AVIF/WebP image optimization and video compression for WordPress. Auto
 
 **Source Code**: [https://github.com/stratease/flux-media-optimizer](https://github.com/stratease/flux-media-optimizer)
 
-## 🚀 Features
+## 🚀 Key Features
 
+<<<<<<< HEAD
 ### Image Optimization
 - **Hybrid Approach**: Creates both WebP and AVIF formats for optimal performance
 - **Smart Serving**: Uses `<picture>` tags or direct URL replacement based on settings
@@ -170,16 +171,17 @@ All endpoints are prefixed with `/wp-json/flux-media-optimizer/v1/`:
 - **Scalability**: Support for high-volume sites
 - **Monitoring**: Enhanced logging and monitoring
 - **Testing**: Comprehensive test coverage
+=======
+- **50-70% smaller file sizes** - Dramatically reduce image and video file sizes without quality loss
+- **Faster page loads** - Improve Core Web Vitals scores and user experience
+- **Automatic optimization** - Works seamlessly with your existing content and themes
+- **Zero configuration** - Set it and forget it - works out of the box
+- **Original files preserved** - Your original images and videos remain untouched as fallbacks
+>>>>>>> master
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for detailed information on:
-
-- Development setup and workflow
-- Coding standards and architecture patterns
-- Testing requirements
-- Pull request process
-- Security guidelines
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for development setup, coding standards, and architecture details.
 
 ## 📄 License
 
@@ -187,22 +189,17 @@ GPL-2.0+ - See [LICENSE](LICENSE) file for details.
 
 ## 🆘 Support
 
-### Documentation
-- [Contributing Guidelines](CONTRIBUTING.md) - Development and architecture details
-- Code comments explain implementation details
-- API documentation is embedded in endpoint methods
-
-### Troubleshooting
-- Check system requirements
-- Verify PHP extensions (GD/Imagick, FFmpeg)
-- Review error logs
-- Test with default WordPress theme
-
-### Contact
+- **Documentation**: See [Contributing Guidelines](CONTRIBUTING.md) for technical details
 - **Email**: eddie@fluxplugins.com
 - **Website**: https://fluxplugins.com
 - **GitHub**: https://github.com/stratease/flux-media-optimizer
 
----
+## 🔒 Privacy
 
+<<<<<<< HEAD
 **Note**: This plugin is designed for modern WordPress installations with proper server configuration. The architecture is built for scalability, maintainability, and future SaaS integration.
+=======
+All image and video processing happens locally on your server by default. Your media files never leave your WordPress installation unless you explicitly opt-in to external processing services.
+
+**Privacy Policy**: [https://fluxplugins.com/privacy-policy/](https://fluxplugins.com/privacy-policy/)
+>>>>>>> master

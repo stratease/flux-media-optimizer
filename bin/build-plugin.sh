@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Build script for Flux Media Optimizer WordPress plugin
-# Creates a zip file excluding development files and directories
+# Builds production files directly into wporg/trunk/ (SVN repo root)
+# Use deploy-plugin.sh to commit and tag releases in SVN
 
 set -e
 
@@ -169,6 +170,7 @@ echo ""
 echo "🚀 Build Configuration:"
 echo "   Version: $VERSION"
 echo "   Output: ${PLUGIN_NAME}-v${VERSION}.zip"
+echo "   SVN Trunk: wporg/trunk/"
 read -p "   Proceed with build? (Y/n): " CONFIRM_BUILD
 if [[ "$CONFIRM_BUILD" =~ ^[Nn]$ ]]; then
     echo "❌ Build cancelled."
@@ -176,12 +178,8 @@ if [[ "$CONFIRM_BUILD" =~ ^[Nn]$ ]]; then
 fi
 echo ""
 
-# Create build directory
-BUILD_DIR="$PLUGIN_DIR"
-mkdir -p "$BUILD_DIR"
-
-# Create zip file name with version (no quotes)
-ZIP_FILE="$BUILD_DIR/${PLUGIN_NAME}-v${VERSION}.zip"
+# Create zip file name with version
+ZIP_FILE="$PLUGIN_DIR/${PLUGIN_NAME}-v${VERSION}.zip"
 
 # Remove existing zip if it exists
 if [ -f "$ZIP_FILE" ]; then
@@ -192,6 +190,27 @@ fi
 # Change to plugin directory
 cd "$PLUGIN_DIR"
 
+# Check if SVN is available (needed for checkout)
+if ! command -v svn &> /dev/null; then
+    echo "⚠️  Warning: SVN is not installed. Build will proceed but deploy will require SVN."
+fi
+
+# Setup SVN repo structure
+WPORG_DIR="$PLUGIN_DIR/wporg"
+SVN_REPO_URL="https://plugins.svn.wordpress.org/$PLUGIN_NAME"
+TRUNK_DIR="$WPORG_DIR/trunk"
+
+# Check if SVN repo is checked out, if not, do a shallow checkout
+if [ ! -d "$WPORG_DIR/.svn" ]; then
+    echo "📦 SVN repository not found. Checking out..."
+    echo "   This may take a few moments..."
+    mkdir -p "$WPORG_DIR"
+    svn checkout "$SVN_REPO_URL" "$WPORG_DIR" --depth immediates
+    svn update "$TRUNK_DIR" --set-depth infinity
+    echo "✅ SVN repository checked out."
+    echo ""
+fi
+
 # Install production-only dependencies
 echo "🔧 Installing production-only dependencies..."
 composer install --ignore-platform-reqs --no-dev --optimize-autoloader --no-interaction
@@ -200,59 +219,80 @@ composer install --ignore-platform-reqs --no-dev --optimize-autoloader --no-inte
 echo "🏗️ Building frontend assets..."
 npm run build
 
-# Create temporary directory for WordPress.org structure
-TEMP_BUILD_DIR="/tmp/flux-media-optimizer-build-$$"
-mkdir -p "$TEMP_BUILD_DIR/$PLUGIN_NAME"
+# Build directly into wporg/trunk/ (SVN trunk)
+echo ""
+echo "📦 Building files directly into SVN trunk (single source of truth)..."
 
-# Copy all files to temp directory with proper structure
-echo "📦 Creating WordPress.org compatible structure..."
-cp -r . "$TEMP_BUILD_DIR/$PLUGIN_NAME/"
+# Ensure trunk directory exists
+mkdir -p "$TRUNK_DIR"
 
-# Change to temp directory
-cd "$TEMP_BUILD_DIR"
+# Remove existing files in trunk (but preserve .svn directory)
+find "$TRUNK_DIR" -mindepth 1 ! -path '*/.svn*' -delete 2>/dev/null || true
 
-# Create zip with proper WordPress.org structure
-echo "📦 Creating plugin zip file..."
-zip -r "$ZIP_FILE" "$PLUGIN_NAME/" \
-    -x "$PLUGIN_NAME/bin/*" \
-    -x "$PLUGIN_NAME/node_modules/*" \
-    -x "$PLUGIN_NAME/.git/*" \
-    -x "$PLUGIN_NAME/.vscode/*" \
-    -x "$PLUGIN_NAME/tests/*" \
-    -x "$PLUGIN_NAME/.htaccess" \
-    -x "$PLUGIN_NAME/.git*" \
-    -x "$PLUGIN_NAME/.phpunit*" \
-    -x "$PLUGIN_NAME/*.zip" \
-    -x "$PLUGIN_NAME/*.log" \
-    -x "$PLUGIN_NAME/*.xml" \
-    -x "$PLUGIN_NAME/*.lock" \
-    -x "$PLUGIN_NAME/.gitignore" \
-    -x "$PLUGIN_NAME/package.json" \
-    -x "$PLUGIN_NAME/package-lock.json" \
-    -x "$PLUGIN_NAME/webpack.config.js" \
-    -x "$PLUGIN_NAME/*.log" \
-    -x "$PLUGIN_NAME/.DS_Store" \
-    -x "$PLUGIN_NAME/Thumbs.db" \
-    -x "$PLUGIN_NAME/*.phar" \
-    -x "$PLUGIN_NAME/phpunit.xml" \
-    -x "$PLUGIN_NAME/vendor-prefixed/plugins/*"
+# Copy files to trunk with exclusions (single set of exclusions)
+echo "📋 Copying plugin files to trunk (excluding development files)..."
+rsync -av \
+    --exclude='bin' \
+    --exclude='node_modules' \
+    --exclude='.git' \
+    --exclude='.vscode' \
+    --exclude='tests' \
+    --exclude='.htaccess' \
+    --exclude='.git*' \
+    --exclude='.phpunit*' \
+    --exclude='*.zip' \
+    --exclude='*.log' \
+    --exclude='*.xml' \
+    --exclude='*.lock' \
+    --exclude='.gitignore' \
+    --exclude='package.json' \
+    --exclude='package-lock.json' \
+    --exclude='webpack.config.js' \
+    --exclude='.DS_Store' \
+    --exclude='Thumbs.db' \
+    --exclude='*.phar' \
+    --exclude='phpunit.xml' \
+    --exclude='vendor-prefixed/plugins' \
+    --exclude='wporg' \
+    "$PLUGIN_DIR/" "$TRUNK_DIR/"
 
+# Create zip file FROM trunk (ensures zip matches trunk exactly)
+# Only exclude .svn since all other files were already filtered by rsync
+# Zip must contain plugin-name folder at root (WordPress.org requirement)
+echo "📦 Creating plugin zip file from trunk..."
+# Create temporary directory with plugin name for zip structure
+TEMP_ZIP_DIR="/tmp/flux-media-optimizer-zip-$$"
+mkdir -p "$TEMP_ZIP_DIR/$PLUGIN_NAME"
+# Copy trunk contents to temp directory (excluding .svn)
+rsync -av --exclude='.svn' "$TRUNK_DIR/" "$TEMP_ZIP_DIR/$PLUGIN_NAME/"
+# Create zip from temp directory
+cd "$TEMP_ZIP_DIR"
+zip -r "$ZIP_FILE" "$PLUGIN_NAME/"
 # Clean up temp directory
-rm -rf "$TEMP_BUILD_DIR"
+rm -rf "$TEMP_ZIP_DIR"
 
 # Return to plugin directory for cleanup
 cd "$PLUGIN_DIR"
 
 # Restore full development environment
 echo "🔄 Restoring development environment..."
-
 composer install --ignore-platform-reqs --optimize-autoloader --no-interaction
+
+# Calculate sizes
+ZIP_SIZE=$(du -h "$ZIP_FILE" | cut -f1)
+TRUNK_SIZE=$(du -sh "$TRUNK_DIR" | cut -f1)
 
 echo ""
 echo "✅ Plugin built successfully!"
-echo "📦 File: $ZIP_FILE"
-echo "📏 Size: $(du -h "$ZIP_FILE" | cut -f1)"
+echo "📦 Zip File: $ZIP_FILE"
+echo "📏 Zip Size: $ZIP_SIZE"
+echo "📦 SVN Trunk: $TRUNK_DIR"
+echo "📏 Trunk Size: $TRUNK_SIZE"
 echo "🏷️  Version: $VERSION"
+echo ""
+echo "📝 Next Step:"
+echo "   Run ./bin/deploy-plugin.sh to commit and tag this version in SVN"
+echo "   Files are ready in: $TRUNK_DIR"
 echo ""
 
 # Output git tag command if version was bumped (at end so it doesn't get lost)

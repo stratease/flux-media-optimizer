@@ -4,11 +4,8 @@ Tags: image optimization, video compression, webp, avif, flux plugins
 Requires at least: 6.2
 Tested up to: 6.9
 Requires PHP: 8.0
-<<<<<<< HEAD
 Stable tag: 3.0.0
 =======
-Stable tag: 2.0.7
->>>>>>> master
 License: GPL-2.0+
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -105,7 +102,6 @@ Initial release of Flux Media Optimizer by Flux Plugins with comprehensive media
 
 == Privacy ==
 
-<<<<<<< HEAD
 **Default Behavior:**
 By default, all image and video processing happens locally on your server. Your media files never leave your WordPress installation unless you explicitly opt-in to external processing services.
 
@@ -151,8 +147,3 @@ Key points:
 * Email collection for marketing purposes only with opt-in consent
 * Account ID (UUID) generation: The plugin generates a unique identifier (UUID) locally on your server for service identification purposes. This UUID is stored only in your WordPress database and is used to match webhook requests and license validation when you explicitly enable external services. The UUID is NOT used for user tracking or analytics. It is automatically removed when you uninstall the plugin. The UUID is only transmitted to external services when you explicitly enable external processing AND provide a license key.
 * Full compliance with WordPress.org guidelines and privacy regulations
-=======
-All image and video processing happens locally on your server by default. Your media files never leave your WordPress installation unless you explicitly opt-in to external processing services.
-
-**Privacy Policy**: [https://fluxplugins.com/privacy-policy/](https://fluxplugins.com/privacy-policy/)
->>>>>>> master

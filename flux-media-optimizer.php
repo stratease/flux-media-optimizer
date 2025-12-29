@@ -32,11 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-<<<<<<< HEAD
 define( 'FLUX_MEDIA_OPTIMIZER_VERSION', '3.0.0' );
-=======
-define( 'FLUX_MEDIA_OPTIMIZER_VERSION', '2.0.7' );
->>>>>>> master
 define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_FILE', __FILE__ );
 define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

@@ -541,28 +541,15 @@ class WordPressProvider {
             
             if ( $size_original_size > 0 ) {
                 // Store original file details.
+                // set_file_url_and_size() will generate URL automatically.
                 AttachmentMetaHandler::set_file_url_and_size( $attachment_id, 'original', $size_name, $original_file_url ?: $source_file_path, $size_original_size );
                 
                 // Also add to local array so it's included when we save the batch.
-                // Convert path to URL if needed (same logic as set_file_url_and_size).
-                $url_to_store = $original_file_url;
-                if ( empty( $url_to_store ) ) {
-                    // Convert file path to URL.
-                    $upload_dir = wp_upload_dir();
-                    $upload_path = wp_normalize_path( $upload_dir['basedir'] );
-                    $source_file_path_normalized = wp_normalize_path( $source_file_path );
-                    if ( strpos( $source_file_path_normalized, $upload_path ) === 0 ) {
-                        $relative_path = str_replace( $upload_path, '', $source_file_path_normalized );
-                        $relative_path = ltrim( $relative_path, '/' );
-                        $url_to_store = $upload_dir['baseurl'] . '/' . $relative_path;
-                    } else {
-                        $url_to_store = wp_get_attachment_url( $attachment_id );
-                    }
-                }
-                
-                if ( $url_to_store ) {
+                // Get the URL that was stored by set_file_url_and_size().
+                $stored_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, 'original', $size_name );
+                if ( $stored_url ) {
                     $all_converted_files_by_size[ $size_name ]['original'] = [
-                        'url' => esc_url_raw( $url_to_store ),
+                        'url' => $stored_url,
                         'filesize' => $size_original_size,
                     ];
                 }
@@ -597,14 +584,19 @@ class WordPressProvider {
                 // Store URL and size together using unified structure.
                 // Only store if we have a valid file size (greater than 0)
                 if ( $converted_size > 0 ) {
+                    // set_file_url_and_size() will generate URL automatically.
                     AttachmentMetaHandler::set_file_url_and_size( $attachment_id, $format, $size_name, $converted_file_path, $converted_size );
+                    
+                    // Also store in local array for batch update.
+                    // Get the URL that was stored by set_file_url_and_size().
+                    $stored_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, $format, $size_name );
+                    if ( $stored_url ) {
+                        $all_converted_files_by_size[ $size_name ][ $format ] = [
+                            'url' => $stored_url,
+                            'filesize' => $converted_size,
+                        ];
+                    }
                 }
-                
-                // Also store in local array for batch update.
-                $all_converted_files_by_size[ $size_name ][ $format ] = [
-                    'url' => $converted_file_path,
-                    'filesize' => $converted_size,
-                ];
             }
         }
         
@@ -627,25 +619,23 @@ class WordPressProvider {
         if ( ! empty( $all_converted_files_by_size ) || $disabled_formats_removed ) {
             AttachmentMetaHandler::set_converted_files_grouped_by_size( $attachment_id, $all_converted_files_by_size );
             
-            // Extract all CDN URLs and store in dedicated meta field for efficient lookup
-            // Only store URLs (not local file paths) in META_KEY_CDN_URLS
-            $cdn_urls = [];
+            // Extract all URLs and store in dedicated meta field for efficient lookup
+            // Store ALL URLs (local and external) in META_KEY_FILE_URLS
+            $all_urls = [];
             foreach ( $all_converted_files_by_size as $size_data ) {
                 if ( ! is_array( $size_data ) ) {
                     continue;
                 }
                 foreach ( $size_data as $format => $file_data ) {
-                    if ( is_array( $file_data ) && isset( $file_data['url'] ) && is_string( $file_data['url'] ) ) {
-                        // Only add CDN URLs (those starting with http:// or https://)
-                        if ( AttachmentMetaHandler::is_file_url( $file_data['url'] ) ) {
-                            $cdn_urls[] = $file_data['url'];
-                        }
+                    if ( is_array( $file_data ) && isset( $file_data['url'] ) && is_string( $file_data['url'] ) && ! empty( $file_data['url'] ) ) {
+                        // Store all URLs (local and external).
+                        $all_urls[] = $file_data['url'];
                     }
                 }
             }
-            // Store CDN URLs in dedicated meta field for efficient lookup
-            if ( ! empty( $cdn_urls ) ) {
-                AttachmentMetaHandler::set_cdn_urls( $attachment_id, array_unique( $cdn_urls ) );
+            // Store all URLs in dedicated meta field for efficient lookup
+            if ( ! empty( $all_urls ) ) {
+                AttachmentMetaHandler::set_file_urls( $attachment_id, array_unique( $all_urls ) );
             }
             
             // Update formats list - only include formats that actually exist
@@ -1004,7 +994,7 @@ class WordPressProvider {
      * @param bool|array $default      Default return value (false or array with [url, width, height]).
      * @param int        $attachment_id Attachment ID.
      * @param string|int[] $size      Requested image size (string name or array of dimensions).
-     * @return bool|array False if no CDN data (allows WordPress fallback), or array [url, width, height].
+     * @return bool|array False if no file URL data (allows WordPress fallback), or array [url, width, height].
      */
     public function handle_image_downsize_filter( $default, $attachment_id, $size ) {
         if ( ! $attachment_id ) {
@@ -1019,7 +1009,7 @@ class WordPressProvider {
             }
         }
 
-        // Get CDN meta
+        // Get file URLs meta
         $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
         if ( empty( $converted_files_by_size ) ) {
             return $default;
@@ -1040,18 +1030,18 @@ class WordPressProvider {
         }
 
         // Format priority: AVIF > WebP > original
-        $cdn_url = null;
+        $file_url = null;
         if ( isset( $converted_files[ Converter::FORMAT_AVIF ] ) ) {
-            $cdn_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, Converter::FORMAT_AVIF, $size_name );
+            $file_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, Converter::FORMAT_AVIF, $size_name );
         }
-        if ( ! $cdn_url && isset( $converted_files[ Converter::FORMAT_WEBP ] ) ) {
-            $cdn_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, Converter::FORMAT_WEBP, $size_name );
+        if ( ! $file_url && isset( $converted_files[ Converter::FORMAT_WEBP ] ) ) {
+            $file_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, Converter::FORMAT_WEBP, $size_name );
         }
-        if ( ! $cdn_url && isset( $converted_files['original'] ) ) {
-            $cdn_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, 'original', $size_name );
+        if ( ! $file_url && isset( $converted_files['original'] ) ) {
+            $file_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, 'original', $size_name );
         }
 
-        if ( empty( $cdn_url ) ) {
+        if ( empty( $file_url ) ) {
             return $default; // Return false to allow WordPress fallback
         }
 
@@ -1071,18 +1061,18 @@ class WordPressProvider {
         }
 
         // Return array format: [url, width, height] or [url, null, null] if dimensions unknown
-        return [ $cdn_url, $width, $height ];
+        return [ $file_url, $width, $height ];
     }
 
     /**
      * Handle attachment URL filter.
      *
-     * Primary mechanism for URL conversion. Returns CDN URL for 'full' size if available.
+     * Primary mechanism for URL conversion. Returns file URL for 'full' size if available.
      * URLs are retrieved from AttachmentMetaHandler meta data (single source of truth).
      * This filter ensures wp_get_attachment_url() returns converted URLs when available.
      *
      * @since 1.0.0
-     * @since 3.0.0 Updated to use AttachmentMetaHandler for size-specific CDN URL lookup.
+     * @since 3.0.0 Updated to use AttachmentMetaHandler for size-specific file URL lookup.
      * @param string $url The attachment URL.
      * @param int    $attachment_id The attachment ID.
      * @return string Modified URL.
@@ -1126,11 +1116,11 @@ class WordPressProvider {
      * Handle attachment image src filter.
      *
      * Primary mechanism for URL conversion. Filters wp_get_attachment_image_src() and maps requested size
-     * to CDN URL from meta. URLs are retrieved from AttachmentMetaHandler meta data (single source of truth).
-     * Returns size-specific CDN URLs for attachment detail pages.
+     * to file URL from meta. URLs are retrieved from AttachmentMetaHandler meta data (single source of truth).
+     * Returns size-specific file URLs for attachment detail pages.
      *
      * @since 1.0.2
-     * @since 3.0.0 Updated to use AttachmentMetaHandler for size-specific CDN URL lookup and removed bypass for upload.php pages.
+     * @since 3.0.0 Updated to use AttachmentMetaHandler for size-specific file URL lookup and removed bypass for upload.php pages.
      * @param array|false  $image         Array of image data (url, width, height) or false if no image.
      * @param int          $attachment_id Image attachment ID.
      * @param string|int[] $size          Requested image size.
@@ -1171,41 +1161,41 @@ class WordPressProvider {
             return $image;
         }
 
-        // Use AttachmentMetaHandler to get CDN URL for the requested size and format
+        // Use AttachmentMetaHandler to get file URL for the requested size and format
         // Priority: AVIF > WebP > original
-        $cdn_url = null;
+        $file_url = null;
         if ( isset( $converted_files[ Converter::FORMAT_AVIF ] ) ) {
-            $cdn_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, Converter::FORMAT_AVIF, $size_name );
+            $file_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, Converter::FORMAT_AVIF, $size_name );
         }
-        if ( ! $cdn_url && isset( $converted_files[ Converter::FORMAT_WEBP ] ) ) {
-            $cdn_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, Converter::FORMAT_WEBP, $size_name );
+        if ( ! $file_url && isset( $converted_files[ Converter::FORMAT_WEBP ] ) ) {
+            $file_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, Converter::FORMAT_WEBP, $size_name );
         }
-        if ( ! $cdn_url && isset( $converted_files['original'] ) ) {
-            $cdn_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, 'original', $size_name );
+        if ( ! $file_url && isset( $converted_files['original'] ) ) {
+            $file_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, 'original', $size_name );
         }
 
-        // Update the URL in the image array if CDN URL is available
-        if ( ! empty( $cdn_url ) && $cdn_url !== $url ) {
-            $image[0] = $cdn_url;
+        // Update the URL in the image array if file URL is available
+        if ( ! empty( $file_url ) && $file_url !== $url ) {
+            $image[0] = $file_url;
         }
 
         return $image;
     }
 
     /**
-     * Handle image srcset filter to generate srcset from CDN meta.
+     * Handle image srcset filter to generate srcset from file URLs meta.
      *
-     * Generates srcset directly from CDN meta data instead of modifying existing sources.
+     * Generates srcset directly from file URLs meta data instead of modifying existing sources.
      * Iterates through all sizes in meta and builds complete srcset array.
      *
      * @since 1.0.0
-     * @since 3.0.0 Refactored to generate srcset directly from CDN meta instead of modifying existing sources.
-     * @param array  $sources       Array of image sources (ignored, we generate from CDN meta).
+     * @since 3.0.0 Refactored to generate srcset directly from file URLs meta instead of modifying existing sources.
+     * @param array  $sources       Array of image sources (ignored, we generate from file URLs meta).
      * @param array  $size_array    Array of width and height values.
      * @param string $image_src     The 'src' of the image.
      * @param array  $image_meta    The image metadata.
      * @param int    $attachment_id Image attachment ID.
-     * @return array|false Srcset array with CDN URLs, or false if no CDN data.
+     * @return array|false Srcset array with file URLs, or false if no file URL data.
      */
     public function handle_image_srcset_filter( $sources, $size_array, $image_src, $image_meta, $attachment_id ) {
         if ( ! $attachment_id ) {
@@ -1221,7 +1211,7 @@ class WordPressProvider {
         // Format priority: AVIF > WebP > original
         $format_priority = [ Converter::FORMAT_AVIF, Converter::FORMAT_WEBP, 'original' ];
 
-        // Build srcset array from CDN meta
+        // Build srcset array from file URLs meta
         $srcset = [];
         foreach ( $converted_files_by_size as $size_name => $formats ) {
             // Extract width from size name
@@ -1231,19 +1221,19 @@ class WordPressProvider {
             }
 
             // Get URL with format priority
-            $cdn_url = null;
+            $file_url = null;
             foreach ( $format_priority as $format ) {
                 if ( isset( $formats[ $format ] ) ) {
-                    $cdn_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, $format, $size_name );
-                    if ( $cdn_url ) {
+                    $file_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, $format, $size_name );
+                    if ( $file_url ) {
                         break;
                     }
                 }
             }
 
-            if ( $cdn_url ) {
+            if ( $file_url ) {
                 $srcset[ $width ] = [
-                    'url' => $cdn_url,
+                    'url' => $file_url,
                     'descriptor' => 'w',
                     'value' => $width,
                 ];

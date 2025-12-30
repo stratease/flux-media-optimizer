@@ -63,22 +63,24 @@ class AttachmentMetaHandler {
 	const META_KEY_EXTERNAL_JOB_STATE = '_flux_media_optimizer_external_job_state';
 
 	/**
-	 * Meta key for CDN URLs.
+	 * Meta key for file URLs.
 	 *
-	 * Stores array of CDN URLs for efficient lookup.
-	 * Structure: array of URL strings, e.g., ['https://cdn.example.com/file1.webp', 'https://cdn.example.com/file2.avif'].
+	 * Stores array of ALL file URLs (both local and external) for efficient lookup.
+	 * Structure: array of URL strings, e.g., ['https://cdn.example.com/file1.webp', 'https://cdn.example.com/file2.avif', 'https://example.com/wp-content/uploads/file.webp'].
+	 * This includes both external CDN URLs (external service) and local WordPress upload URLs.
 	 *
 	 * @since 3.0.0
 	 * @var string
 	 */
-	const META_KEY_CDN_URLS = '_flux_media_optimizer_cdn_urls';
+	const META_KEY_FILE_URLS = '_flux_media_optimizer_file_urls';
 
 	/**
 	 * Meta key for converted files by size.
 	 *
-	 * Stores converted files organized by size with URLs/paths and file sizes together.
-	 * Structure: ['size_name' => ['format' => ['url' => 'file_path_or_url', 'filesize' => file_size_in_bytes]]]
-	 * Values can be file paths (local processing) or CDN URLs (external service).
+	 * Stores converted files organized by size with URLs and file sizes together.
+	 * Structure: ['size_name' => ['format' => ['url' => 'url_string', 'filesize' => file_size_in_bytes]]]
+	 * Values are always URLs (local WordPress upload URLs or external CDN URLs).
+	 * URLs are generated immediately when files are stored, never stored as file paths.
 	 *
 	 * @since 1.0.0
 	 * @var string
@@ -404,7 +406,7 @@ class AttachmentMetaHandler {
 		// Enable conversion (which deletes the disabled flag meta)
 		self::enable_conversion( $attachment_id );
 		self::delete_external_job_state( $attachment_id );
-		self::delete_cdn_urls( $attachment_id );
+		self::delete_file_urls( $attachment_id );
 		self::delete_converted_files_grouped_by_size( $attachment_id );
 
 		// Clear conversion tracking data (database table)
@@ -462,14 +464,14 @@ class AttachmentMetaHandler {
 	/**
 	 * Get converted file URL for an attachment.
 	 *
-	 * Reads from meta storage and returns URL or file path.
-	 * For file paths, converts to URL if needed.
+	 * Reads from meta storage and returns stored URL.
+	 * URLs are always stored (never file paths), so no conversion is needed.
 	 *
 	 * @since 3.0.0
 	 * @param int    $attachment_id Attachment ID.
 	 * @param string $format        Format (webp, avif, av1, webm, original, etc.).
 	 * @param string $size          Size name (full, thumbnail, medium, etc.). Default 'full'.
-	 * @return string|null URL or file path, or null if not found.
+	 * @return string|null URL or null if not found.
 	 */
 	public static function get_converted_file_url( $attachment_id, $format, $size = 'full' ) {
 		$converted_files_by_size = self::get_converted_files_grouped_by_size( $attachment_id );
@@ -480,12 +482,8 @@ class AttachmentMetaHandler {
 				$data = $converted_files_by_size[ $size ][ $format ];
 				
 				if ( is_array( $data ) && isset( $data['url'] ) && ! empty( $data['url'] ) ) {
-					// Check if it's actually a URL.
-					if ( self::is_file_url( $data['url'] ) ) {
-						return esc_url_raw( $data['url'] );
-					}
-					// If it's a file path (legacy data), convert to URL.
-					return self::convert_file_path_to_url( $attachment_id, $data['url'], $format );
+					// URL is always stored, return it directly.
+					return esc_url_raw( $data['url'] );
 				}
 			}
 			
@@ -494,12 +492,8 @@ class AttachmentMetaHandler {
 				$data = $converted_files_by_size['full'][ $format ];
 				
 				if ( is_array( $data ) && isset( $data['url'] ) && ! empty( $data['url'] ) ) {
-					// Check if it's actually a URL.
-					if ( self::is_file_url( $data['url'] ) ) {
-						return esc_url_raw( $data['url'] );
-					}
-					// If it's a file path (legacy data), convert to URL.
-					return self::convert_file_path_to_url( $attachment_id, $data['url'], $format );
+					// URL is always stored, return it directly.
+					return esc_url_raw( $data['url'] );
 				}
 			}
 		}
@@ -508,20 +502,29 @@ class AttachmentMetaHandler {
 	}
 
 	/**
-	 * Convert file path to URL.
+	 * Generate file URL from file path.
+	 *
+	 * Handles all file types:
+	 * - Images: Converts local file paths to WordPress upload URLs
+	 * - Videos: Handles special AV1 filename format (file-av1.mp4) and converts to URL
+	 * - CDN URLs: Returns as-is (already URLs)
 	 *
 	 * @since 3.0.0
 	 * @param int    $attachment_id Attachment ID.
-	 * @param string $file_path     File path.
-	 * @param string $format        Format (webp, avif, av1, webm, etc.).
-	 * @return string|null URL or null if conversion fails.
+	 * @param string $file_path     File path or URL.
+	 * @param string $format        Format (webp, avif, av1, webm, original, etc.).
+	 * @return string|null Generated URL or null if conversion fails.
 	 */
-	private static function convert_file_path_to_url( $attachment_id, $file_path, $format ) {
-		// For image formats, try to use WordPressImageRenderer helper if available.
-		if ( in_array( $format, [ 'webp', 'avif' ], true ) ) {
+	private static function generate_file_url( $attachment_id, $file_path, $format ) {
+		// If it's already a URL, return as-is.
+		if ( self::is_file_url( $file_path ) ) {
+			return esc_url_raw( $file_path );
+		}
+		
+		// For image formats (webp, avif, original), convert file path to WordPress upload URL.
+		if ( in_array( $format, [ 'webp', 'avif', 'original' ], true ) ) {
 			// Check if file exists before converting.
 			if ( file_exists( $file_path ) ) {
-				// Try to get URL using WordPress helper.
 				$upload_dir = wp_upload_dir();
 				$upload_path = wp_normalize_path( $upload_dir['basedir'] );
 				$file_path_normalized = wp_normalize_path( $file_path );
@@ -535,9 +538,22 @@ class AttachmentMetaHandler {
 			}
 		}
 		
-		// For videos, return attachment URL if file exists.
+		// For video formats (av1, webm), handle special AV1 filename and convert to URL.
 		if ( in_array( $format, [ 'av1', 'webm' ], true ) ) {
 			if ( file_exists( $file_path ) ) {
+				$upload_dir = wp_upload_dir();
+				$upload_path = wp_normalize_path( $upload_dir['basedir'] );
+				$file_path_normalized = wp_normalize_path( $file_path );
+				
+				if ( strpos( $file_path_normalized, $upload_path ) === 0 ) {
+					// File is in uploads directory, convert to URL.
+					// Handle AV1 special case: file-av1.mp4 should map to correct URL.
+					$relative_path = str_replace( $upload_path, '', $file_path_normalized );
+					$relative_path = ltrim( $relative_path, '/' );
+					return $upload_dir['baseurl'] . '/' . $relative_path;
+				}
+				
+				// Fallback: use attachment URL if file exists but not in uploads directory.
 				return wp_get_attachment_url( $attachment_id );
 			}
 		}
@@ -624,9 +640,9 @@ class AttachmentMetaHandler {
 	/**
 	 * Set file URL and size for a specific format and size.
 	 *
-	 * Updates the unified structure. Always stores URL in 'url' field.
-	 * If a file path is provided, it will be converted to a URL.
-	 * Optionally stores file path in 'file_path' key for local files.
+	 * Updates the unified structure. Always generates and stores URL in 'url' field.
+	 * If a file path is provided, it will be converted to a URL immediately.
+	 * URLs are always stored (never file paths).
 	 *
 	 * @since 3.0.0
 	 * @param int    $attachment_id Attachment ID.
@@ -643,17 +659,20 @@ class AttachmentMetaHandler {
 			$files_by_size[ $size_name ] = [];
 		}
 		
-		// Convert file path to URL if needed.
-		$url = $url_or_path;
-		$file_path = null;
+		// Generate URL immediately - convert file path to URL if needed.
+		$url = null;
 		
-		if ( ! empty( $url_or_path ) && ! self::is_file_url( $url_or_path ) ) {
-			// It's a file path, convert to URL and store path separately.
-			$file_path = $url_or_path;
-			$url = self::convert_file_path_to_url( $attachment_id, $url_or_path, $format );
-			// If conversion fails, use wp_get_attachment_url as fallback for original format.
-			if ( ! $url && $format === 'original' ) {
-				$url = wp_get_attachment_url( $attachment_id );
+		if ( ! empty( $url_or_path ) ) {
+			if ( self::is_file_url( $url_or_path ) ) {
+				// Already a URL, use as-is.
+				$url = $url_or_path;
+			} else {
+				// It's a file path, convert to URL.
+				$url = self::generate_file_url( $attachment_id, $url_or_path, $format );
+				// If conversion fails, use wp_get_attachment_url as fallback for original format.
+				if ( ! $url && $format === 'original' ) {
+					$url = wp_get_attachment_url( $attachment_id );
+				}
 			}
 		}
 		
@@ -663,14 +682,49 @@ class AttachmentMetaHandler {
 			'filesize' => (int) $file_size,
 		];
 		
-		// Optionally store file path for local files.
-		if ( $file_path ) {
-			$storage_data['file_path'] = $file_path;
-		}
-		
 		$files_by_size[ $size_name ][ $format ] = $storage_data;
 		
-		return self::set_converted_files_grouped_by_size( $attachment_id, $files_by_size );
+		// Store in META_KEY_CONVERTED_FILES_BY_SIZE.
+		$result = self::set_converted_files_grouped_by_size( $attachment_id, $files_by_size );
+		
+		// Also update META_KEY_FILE_URLS with all URLs for efficient lookup.
+		if ( $url ) {
+			self::update_file_urls_meta( $attachment_id );
+		}
+		
+		return $result;
+	}
+	
+	/**
+	 * Update file URLs meta from converted files by size structure.
+	 *
+	 * Extracts all URLs from META_KEY_CONVERTED_FILES_BY_SIZE and stores them
+	 * in META_KEY_FILE_URLS for efficient lookup. Handles all file types.
+	 *
+	 * @since 3.0.0
+	 * @param int $attachment_id Attachment ID.
+	 * @return void
+	 */
+	private static function update_file_urls_meta( $attachment_id ) {
+		$converted_files_by_size = self::get_converted_files_grouped_by_size( $attachment_id );
+		$all_urls = [];
+		
+		foreach ( $converted_files_by_size as $size_formats ) {
+			if ( ! is_array( $size_formats ) ) {
+				continue;
+			}
+			foreach ( $size_formats as $format_data ) {
+				if ( is_array( $format_data ) && isset( $format_data['url'] ) && is_string( $format_data['url'] ) && ! empty( $format_data['url'] ) ) {
+					// Store all URLs (local and external).
+					$all_urls[] = $format_data['url'];
+				}
+			}
+		}
+		
+		// Store all URLs in META_KEY_FILE_URLS.
+		if ( ! empty( $all_urls ) ) {
+			self::set_file_urls( $attachment_id, array_unique( $all_urls ) );
+		}
 	}
 
 	/**
@@ -713,34 +767,38 @@ class AttachmentMetaHandler {
 	}
 
 	/**
-	 * Get CDN URLs for an attachment.
+	 * Get file URLs for an attachment.
+	 *
+	 * Returns all URLs (both local and external) stored for efficient lookup.
 	 *
 	 * @since 3.0.0
 	 * @param int $attachment_id Attachment ID.
-	 * @return array Array of CDN URL strings, or empty array if not found.
+	 * @return array Array of URL strings (local and external), or empty array if not found.
 	 */
-	public static function get_cdn_urls( $attachment_id ) {
-		$urls = get_post_meta( $attachment_id, self::META_KEY_CDN_URLS, true );
+	public static function get_file_urls( $attachment_id ) {
+		$urls = get_post_meta( $attachment_id, self::META_KEY_FILE_URLS, true );
 		return is_array( $urls ) ? $urls : [];
 	}
 
 	/**
-	 * Set CDN URLs for an attachment.
+	 * Set file URLs for an attachment.
+	 *
+	 * Stores all URLs (both local and external) for efficient lookup.
 	 *
 	 * @since 3.0.0
 	 * @param int   $attachment_id Attachment ID.
-	 * @param array $cdn_urls      Array of CDN URL strings.
+	 * @param array $file_urls     Array of URL strings (local and external).
 	 * @return bool|int Meta ID if the key didn't exist, true on successful update, false on failure.
 	 */
-	public static function set_cdn_urls( $attachment_id, $cdn_urls ) {
+	public static function set_file_urls( $attachment_id, $file_urls ) {
 		// Validate that all values are strings (URLs).
-		if ( ! is_array( $cdn_urls ) ) {
+		if ( ! is_array( $file_urls ) ) {
 			return false;
 		}
 		
 		// Filter to ensure all values are strings and sanitize URLs.
 		$sanitized_urls = [];
-		foreach ( $cdn_urls as $url ) {
+		foreach ( $file_urls as $url ) {
 			if ( is_string( $url ) && ! empty( $url ) ) {
 				$sanitized_urls[] = esc_url_raw( $url );
 			}
@@ -749,17 +807,17 @@ class AttachmentMetaHandler {
 		// Remove duplicates.
 		$sanitized_urls = array_unique( $sanitized_urls );
 		
-		return update_post_meta( $attachment_id, self::META_KEY_CDN_URLS, $sanitized_urls );
+		return update_post_meta( $attachment_id, self::META_KEY_FILE_URLS, $sanitized_urls );
 	}
 
 	/**
-	 * Delete CDN URLs meta for an attachment.
+	 * Delete file URLs meta for an attachment.
 	 *
 	 * @since 3.0.0
 	 * @param int $attachment_id Attachment ID.
 	 * @return bool True on success, false on failure.
 	 */
-	public static function delete_cdn_urls( $attachment_id ) {
-		return delete_post_meta( $attachment_id, self::META_KEY_CDN_URLS );
+	public static function delete_file_urls( $attachment_id ) {
+		return delete_post_meta( $attachment_id, self::META_KEY_FILE_URLS );
 	}
 }

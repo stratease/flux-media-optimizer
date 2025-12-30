@@ -149,25 +149,23 @@ class WebhookController extends BaseController {
 			if ( ! empty( $converted_files_by_size ) ) {
 				AttachmentMetaHandler::set_converted_files_grouped_by_size( $attachment_id, $converted_files_by_size );
 
-				// Extract all CDN URLs for efficient lookup.
-				// Only store URLs (not local file paths) in META_KEY_CDN_URLS
-				$cdn_urls_list = [];
+				// Extract all URLs for efficient lookup.
+				// Store ALL URLs (local and external) in META_KEY_FILE_URLS.
+				$all_urls = [];
 				foreach ( $converted_files_by_size as $size_formats ) {
 					if ( ! is_array( $size_formats ) ) {
 						continue;
 					}
 					foreach ( $size_formats as $format_data ) {
-						if ( is_array( $format_data ) && isset( $format_data['url'] ) && is_string( $format_data['url'] ) ) {
-							// Only add CDN URLs (those starting with http:// or https://).
-							if ( AttachmentMetaHandler::is_file_url( $format_data['url'] ) ) {
-								$cdn_urls_list[] = $format_data['url'];
-							}
+						if ( is_array( $format_data ) && isset( $format_data['url'] ) && is_string( $format_data['url'] ) && ! empty( $format_data['url'] ) ) {
+							// Store all URLs (external service always provides URLs).
+							$all_urls[] = $format_data['url'];
 						}
 					}
 				}
-				// Store CDN URLs in dedicated meta field for efficient lookup.
-				if ( ! empty( $cdn_urls_list ) ) {
-					AttachmentMetaHandler::set_cdn_urls( $attachment_id, $cdn_urls_list );
+				// Store all URLs in dedicated meta field for efficient lookup.
+				if ( ! empty( $all_urls ) ) {
+					AttachmentMetaHandler::set_file_urls( $attachment_id, array_unique( $all_urls ) );
 				}
 
 				// Extract formats list (including "original" format).

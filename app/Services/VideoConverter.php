@@ -476,7 +476,7 @@ class VideoConverter implements Converter {
             // Example: file.mp4 -> file.av1.mp4
             $destination_filename = $file_name;
             if ( $format === Converter::FORMAT_AV1 ) {
-                $destination_filename = $file_name . '.av1';
+                $destination_filename = $file_name . '-av1';
             }
             
             $destination_paths[ $format ] = $file_dir . '/' . $destination_filename . '.' . $extension;
@@ -505,28 +505,15 @@ class VideoConverter implements Converter {
             $original_file_url = wp_get_attachment_url( $attachment_id );
             if ( $original_size > 0 ) {
                 // Store original file details.
+                // set_file_url_and_size() will generate URL automatically.
                 AttachmentMetaHandler::set_file_url_and_size( $attachment_id, 'original', 'full', $original_file_url ?: $file_path, $original_size );
                 
                 // Also add to local array so it's included when we save the batch.
-                // Convert path to URL if needed (same logic as set_file_url_and_size).
-                $url_to_store = $original_file_url;
-                if ( empty( $url_to_store ) ) {
-                    // Convert file path to URL.
-                    $upload_dir = wp_upload_dir();
-                    $upload_path = wp_normalize_path( $upload_dir['basedir'] );
-                    $file_path_normalized = wp_normalize_path( $file_path );
-                    if ( strpos( $file_path_normalized, $upload_path ) === 0 ) {
-                        $relative_path = str_replace( $upload_path, '', $file_path_normalized );
-                        $relative_path = ltrim( $relative_path, '/' );
-                        $url_to_store = $upload_dir['baseurl'] . '/' . $relative_path;
-                    } else {
-                        $url_to_store = wp_get_attachment_url( $attachment_id );
-                    }
-                }
-                
-                if ( $url_to_store ) {
+                // Get the URL that was stored by set_file_url_and_size().
+                $stored_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, 'original', 'full' );
+                if ( $stored_url ) {
                     $converted_files_by_size['full']['original'] = [
-                        'url' => esc_url_raw( $url_to_store ),
+                        'url' => $stored_url, // Escaped above.
                         'filesize' => $original_size,
                     ];
                 }
@@ -561,25 +548,16 @@ class VideoConverter implements Converter {
                 $converted_files_by_size['full'] = [];
             }
             
-            // Update with any missing formats using URLs (set_file_url_and_size should have handled URL conversion)
+            // Update with any missing formats using URLs (set_file_url_and_size should have handled URL generation)
             foreach ( $results['converted_files'] as $format => $converted_file_path ) {
                 // Get the URL that was already stored by set_file_url_and_size()
                 $converted_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, $format, 'full' );
                 $converted_size = AttachmentMetaHandler::get_file_size( $attachment_id, $format, 'full' );
                 
-                // If URL wasn't stored yet, convert file path to URL
-                if ( ! $converted_url ) {
-                    $upload_dir = wp_upload_dir();
-                    $upload_path = wp_normalize_path( $upload_dir['basedir'] );
-                    $converted_file_path_normalized = wp_normalize_path( $converted_file_path );
-                    if ( strpos( $converted_file_path_normalized, $upload_path ) === 0 ) {
-                        $relative_path = str_replace( $upload_path, '', $converted_file_path_normalized );
-                        $relative_path = ltrim( $relative_path, '/' );
-                        $converted_url = $upload_dir['baseurl'] . '/' . $relative_path;
-                    } else {
-                        // Fallback to attachment URL
-                        $converted_url = wp_get_attachment_url( $attachment_id );
-                    }
+                // If URL wasn't stored yet, store it now
+                if ( ! $converted_url && $converted_size > 0 ) {
+                    AttachmentMetaHandler::set_file_url_and_size( $attachment_id, $format, 'full', $converted_file_path, $converted_size );
+                    $converted_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, $format, 'full' );
                 }
                 
                 // Get file size if not already stored
@@ -588,33 +566,33 @@ class VideoConverter implements Converter {
                 }
                 
                 // Store with URL (not file path)
-                $converted_files_by_size['full'][ $format ] = [
-                    'url' => $converted_url ?: $converted_file_path,
-                    'filesize' => $converted_size,
-                ];
+                if ( $converted_url ) {
+                    $converted_files_by_size['full'][ $format ] = [
+                        'url' => $converted_url,
+                        'filesize' => $converted_size,
+                    ];
+                }
             }
             
             AttachmentMetaHandler::set_converted_files_grouped_by_size( $attachment_id, $converted_files_by_size );
             
-            // Extract all CDN URLs and store in dedicated meta field for efficient lookup
-            // Only store URLs (not local file paths) in META_KEY_CDN_URLS
-            $cdn_urls = [];
+            // Extract all URLs and store in dedicated meta field for efficient lookup
+            // Store ALL URLs (local and external) in META_KEY_FILE_URLS
+            $all_urls = [];
             foreach ( $converted_files_by_size as $size_data ) {
                 if ( ! is_array( $size_data ) ) {
                     continue;
                 }
                 foreach ( $size_data as $format => $file_data ) {
-                    if ( is_array( $file_data ) && isset( $file_data['url'] ) && is_string( $file_data['url'] ) ) {
-                        // Only add CDN URLs (those starting with http:// or https://)
-                        if ( AttachmentMetaHandler::is_file_url( $file_data['url'] ) ) {
-                            $cdn_urls[] = $file_data['url'];
-                        }
+                    if ( is_array( $file_data ) && isset( $file_data['url'] ) && is_string( $file_data['url'] ) && ! empty( $file_data['url'] ) ) {
+                        // Store all URLs (local and external).
+                        $all_urls[] = $file_data['url'];
                     }
                 }
             }
-            // Store CDN URLs in dedicated meta field for efficient lookup
-            if ( ! empty( $cdn_urls ) ) {
-                AttachmentMetaHandler::set_cdn_urls( $attachment_id, array_unique( $cdn_urls ) );
+            // Store all URLs in dedicated meta field for efficient lookup
+            if ( ! empty( $all_urls ) ) {
+                AttachmentMetaHandler::set_file_urls( $attachment_id, array_unique( $all_urls ) );
             }
 
             // Video conversion completed

@@ -3,7 +3,7 @@
  * Attachment ID resolver service.
  *
  * Provides centralized methods to resolve attachment_id from various inputs
- * (URLs, file paths, CDN URLs).
+ * (URLs, file paths, both local and external file URLs).
  *
  * @package FluxMedia
  * @since 3.0.0
@@ -42,7 +42,7 @@ class AttachmentIdResolver {
 	}
 
 	/**
-	 * Resolve attachment ID from a URL (WordPress URL or CDN URL).
+	 * Resolve attachment ID from a URL (WordPress URL or external file URL).
 	 *
 	 * @since 3.0.0
 	 * @param string $url URL to resolve.
@@ -59,8 +59,8 @@ class AttachmentIdResolver {
 			return $attachment_id;
 		}
 
-		// If it's a CDN URL, try to resolve from CDN URL meta.
-		return self::from_cdn_url( $url );
+		// If it's an external URL, try to resolve from file URLs meta.
+		return self::from_file_url( $url );
 	}
 
 	/**
@@ -102,45 +102,45 @@ class AttachmentIdResolver {
 	}
 
 	/**
-	 * Resolve attachment ID from a CDN URL.
+	 * Resolve attachment ID from a file URL (external or local).
 	 *
-	 * Queries attachment meta for matching CDN URLs using AttachmentMetaHandler.
+	 * Queries attachment meta for matching file URLs using AttachmentMetaHandler.
 	 *
 	 * @since 3.0.0
-	 * @param string $cdn_url CDN URL to resolve.
+	 * @param string $file_url File URL to resolve.
 	 * @return int|null Attachment ID or null if not found.
 	 */
-	public static function from_cdn_url( $cdn_url ) {
-		if ( empty( $cdn_url ) || ! is_string( $cdn_url ) ) {
+	public static function from_file_url( $file_url ) {
+		if ( empty( $file_url ) || ! is_string( $file_url ) ) {
 			return null;
 		}
 
-		// Find by matching CDN URL in attachment meta.
-		return self::from_cdn_url_in_meta( $cdn_url );
+		// Find by matching file URL in attachment meta.
+		return self::from_file_url_in_meta( $file_url );
 	}
 
 	/**
-	 * Resolve attachment ID from CDN URL stored in attachment meta.
+	 * Resolve attachment ID from file URL stored in attachment meta.
 	 *
-	 * Uses AttachmentMetaHandler CDN URLs meta field for efficient lookup.
+	 * Uses AttachmentMetaHandler file URLs meta field for efficient lookup.
 	 * Also checks converted files structure for additional URL matches.
 	 *
 	 * @since 3.0.0
-	 * @param string $cdn_url CDN URL to find.
+	 * @param string $file_url File URL to find.
 	 * @return int|null Attachment ID or null if not found.
 	 */
-	private static function from_cdn_url_in_meta( $cdn_url ) {
+	private static function from_file_url_in_meta( $file_url ) {
 		global $wpdb;
 
-		// Use dedicated CDN URLs meta field for efficient lookup.
-		$meta_key = AttachmentMetaHandler::META_KEY_CDN_URLS;
+		// Use dedicated file URLs meta field for efficient lookup.
+		$meta_key = AttachmentMetaHandler::META_KEY_FILE_URLS;
 
 		// Query attachments with this meta key and search for matching URL.
 		// Use LIKE to find the URL in the serialized array.
 		$results = $wpdb->get_results( $wpdb->prepare(
 			"SELECT post_id, meta_value FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value LIKE %s",
 			$meta_key,
-			'%' . $wpdb->esc_like( $cdn_url ) . '%'
+			'%' . $wpdb->esc_like( $file_url ) . '%'
 		), ARRAY_A );
 
 		foreach ( $results as $row ) {
@@ -149,19 +149,19 @@ class AttachmentIdResolver {
 				continue;
 			}
 
-			// Check if the CDN URL exists in the array.
-			if ( in_array( $cdn_url, $meta_value, true ) ) {
+			// Check if the file URL exists in the array.
+			if ( in_array( $file_url, $meta_value, true ) ) {
 				return (int) $row['post_id'];
 			}
 		}
 
-		// Fallback: Check converted files structure for CDN URLs.
+		// Fallback: Check converted files structure for file URLs.
 		// This handles cases where URLs might be stored in the converted files meta.
 		$converted_files_meta_key = AttachmentMetaHandler::META_KEY_CONVERTED_FILES_BY_SIZE;
 		$converted_results = $wpdb->get_results( $wpdb->prepare(
 			"SELECT post_id, meta_value FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value LIKE %s",
 			$converted_files_meta_key,
-			'%' . $wpdb->esc_like( $cdn_url ) . '%'
+			'%' . $wpdb->esc_like( $file_url ) . '%'
 		), ARRAY_A );
 
 		foreach ( $converted_results as $row ) {
@@ -171,7 +171,7 @@ class AttachmentIdResolver {
 			}
 
 			// Recursively search for the URL in the converted files structure.
-			if ( self::search_url_in_converted_files( $meta_value, $cdn_url ) ) {
+			if ( self::search_url_in_converted_files( $meta_value, $file_url ) ) {
 				return (int) $row['post_id'];
 			}
 		}

@@ -75,15 +75,17 @@ class ExternalOptimizationProvider {
 	}
 
 	/**
-	 * Get CDN URL for an attachment.
+	 * Get file URL for a converted file.
+	 *
+	 * Returns the stored URL (local or external) for a converted file.
 	 *
 	 * @since 3.0.0
 	 * @param int    $attachment_id Attachment ID.
 	 * @param string $format        Format (webp, avif, av1, webm).
 	 * @param string $size          Size name.
-	 * @return string|null CDN URL or null if not available.
+	 * @return string|null File URL or null if not available.
 	 */
-	public function get_cdn_url( $attachment_id, $format, $size = 'full' ) {
+	public function get_file_url( $attachment_id, $format, $size = 'full' ) {
 		return AttachmentMetaHandler::get_converted_file_url( $attachment_id, $format, $size );
 	}
 

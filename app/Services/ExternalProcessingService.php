@@ -370,11 +370,11 @@ class ExternalProcessingService implements ProcessingServiceInterface {
 	 * @return bool True if deletion was successful or not needed, false on error.
 	 */
 	public function delete_attachment( $attachment_id ) {
-		// Check if we have CDN data - if not, nothing to delete from external service
-		$cdn_urls = AttachmentMetaHandler::get_cdn_urls( $attachment_id );
-		if ( empty( $cdn_urls ) ) {
-			// No CDN data, nothing to delete
-			$this->logger->debug( "No CDN data found for attachment {$attachment_id}, skipping external deletion" );
+		// Check if we have file URLs - if not, nothing to delete from external service
+		$file_urls = AttachmentMetaHandler::get_file_urls( $attachment_id );
+		if ( empty( $file_urls ) ) {
+			// No file URLs, nothing to delete
+			$this->logger->debug( "No file URLs found for attachment {$attachment_id}, skipping external deletion" );
 			// Still clear meta in case there's stale data
 			AttachmentMetaHandler::clear_all_attachment_meta( $attachment_id );
 			return true;

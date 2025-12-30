@@ -192,20 +192,39 @@ class FFmpegProcessor implements VideoProcessorInterface {
 			$format = new AV1Format( 'libopus', 'libaom-av1' );
 			$format->setAudioKiloBitrate( 128 );
 			
-			// Set AV1-specific parameters
+			// Set AV1-specific parameters optimized for speed
 			$crf = $options['crf'] ?? 28;
 			$cpu_used = $options['cpu_used'] ?? 4;
 			
 			// cpu-used: 0-8, where lower = slower but better compression
+			// Higher values (6-8) significantly speed up encoding at cost of file size
 			// Validation is handled in Settings::get_video_av1_cpu_used()
 			
-			// -strict -2 is required for experimental codecs like libaom-av1
-			$format->setAdditionalParameters([
+			// Speed optimization parameters:
+			// - -strict -2 is required for experimental codecs like libaom-av1
+			// - -row-mt 1 enables row-based multithreading (faster encoding)
+			// - -tile-columns and -tile-rows enable tile-based parallel encoding
+			// - -threads 0 uses all available CPU threads
+			$additional_params = [
 				'-strict', '-2',
 				'-crf', (string) $crf,
 				'-cpu-used', (string) $cpu_used,
 				'-movflags', '+faststart',
-			]);
+				'-row-mt', '1',
+				'-threads', '0',
+			];
+			
+			// Add tile parameters for parallel encoding (if cpu_used >= 4, tiles are beneficial)
+			if ( $cpu_used >= 4 ) {
+				// Calculate optimal tile columns/rows based on typical video dimensions
+				// More tiles = more parallelism = faster encoding
+				$additional_params[] = '-tile-columns';
+				$additional_params[] = '2'; // 2^2 = 4 tile columns
+				$additional_params[] = '-tile-rows';
+				$additional_params[] = '1'; // 2^1 = 2 tile rows
+			}
+			
+			$format->setAdditionalParameters( $additional_params );
 
 			$video->save( $format, $destination_path );
 			
@@ -247,18 +266,38 @@ class FFmpegProcessor implements VideoProcessorInterface {
 			$format->setAudioCodec( 'libvorbis' );
 			$format->setAudioKiloBitrate( 128 );
 			
-			// Set WebM-specific parameters
+			// Set WebM-specific parameters optimized for speed
 			$crf = $options['crf'] ?? 30;
 			$speed = $options['speed'] ?? 4;
 			
 			// speed: 0-9, where lower = slower but better compression
+			// Higher values (6-9) significantly speed up encoding at cost of file size
 			// Validation is handled in Settings::get_video_webm_speed()
 			
-			$format->setAdditionalParameters([
+			// Speed optimization parameters:
+			// - -row-mt 1 enables row-based multithreading (faster encoding for VP9)
+			// - -tile-columns and -tile-rows enable tile-based parallel encoding
+			// - -threads 0 uses all available CPU threads
+			// - -frame-parallel 1 enables frame-level parallelism
+			$additional_params = [
 				'-crf', (string) $crf,
 				'-speed', (string) $speed,
 				'-movflags', '+faststart',
-			]);
+				'-row-mt', '1',
+				'-threads', '0',
+				'-frame-parallel', '1',
+			];
+			
+			// Add tile parameters for parallel encoding (especially beneficial at higher speeds)
+			if ( $speed >= 4 ) {
+				// More tiles = more parallelism = faster encoding
+				$additional_params[] = '-tile-columns';
+				$additional_params[] = '2'; // 2^2 = 4 tile columns
+				$additional_params[] = '-tile-rows';
+				$additional_params[] = '1'; // 2^1 = 2 tile rows
+			}
+			
+			$format->setAdditionalParameters( $additional_params );
 
 			$video->save( $format, $destination_path );
 			

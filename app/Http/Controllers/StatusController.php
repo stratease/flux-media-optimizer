@@ -122,13 +122,19 @@ class StatusController extends BaseController {
 			Converter::FORMAT_AVIF => $this->get_best_processor_for_format( Converter::FORMAT_AVIF, $available_processors ),
 		];
 		
+		// Filter format_support_details to only include image formats
+		$image_format_details = [
+			Converter::FORMAT_WEBP => $format_support_info[ Converter::FORMAT_WEBP ] ?? [],
+			Converter::FORMAT_AVIF => $format_support_info[ Converter::FORMAT_AVIF ] ?? [],
+		];
+		
 		return [
 			'available' => ! empty( $available_processors ),
-			'webp_support' => $format_support_info[ Converter::FORMAT_WEBP ]['supported'],
-			'avif_support' => $format_support_info[ Converter::FORMAT_AVIF ]['supported'],
+			'webp_support' => $format_support_info[ Converter::FORMAT_WEBP ]['supported'] ?? false,
+			'avif_support' => $format_support_info[ Converter::FORMAT_AVIF ]['supported'] ?? false,
 			'processors' => $processors,
 			'format_processors' => $format_processors,
-			'format_support_details' => $format_support_info,
+			'format_support_details' => $image_format_details,
 		];
 	}
 
@@ -160,16 +166,19 @@ class StatusController extends BaseController {
 			Converter::FORMAT_WEBM => $this->get_best_video_processor_for_format( Converter::FORMAT_WEBM, $available_processors ),
 		];
 		
+		// Filter format_support_details to only include video formats
+		$video_format_details = [
+			Converter::FORMAT_AV1 => $format_support_info[ Converter::FORMAT_AV1 ] ?? [],
+			Converter::FORMAT_WEBM => $format_support_info[ Converter::FORMAT_WEBM ] ?? [],
+		];
+		
 		return [
 			'available' => ! empty( $available_processors ),
-			'av1_support' => $format_support_info[ Converter::FORMAT_AV1 ]['supported'],
-			'webm_support' => $format_support_info[ Converter::FORMAT_WEBM ]['supported'],
+			'av1_support' => $format_support_info[ Converter::FORMAT_AV1 ]['supported'] ?? false,
+			'webm_support' => $format_support_info[ Converter::FORMAT_WEBM ]['supported'] ?? false,
 			'processors' => $processors,
 			'format_processors' => $format_processors,
-			'format_support_details' => [
-				Converter::FORMAT_AV1 => $format_support_info[ Converter::FORMAT_AV1 ],
-				Converter::FORMAT_WEBM => $format_support_info[ Converter::FORMAT_WEBM ],
-			],
+			'format_support_details' => $video_format_details,
 		];
 	}
 

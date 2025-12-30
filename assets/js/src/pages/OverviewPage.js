@@ -67,7 +67,7 @@ const OverviewPage = () => {
                   {getSavingsStats().percentage}%
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {__('Space Saved', 'flux-media-optimizer')}
+                  {__('Bandwidth Saved', 'flux-media-optimizer')}
                 </Typography>
               </Box>
             </Grid>

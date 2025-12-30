@@ -23,17 +23,21 @@ class Settings {
 	 */
 	const DEFAULT_WEBP_QUALITY = 75;
 	const DEFAULT_AVIF_QUALITY = 55;
-	const DEFAULT_VIDEO_AV1_CRF = 28;
-	const DEFAULT_VIDEO_WEBM_CRF = 30;
+	// Speed-optimized defaults: slightly higher CRF for faster encoding (small file size trade-off)
+	const DEFAULT_VIDEO_AV1_CRF = 30; // Increased from 28 for faster encoding
+	const DEFAULT_VIDEO_WEBM_CRF = 32; // Increased from 30 for faster encoding
 
 	/**
 	 * Default speed constants.
 	 *
+	 * Speed-optimized defaults prioritize faster conversion over smaller file sizes.
+	 * Users can override these in settings if they prefer smaller files over speed.
+	 *
 	 * @since 0.1.0
 	 */
 	const DEFAULT_AVIF_SPEED = 5;
-	const DEFAULT_VIDEO_AV1_CPU_USED = 4; // 0-8, where lower = slower but better compression
-	const DEFAULT_VIDEO_WEBM_SPEED = 4; // 0-9, where lower = slower but better compression
+	const DEFAULT_VIDEO_AV1_CPU_USED = 6; // 0-8, where lower = slower but better compression. Default 6 for faster encoding.
+	const DEFAULT_VIDEO_WEBM_SPEED = 6; // 0-9, where lower = slower but better compression. Default 6 for faster encoding.
 
 	/**
 	 * Default format arrays.

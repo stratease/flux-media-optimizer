@@ -31,11 +31,11 @@ class Options {
 		'image_formats' => [ 'webp', 'avif' ],
 		'image_hybrid_approach' => false, // Hybrid WebP + AVIF approach
 
-		// Video conversion settings.
-		'video_av1_crf' => 28,
-		'video_av1_cpu_used' => 4,
-		'video_webm_crf' => 30,
-		'video_webm_speed' => 4,
+		// Video conversion settings (speed-optimized defaults).
+		'video_av1_crf' => 30, // Increased from 28 for faster encoding
+		'video_av1_cpu_used' => 6, // Increased from 4 for faster encoding (0-8, higher = faster)
+		'video_webm_crf' => 32, // Increased from 30 for faster encoding
+		'video_webm_speed' => 6, // Increased from 4 for faster encoding (0-9, higher = faster)
 		'video_auto_convert' => true,
 		'video_formats' => [ 'av1', 'webm' ],
 		'video_hybrid_approach' => false, // Hybrid AV1 + WebM approach

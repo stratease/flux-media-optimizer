@@ -162,50 +162,6 @@ class ImageConverter implements Converter {
 	}
 
 	/**
-	 * Get processor information.
-	 *
-	 * @since 0.1.0
-	 * @return array Processor information.
-	 */
-	public function get_processor_info() {
-		// Check format support capabilities across all processors
-		$webp_support = $this->can_convert_to_webp();
-		$avif_support = $this->can_convert_to_avif();
-		
-		// Get the best processor for each format
-		$webp_processor = $this->processor_for_format( Converter::FORMAT_WEBP );
-		$avif_processor = $this->processor_for_format( Converter::FORMAT_AVIF );
-		
-		// Build processor information for each available processor
-		$processors = [];
-		foreach ( $this->available_processors as $type => $processor ) {
-			$processor_info = $processor->get_info();
-			$processors[ $type ] = [
-				'available' => true,
-				'type' => $processor_info['type'],
-				'version' => $processor_info['version'],
-				'webp_support' => $processor_info['webp_support'] ?? false,
-				'avif_support' => $processor_info['avif_support'] ?? false,
-				'animated_gif_support' => $processor_info['animated_gif_support'] ?? false,
-			];
-		}
-		
-		// Determine which processor handles each format
-		$format_processors = [
-			Converter::FORMAT_WEBP => $webp_processor ? $webp_processor->get_info()['type'] : null,
-			Converter::FORMAT_AVIF => $avif_processor ? $avif_processor->get_info()['type'] : null,
-		];
-		
-		return [
-			'available' => ! empty( $this->available_processors ),
-			'webp_support' => $webp_support,
-			'avif_support' => $avif_support,
-			'processors' => $processors,
-			'format_processors' => $format_processors,
-		];
-	}
-
-	/**
 	 * Check if we can convert to WebP format.
 	 *
 	 * @since 0.1.0

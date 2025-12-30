@@ -330,17 +330,57 @@ class ProcessorDetector {
     /**
      * Check if FFmpeg supports AV1.
      *
-     * Uses the PHP-FFmpeg library to check if AV1 codec is available.
-     * If FFmpeg is available, we assume AV1 support. The actual conversion
-     * will fail gracefully if the codec isn't supported.
+     * Uses PHP-FFmpeg library's driver to check if AV1 encoder is available.
+     * This uses the library's internal command execution (Symfony Process) which is
+     * WordPress-compliant and safer than direct exec() calls.
      *
      * @since 1.0.0
-     * @return bool True if FFmpeg supports AV1, false otherwise.
+     * @return bool True if FFmpeg supports AV1 encoding, false otherwise.
      */
     private function ffmpeg_supports_av1() {
-        // If FFmpeg is available, assume AV1 support
-        // The actual conversion will handle codec availability errors
-        return $this->is_ffmpeg_available();
+        if ( ! $this->is_ffmpeg_available() ) {
+            return false;
+        }
+
+        try {
+            // Use PHP-FFmpeg library to create FFMpeg instance
+            $ffmpeg = \FluxMedia\FFMpeg\FFMpeg::create();
+            if ( ! $ffmpeg ) {
+                return false;
+            }
+            
+            // Get the FFMpegDriver from the instance
+            $driver = $ffmpeg->getFFMpegDriver();
+            if ( ! $driver ) {
+                return false;
+            }
+            
+            // Use the driver's command method to check encoders
+            // This uses Symfony Process internally, which is WordPress-compliant
+            $output = $driver->command( [ '-encoders' ] );
+            
+            if ( empty( $output ) ) {
+                return false;
+            }
+            
+            // Check for AV1 encoders in the output
+            $encoders_output = is_array( $output ) ? implode( "\n", $output ) : (string) $output;
+            
+            // Check for common AV1 encoders
+            return (
+                strpos( $encoders_output, 'libaom-av1' ) !== false ||
+                strpos( $encoders_output, 'libsvtav1' ) !== false ||
+                strpos( $encoders_output, 'librav1e' ) !== false ||
+                preg_match( '/\bav1\b/i', $encoders_output )
+            );
+            
+        } catch ( \Exception $e ) {
+            // If we can't check, assume false for safety
+            return false;
+        } catch ( \Error $e ) {
+            // Catch fatal errors
+            return false;
+        }
     }
 
     /**

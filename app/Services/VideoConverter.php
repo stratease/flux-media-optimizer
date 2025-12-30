@@ -106,7 +106,23 @@ class VideoConverter implements Converter {
      */
     public function __construct( LoggerInterface $logger ) {
         $this->logger = $logger;
-        $this->processor = $this->get_available_processor();
+        // Processor is lazy-loaded when needed, not on every page load
+    }
+
+    /**
+     * Get the processor instance (lazy-loaded).
+     *
+     * Initializes the processor only when needed, not on every page load.
+     *
+     * @since 3.0.0
+     * @return VideoProcessorInterface|null The processor instance or null if none available.
+     */
+    private function get_processor() {
+        // Lazy-load: only initialize if not already loaded
+        if ( $this->processor === null ) {
+            $this->processor = $this->get_available_processor();
+        }
+        return $this->processor;
     }
 
     /**
@@ -204,7 +220,8 @@ class VideoConverter implements Converter {
      * @return bool True if conversion is available, false otherwise.
      */
     public function is_available() {
-        return null !== $this->processor;
+        $processor = $this->get_processor();
+        return null !== $processor;
     }
 
     /**
@@ -214,11 +231,12 @@ class VideoConverter implements Converter {
      * @return bool True if AV1 conversion is supported, false otherwise.
      */
     private function can_convert_to_av1() {
-        if ( ! $this->processor ) {
+        $processor = $this->get_processor();
+        if ( ! $processor ) {
             return false;
         }
 
-        $processor_info = $this->processor->get_info();
+        $processor_info = $processor->get_info();
         return $processor_info['av1_support'] ?? false;
     }
 
@@ -229,34 +247,13 @@ class VideoConverter implements Converter {
      * @return bool True if WebM conversion is supported, false otherwise.
      */
     private function can_convert_to_webm() {
-        if ( ! $this->processor ) {
+        $processor = $this->get_processor();
+        if ( ! $processor ) {
             return false;
         }
 
-        $processor_info = $this->processor->get_info();
+        $processor_info = $processor->get_info();
         return $processor_info['webm_support'] ?? false;
-    }
-
-    /**
-     * Get processor information.
-     *
-     * @since 0.1.0
-     * @return array Processor information.
-     */
-    public function get_processor_info() {
-        // Always check format capabilities regardless of processor availability
-        $av1_support = $this->can_convert_to_av1();
-        $webm_support = $this->can_convert_to_webm();
-
-        // Processor is available if it can convert to at least one format
-        $available = $av1_support || $webm_support;
-
-        return [
-            'available' => $available,
-            'type' => $this->processor ? 'ffmpeg' : 'none',
-            'av1_support' => $av1_support,
-            'webm_support' => $webm_support,
-        ];
     }
 
     /**
@@ -269,7 +266,8 @@ class VideoConverter implements Converter {
      * @return bool True on success, false on failure.
      */
     public function convert_to_av1( $source_path, $destination_path, $options = [] ) {
-        if ( ! $this->processor ) {
+        $processor = $this->get_processor();
+        if ( ! $processor ) {
             $this->logger->warning( 'No video processor available for AV1 conversion', [
                 'operation' => 'processor_check',
                 'component' => 'processor',
@@ -282,7 +280,7 @@ class VideoConverter implements Converter {
         // Use options as provided by caller
 
 		try {
-			$result = $this->processor->convert_to_av1( $source_path, $destination_path, $options );
+			$result = $processor->convert_to_av1( $source_path, $destination_path, $options );
 			
 			if ( ! $result ) {
 				$this->logger->error( "AV1 conversion failed for: {$source_path}" );
@@ -305,7 +303,8 @@ class VideoConverter implements Converter {
      * @return bool True on success, false on failure.
      */
     public function convert_to_webm( $source_path, $destination_path, $options = [] ) {
-        if ( ! $this->processor ) {
+        $processor = $this->get_processor();
+        if ( ! $processor ) {
             $this->logger->warning( 'No video processor available for WebM conversion', [
                 'operation' => 'processor_check',
                 'component' => 'processor',
@@ -318,7 +317,7 @@ class VideoConverter implements Converter {
         // Use options as provided by caller
 
 		try {
-			$result = $this->processor->convert_to_webm( $source_path, $destination_path, $options );
+			$result = $processor->convert_to_webm( $source_path, $destination_path, $options );
 			
 			if ( ! $result ) {
 				$this->logger->error( "WebM conversion failed for: {$source_path}" );
@@ -430,6 +429,8 @@ class VideoConverter implements Converter {
      */
     public function process_video_conversion( $attachment_id, $file_path ) {
         // Get settings from WordPress
+        // Defaults are already speed-optimized in Settings.php
+        // Users can override these if they prefer smaller files over speed
         $settings = [
             'video_hybrid_approach' => Settings::is_video_hybrid_approach_enabled(),
             'video_av1_crf' => Settings::get_video_av1_crf(),

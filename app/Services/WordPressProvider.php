@@ -1106,6 +1106,13 @@ class WordPressProvider {
             return $this->video_renderer->modify_attachment_url( $url, $attachment_id, $converted_files );
         } elseif ( $this->has_image_formats( $converted_files ) ) {
             return $this->image_renderer->modify_attachment_url( $url, $attachment_id, $converted_files );
+        } elseif ( isset( $converted_files['original'] ) && is_array( $converted_files['original'] ) && isset( $converted_files['original']['url'] ) ) {
+            // For non-image/non-video files (PDFs, CSVs, etc.), use the "original" format URL if it's a CDN URL
+            $original_url = $converted_files['original']['url'];
+            if ( ! empty( $original_url ) && AttachmentMetaHandler::is_file_url( $original_url ) ) {
+                // Return the CDN URL for the original file
+                return esc_url_raw( $original_url );
+            }
         }
 
         // Always return original URL as fallback if modified URL is empty/null
@@ -1975,6 +1982,12 @@ class WordPressProvider {
                     if ( ! empty( $avif_url ) ) {
                         $modified_url = $avif_url;
                     }
+                }
+            } elseif ( isset( $converted_files['original'] ) && is_array( $converted_files['original'] ) && isset( $converted_files['original']['url'] ) ) {
+                // For non-image/non-video files (PDFs, CSVs, etc.), use the "original" format URL if it's a CDN URL
+                $original_cdn_url = $converted_files['original']['url'];
+                if ( ! empty( $original_cdn_url ) && AttachmentMetaHandler::is_file_url( $original_cdn_url ) ) {
+                    $modified_url = esc_url_raw( $original_cdn_url );
                 }
             }
             

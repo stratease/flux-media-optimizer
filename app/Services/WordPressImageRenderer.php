@@ -857,6 +857,20 @@ class WordPressImageRenderer {
         // Check if this is size-specific structure (nested) or legacy format (flat)
         $is_size_specific = ! empty( $converted_files ) && isset( $converted_files['full'] ) && is_array( $converted_files['full'] );
         
+        // Get file type to determine if we should show dimensions (only for images)
+        $mime_type = get_post_mime_type( $attachment_id );
+        $is_image = strpos( $mime_type, 'image/' ) === 0;
+        
+        // Get "original" format from "full" size if it exists (only show once)
+        $original_cdn_data = null;
+        $original_cdn_url = null;
+        $original_cdn_size = 0;
+        if ( $is_size_specific && isset( $converted_files['full']['original'] ) && is_array( $converted_files['full']['original'] ) ) {
+            $original_cdn_data = $converted_files['full']['original'];
+            $original_cdn_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, 'original', 'full' );
+            $original_cdn_size = AttachmentMetaHandler::get_file_size( $attachment_id, 'original', 'full' ) ?? 0;
+        }
+        
         // Converted files
         $html .= '<h4 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">' . __( 'Converted Files', 'flux-media-optimizer' ) . '</h4>';
         
@@ -864,9 +878,8 @@ class WordPressImageRenderer {
             $html .= '<p style="color: #666; font-style: italic; margin: 0;">' . esc_html( __( 'No conversions available', 'flux-media-optimizer' ) ) . '</p>';
         } elseif ( $is_size_specific ) {
             // Display size-specific structure
-            // Get valid WordPress size names (includes 'thumbnail', 'medium', 'large', and custom sizes)
-            $valid_sizes = get_intermediate_image_sizes();
-            // Add 'full' to the list of valid sizes
+            // For images, get valid WordPress size names; for videos and other files, only show 'full'
+            $valid_sizes = $is_image ? get_intermediate_image_sizes() : [];
             $valid_sizes[] = 'full';
             
             foreach ( $converted_files as $size_name => $size_formats ) {
@@ -874,23 +887,24 @@ class WordPressImageRenderer {
                     continue;
                 }
                 
-                // Only display sizes that are valid WordPress registered sizes
+                // Only display sizes that are valid WordPress registered sizes (or 'full' for all types)
                 if ( ! in_array( $size_name, $valid_sizes, true ) ) {
                     continue;
                 }
                 
-                // Get size dimensions from metadata
-                $metadata = wp_get_attachment_metadata( $attachment_id );
+                // Get size dimensions from metadata (only for images)
                 $width = 0;
                 $height = 0;
-                
-                if ( ! empty( $metadata ) && is_array( $metadata ) ) {
-                    if ( 'full' === $size_name ) {
-                        $width = $metadata['width'] ?? 0;
-                        $height = $metadata['height'] ?? 0;
-                    } elseif ( isset( $metadata['sizes'][ $size_name ] ) ) {
-                        $width = $metadata['sizes'][ $size_name ]['width'] ?? 0;
-                        $height = $metadata['sizes'][ $size_name ]['height'] ?? 0;
+                if ( $is_image ) {
+                    $metadata = wp_get_attachment_metadata( $attachment_id );
+                    if ( ! empty( $metadata ) && is_array( $metadata ) ) {
+                        if ( 'full' === $size_name ) {
+                            $width = $metadata['width'] ?? 0;
+                            $height = $metadata['height'] ?? 0;
+                        } elseif ( isset( $metadata['sizes'][ $size_name ] ) ) {
+                            $width = $metadata['sizes'][ $size_name ]['width'] ?? 0;
+                            $height = $metadata['sizes'][ $size_name ]['height'] ?? 0;
+                        }
                     }
                 }
                 
@@ -902,21 +916,35 @@ class WordPressImageRenderer {
                 }
                 $html .= '</h5>';
                 
+                // Show "Original (CDN)" only once in the "full" size section
+                if ( 'full' === $size_name && $original_cdn_url ) {
+                    $format_color = $this->get_format_color( 'original' );
+                    $html .= '<div style="background: white; border: 1px solid #e1e1e1; border-radius: 3px; padding: 12px; margin-bottom: 8px; margin-left: 15px;">';
+                    $html .= '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">';
+                    $html .= '<span style="font-weight: bold; color: ' . $format_color . '; text-transform: uppercase; font-size: 12px;">' . esc_html( __( 'Original (CDN)', 'flux-media-optimizer' ) ) . '</span>';
+                    $html .= '</div>';
+                    $html .= '<div style="font-size: 12px; color: #666;">';
+                    if ( $original_cdn_size > 0 ) {
+                        $html .= '<strong>' . __( 'Size:', 'flux-media-optimizer' ) . '</strong> ' . size_format( $original_cdn_size ) . '<br>';
+                    }
+                    $html .= '<strong>' . esc_html( __( 'URL:', 'flux-media-optimizer' ) ) . '</strong> <a href="' . esc_url( $original_cdn_url ) . '" target="_blank" style="color: #0073aa; text-decoration: none; word-break: break-all;">' . esc_html( $original_cdn_url ) . '</a>';
+                    $html .= '</div>';
+                    $html .= '</div>';
+                }
+                
+                // Display all other formats (excluding "original" which we already handled)
                 foreach ( $size_formats as $format => $data ) {
-                    // Skip original file in the list of converted files
+                    // Skip "original" format - we already displayed it once for "full" size
                     if ( $format === 'original' ) {
                         continue;
                     }
-
+                    
                     // Extract URL/path from unified structure.
                     if ( ! is_array( $data ) || ! isset( $data['url'] ) ) {
                         continue;
                     }
                     
                     $url_or_path = $data['url'];
-                    
-                    // Check if it's a URL (CDN) or file path (local).
-                    $is_url = is_string( $url_or_path ) && ( strpos( $url_or_path, 'http://' ) === 0 || strpos( $url_or_path, 'https://' ) === 0 );
                     
                     // Get file size using AttachmentMetaHandler (handles both URLs and file paths).
                     $file_size = AttachmentMetaHandler::get_file_size( $attachment_id, $format, $size_name ) ?? 0;
@@ -929,38 +957,47 @@ class WordPressImageRenderer {
                         if ( 'full' === $size_name ) {
                             $size_original = $original_size;
                         } else {
-                            // Get the original file path for this specific size
-                            $size_file = get_attached_file( $attachment_id );
-                            if ( ! $size_file ) {
-                                $size_original = 0;
-                            } else {
-                                $file_dir = dirname( $size_file );
-                                $size_file_name = $metadata['sizes'][ $size_name ]['file'] ?? '';
-                                
-                                if ( ! empty( $size_file_name ) ) {
-                                    $size_file_path = $file_dir . '/' . $size_file_name;
-                                    // Get original file size from file system.
-                                    $size_original = $wp_filesystem && $wp_filesystem->exists( $size_file_path ) ? $wp_filesystem->size( $size_file_path ) : ( file_exists( $size_file_path ) ? filesize( $size_file_path ) : 0 );
-                                } else {
+                            // Get the original file path for this specific size (images only)
+                            if ( $is_image ) {
+                                $size_file = get_attached_file( $attachment_id );
+                                if ( ! $size_file ) {
                                     $size_original = 0;
+                                } else {
+                                    $file_dir = dirname( $size_file );
+                                    $metadata = wp_get_attachment_metadata( $attachment_id );
+                                    $size_file_name = $metadata['sizes'][ $size_name ]['file'] ?? '';
+                                    
+                                    if ( ! empty( $size_file_name ) ) {
+                                        $size_file_path = $file_dir . '/' . $size_file_name;
+                                        // Get original file size from file system.
+                                        $size_original = $wp_filesystem && $wp_filesystem->exists( $size_file_path ) ? $wp_filesystem->size( $size_file_path ) : ( file_exists( $size_file_path ) ? filesize( $size_file_path ) : 0 );
+                                    } else {
+                                        $size_original = 0;
+                                    }
                                 }
+                            } else {
+                                // For non-images, use full size original
+                                $size_original = $original_size;
                             }
                         }
                     }
                     
                     // Calculate savings percentage (compare converted file against original file of same size)
-                    // Only calculate if we have both sizes (not available for CDN URLs).
-                    $savings = ( $size_original > 0 && $file_size > 0 ) ? ( ( $size_original - $file_size ) / $size_original ) * 100 : 0;
+                    $savings = 0;
+                    if ( $size_original > 0 && $file_size > 0 ) {
+                        $savings = ( ( $size_original - $file_size ) / $size_original ) * 100;
+                    }
                     
                     // Get converted file URL from AttachmentMetaHandler
                     $converted_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, $format, $size_name );
                     
-                    // Format-specific styling
-                    $format_color = $format === Converter::FORMAT_WEBP ? '#4285f4' : ( $format === Converter::FORMAT_AVIF ? '#ea4335' : '#34a853' );
+                    // Format-specific styling and labels
+                    $format_color = $this->get_format_color( $format );
+                    $format_label = strtoupper( $format );
                     
                     $html .= '<div style="background: white; border: 1px solid #e1e1e1; border-radius: 3px; padding: 12px; margin-bottom: 8px; margin-left: 15px;">';
                     $html .= '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">';
-                    $html .= '<span style="font-weight: bold; color: ' . $format_color . '; text-transform: uppercase; font-size: 12px;">' . esc_html( $format ) . '</span>';
+                    $html .= '<span style="font-weight: bold; color: ' . $format_color . '; text-transform: uppercase; font-size: 12px;">' . esc_html( $format_label ) . '</span>';
                     if ( $savings > 0 ) {
                         $html .= '<span style="background: #e8f5e8; color: #2e7d32; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold;">' . round( $savings, 1 ) . '% ' . __( 'smaller', 'flux-media-optimizer' ) . '</span>';
                     } elseif ( $size_original > 0 && $file_size > 0 ) {
@@ -992,29 +1029,29 @@ class WordPressImageRenderer {
                     continue;
                 }
                 
-                $url_or_path = $data['url'];
-                
-                // Check if it's a URL (CDN) or file path (local).
-                $is_url = ( strpos( $url_or_path, 'http://' ) === 0 || strpos( $url_or_path, 'https://' ) === 0 );
-                
                 // Get file size using AttachmentMetaHandler (handles both URLs and file paths).
                 $file_size = AttachmentMetaHandler::get_file_size( $attachment_id, $format, 'full' ) ?? 0;
                 
-                $savings = ( $original_size > 0 && $file_size > 0 ) ? ( ( $original_size - $file_size ) / $original_size ) * 100 : 0;
+                // Calculate savings (only for non-original formats)
+                $savings = 0;
+                if ( $format !== 'original' && $original_size > 0 && $file_size > 0 ) {
+                    $savings = ( ( $original_size - $file_size ) / $original_size ) * 100;
+                }
                 
                 // Get converted file URL from AttachmentMetaHandler
                 $converted_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, $format, 'full' );
                 
-                // Format-specific styling
-                $format_color = $format === Converter::FORMAT_WEBP ? '#4285f4' : ( $format === Converter::FORMAT_AVIF ? '#ea4335' : '#34a853' );
+                // Format-specific styling and labels
+                $format_color = $this->get_format_color( $format );
+                $format_label = $format === 'original' ? __( 'Original (CDN)', 'flux-media-optimizer' ) : strtoupper( $format );
                 
                 $html .= '<div style="background: white; border: 1px solid #e1e1e1; border-radius: 3px; padding: 12px; margin-bottom: 8px;">';
                 $html .= '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">';
-                $html .= '<span style="font-weight: bold; color: ' . $format_color . '; text-transform: uppercase; font-size: 12px;">' . esc_html( $format ) . '</span>';
+                $html .= '<span style="font-weight: bold; color: ' . $format_color . '; text-transform: uppercase; font-size: 12px;">' . esc_html( $format_label ) . '</span>';
                 if ( $savings > 0 ) {
                     $html .= '<span style="background: #e8f5e8; color: #2e7d32; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold;">' . round( $savings, 1 ) . '% ' . __( 'smaller', 'flux-media-optimizer' ) . '</span>';
-                } elseif ( $original_size > 0 && $file_size > 0 ) {
-                    // File is larger or equal
+                } elseif ( $format !== 'original' && $original_size > 0 && $file_size > 0 ) {
+                    // File is larger or equal (don't show for original format)
                     $increase = abs( $savings );
                     $tooltip = __( 'File is larger than original. This usually happens when the original is already highly compressed or when using high quality settings.', 'flux-media-optimizer' );
                     $html .= '<span title="' . esc_attr( $tooltip ) . '" style="background: #ffebee; color: #c62828; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold; cursor: help; border-bottom: 1px dotted #c62828;">' . round( $increase, 1 ) . '% ' . __( 'larger', 'flux-media-optimizer' ) . '</span>';
@@ -1047,6 +1084,30 @@ class WordPressImageRenderer {
                 error_log( 'Flux Media Optimizer: Fatal error in get_conversion_status_html: ' . $e->getMessage() );
             }
             return '';
+        }
+    }
+
+    /**
+     * Get format color for display.
+     *
+     * @since 3.0.0
+     * @param string $format Format name (webp, avif, av1, webm, original, etc.).
+     * @return string Hex color code.
+     */
+    private function get_format_color( $format ) {
+        switch ( $format ) {
+            case Converter::FORMAT_WEBP:
+                return '#4285f4';
+            case Converter::FORMAT_AVIF:
+                return '#ea4335';
+            case Converter::FORMAT_AV1:
+                return '#ff6b00';
+            case Converter::FORMAT_WEBM:
+                return '#34a853';
+            case 'original':
+                return '#666666';
+            default:
+                return '#34a853';
         }
     }
 

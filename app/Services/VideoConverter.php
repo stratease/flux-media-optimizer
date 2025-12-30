@@ -9,10 +9,14 @@
 namespace FluxMedia\App\Services;
 
 use FluxMedia\App\Services\LoggerInterface;
+use FluxMedia\App\Services\Logger;
 use FluxMedia\App\Services\Converter;
 use FluxMedia\App\Services\VideoProcessorInterface;
 use FluxMedia\App\Services\FFmpegProcessor;
 use FluxMedia\App\Services\ProcessorDetector;
+use FluxMedia\App\Services\AttachmentMetaHandler;
+use FluxMedia\App\Services\ConversionTracker;
+use FluxMedia\App\Services\Settings;
 
 /**
  * Video conversion service that handles AV1 and WebM conversion.
@@ -29,6 +33,13 @@ class VideoConverter implements Converter {
      */
     private $logger;
 
+    /**
+     * Conversion tracker instance.
+     *
+     * @since 3.0.0
+     * @var ConversionTracker|null
+     */
+    private $conversion_tracker;
 
     /**
      * Video processor instance.
@@ -108,13 +119,23 @@ class VideoConverter implements Converter {
         // Check if PHP-FFmpeg library is available
 
         if ( ! class_exists( 'FluxMedia\FFMpeg\FFMpeg' ) ) {
-            $this->logger->log_processor_unavailable( 'PHP-FFmpeg', 'PHP-FFmpeg library not found' );
+            $this->logger->warning( 'PHP-FFmpeg library not found', [
+                'operation' => 'processor_check',
+                'component' => 'processor',
+                'processor_type' => 'PHP-FFmpeg',
+                'unavailability_reason' => 'PHP-FFmpeg library not found',
+            ] );
             return null;
         }
 
         // Check if FFmpeg binary is available
         if ( ! $this->is_ffmpeg_available() ) {
-            $this->logger->log_processor_unavailable( 'FFmpeg', 'FFmpeg binary not found or not executable' );
+            $this->logger->warning( 'FFmpeg binary not found or not executable', [
+                'operation' => 'processor_check',
+                'component' => 'processor',
+                'processor_type' => 'FFmpeg',
+                'unavailability_reason' => 'FFmpeg binary not found or not executable',
+            ] );
             return null;
         }
 
@@ -136,10 +157,21 @@ class VideoConverter implements Converter {
             if ( ! empty( $supported_formats ) ) {
                 return $processor;
             } else {
-                $this->logger->log_format_unsupported( 'FFmpeg', 'All', 'No supported video formats available' );
+                $this->logger->warning( 'FFmpeg does not support any video formats: No supported video formats available', [
+                    'operation' => 'format_check',
+                    'component' => 'format_support',
+                    'processor_type' => 'FFmpeg',
+                    'format' => 'All',
+                    'unsupported_reason' => 'No supported video formats available',
+                ] );
             }
         } else {
-            $this->logger->log_processor_unavailable( 'FFmpeg', 'FFmpeg processor initialization failed' );
+            $this->logger->warning( 'FFmpeg processor initialization failed', [
+                'operation' => 'processor_check',
+                'component' => 'processor',
+                'processor_type' => 'FFmpeg',
+                'unavailability_reason' => 'FFmpeg processor initialization failed',
+            ] );
         }
 
         return null;
@@ -238,7 +270,12 @@ class VideoConverter implements Converter {
      */
     public function convert_to_av1( $source_path, $destination_path, $options = [] ) {
         if ( ! $this->processor ) {
-            $this->logger->log_processor_unavailable( 'Video', 'No video processor available for AV1 conversion' );
+            $this->logger->warning( 'No video processor available for AV1 conversion', [
+                'operation' => 'processor_check',
+                'component' => 'processor',
+                'processor_type' => 'Video',
+                'unavailability_reason' => 'No video processor available for AV1 conversion',
+            ] );
             return false;
         }
 
@@ -269,7 +306,12 @@ class VideoConverter implements Converter {
      */
     public function convert_to_webm( $source_path, $destination_path, $options = [] ) {
         if ( ! $this->processor ) {
-            $this->logger->log_processor_unavailable( 'Video', 'No video processor available for WebM conversion' );
+            $this->logger->warning( 'No video processor available for WebM conversion', [
+                'operation' => 'processor_check',
+                'component' => 'processor',
+                'processor_type' => 'Video',
+                'unavailability_reason' => 'No video processor available for WebM conversion',
+            ] );
             return false;
         }
 
@@ -368,6 +410,219 @@ class VideoConverter implements Converter {
         }
 
         return $success;
+    }
+
+    /**
+     * Process video conversion with automatic destination path building and WordPress meta storage.
+     *
+     * Centralized method that handles the complete video conversion workflow:
+     * - Gets settings and video formats from WordPress Settings
+     * - Builds destination paths with proper AV1 filename handling
+     * - Processes the video conversion
+     * - Stores WordPress meta data (if attachment_id provided)
+     * - Tracks conversions (if attachment_id provided)
+     * - Returns structured results
+     *
+     * @since 3.0.0
+     * @param int    $attachment_id WordPress attachment ID (optional, for meta storage).
+     * @param string $file_path Source video file path.
+     * @return array Conversion results with 'success', 'converted_formats', 'converted_files', and 'errors' keys.
+     */
+    public function process_video_conversion( $attachment_id, $file_path ) {
+        // Get settings from WordPress
+        $settings = [
+            'video_hybrid_approach' => Settings::is_video_hybrid_approach_enabled(),
+            'video_av1_crf' => Settings::get_video_av1_crf(),
+            'video_av1_cpu_used' => Settings::get_video_av1_cpu_used(),
+            'video_webm_crf' => Settings::get_video_webm_crf(),
+            'video_webm_speed' => Settings::get_video_webm_speed(),
+        ];
+
+        // Get video formats to convert
+        $video_formats = Settings::get_video_formats();
+        
+        // Ensure video_formats is an array
+        if ( ! is_array( $video_formats ) ) {
+            $video_formats = [];
+        }
+        
+        // Log formats being processed for debugging
+        if ( empty( $video_formats ) && $attachment_id ) {
+            $this->logger->warning( "No video formats configured for conversion. Attachment ID: {$attachment_id}" );
+        }
+
+        // Lazy-load conversion tracker if needed
+        if ( $attachment_id && ! $this->conversion_tracker ) {
+            // ConversionTracker requires Logger, but we have LoggerInterface
+            // Check if logger is a Logger instance
+            if ( $this->logger instanceof Logger ) {
+                $this->conversion_tracker = new ConversionTracker( $this->logger );
+            }
+        }
+
+        // Get file path components
+        $file_info = pathinfo( $file_path );
+        $file_dir = $file_info['dirname'];
+        $file_name = $file_info['filename'];
+
+        // Build destination paths for requested formats
+        $destination_paths = [];
+        foreach ( $video_formats as $format ) {
+            // Map format to correct file extension
+            // AV1 uses MP4 container, WebM uses WebM container
+            $extension = ( $format === Converter::FORMAT_AV1 ) ? 'mp4' : $format;
+            
+            // For AV1, append format to filename to make it unique (since it uses .mp4 extension)
+            // Example: file.mp4 -> file.av1.mp4
+            $destination_filename = $file_name;
+            if ( $format === Converter::FORMAT_AV1 ) {
+                $destination_filename = $file_name . '.av1';
+            }
+            
+            $destination_paths[ $format ] = $file_dir . '/' . $destination_filename . '.' . $extension;
+        }
+
+        // Process the video using the existing process_video method
+        $results = $this->process_video( $file_path, $destination_paths, $settings );
+
+        // Handle results and store WordPress meta if attachment_id provided
+        if ( $results['success'] && $attachment_id ) {
+            // Initialize WordPress filesystem for file operations
+            if ( ! function_exists( 'WP_Filesystem' ) ) {
+                require_once ABSPATH . 'wp-admin/includes/file.php';
+            }
+            WP_Filesystem();
+            
+            global $wp_filesystem;
+            
+            // Get original file size
+            $original_size = $wp_filesystem && $wp_filesystem->exists( $file_path ) ? $wp_filesystem->size( $file_path ) : 0;
+
+            // Initialize converted files array
+            $converted_files_by_size = [];
+
+            // Store original file URL and size.
+            $original_file_url = wp_get_attachment_url( $attachment_id );
+            if ( $original_size > 0 ) {
+                // Store original file details.
+                AttachmentMetaHandler::set_file_url_and_size( $attachment_id, 'original', 'full', $original_file_url ?: $file_path, $original_size );
+                
+                // Also add to local array so it's included when we save the batch.
+                // Convert path to URL if needed (same logic as set_file_url_and_size).
+                $url_to_store = $original_file_url;
+                if ( empty( $url_to_store ) ) {
+                    // Convert file path to URL.
+                    $upload_dir = wp_upload_dir();
+                    $upload_path = wp_normalize_path( $upload_dir['basedir'] );
+                    $file_path_normalized = wp_normalize_path( $file_path );
+                    if ( strpos( $file_path_normalized, $upload_path ) === 0 ) {
+                        $relative_path = str_replace( $upload_path, '', $file_path_normalized );
+                        $relative_path = ltrim( $relative_path, '/' );
+                        $url_to_store = $upload_dir['baseurl'] . '/' . $relative_path;
+                    } else {
+                        $url_to_store = wp_get_attachment_url( $attachment_id );
+                    }
+                }
+                
+                if ( $url_to_store ) {
+                    $converted_files_by_size['full']['original'] = [
+                        'url' => esc_url_raw( $url_to_store ),
+                        'filesize' => $original_size,
+                    ];
+                }
+            }
+
+            // Record conversion with file size data for each format
+            // Videos don't have multiple sizes, so use 'full' as size_name
+            foreach ( $results['converted_formats'] as $format ) {
+                $converted_file_path = $results['converted_files'][ $format ] ?? '';
+                $converted_size = $wp_filesystem && $wp_filesystem->exists( $converted_file_path ) ? $wp_filesystem->size( $converted_file_path ) : 0;
+                
+                // Track conversion if tracker available
+                if ( $this->conversion_tracker ) {
+                    $this->conversion_tracker->record_conversion( $attachment_id, $format, $original_size, $converted_size, 'full' );
+                }
+                
+                // Store URL and size together using unified structure.
+                AttachmentMetaHandler::set_file_url_and_size( $attachment_id, $format, 'full', $converted_file_path, $converted_size );
+            }
+
+            // Update WordPress meta
+            AttachmentMetaHandler::set_converted_formats( $attachment_id, $results['converted_formats'] );
+            AttachmentMetaHandler::set_conversion_date_now( $attachment_id );
+            
+            // Store in size-specific format
+            // Note: URLs and sizes are already stored via set_file_url_and_size() calls above.
+            // Retrieve the stored data to ensure we have URLs (not paths) in the structure
+            $converted_files_by_size = AttachmentMetaHandler::get_converted_files_grouped_by_size( $attachment_id );
+            
+            // Ensure 'full' key exists
+            if ( ! isset( $converted_files_by_size['full'] ) ) {
+                $converted_files_by_size['full'] = [];
+            }
+            
+            // Update with any missing formats using URLs (set_file_url_and_size should have handled URL conversion)
+            foreach ( $results['converted_files'] as $format => $converted_file_path ) {
+                // Get the URL that was already stored by set_file_url_and_size()
+                $converted_url = AttachmentMetaHandler::get_converted_file_url( $attachment_id, $format, 'full' );
+                $converted_size = AttachmentMetaHandler::get_file_size( $attachment_id, $format, 'full' );
+                
+                // If URL wasn't stored yet, convert file path to URL
+                if ( ! $converted_url ) {
+                    $upload_dir = wp_upload_dir();
+                    $upload_path = wp_normalize_path( $upload_dir['basedir'] );
+                    $converted_file_path_normalized = wp_normalize_path( $converted_file_path );
+                    if ( strpos( $converted_file_path_normalized, $upload_path ) === 0 ) {
+                        $relative_path = str_replace( $upload_path, '', $converted_file_path_normalized );
+                        $relative_path = ltrim( $relative_path, '/' );
+                        $converted_url = $upload_dir['baseurl'] . '/' . $relative_path;
+                    } else {
+                        // Fallback to attachment URL
+                        $converted_url = wp_get_attachment_url( $attachment_id );
+                    }
+                }
+                
+                // Get file size if not already stored
+                if ( ! $converted_size ) {
+                    $converted_size = $wp_filesystem && $wp_filesystem->exists( $converted_file_path ) ? $wp_filesystem->size( $converted_file_path ) : 0;
+                }
+                
+                // Store with URL (not file path)
+                $converted_files_by_size['full'][ $format ] = [
+                    'url' => $converted_url ?: $converted_file_path,
+                    'filesize' => $converted_size,
+                ];
+            }
+            
+            AttachmentMetaHandler::set_converted_files_grouped_by_size( $attachment_id, $converted_files_by_size );
+            
+            // Extract all CDN URLs and store in dedicated meta field for efficient lookup
+            // Only store URLs (not local file paths) in META_KEY_CDN_URLS
+            $cdn_urls = [];
+            foreach ( $converted_files_by_size as $size_data ) {
+                if ( ! is_array( $size_data ) ) {
+                    continue;
+                }
+                foreach ( $size_data as $format => $file_data ) {
+                    if ( is_array( $file_data ) && isset( $file_data['url'] ) && is_string( $file_data['url'] ) ) {
+                        // Only add CDN URLs (those starting with http:// or https://)
+                        if ( AttachmentMetaHandler::is_file_url( $file_data['url'] ) ) {
+                            $cdn_urls[] = $file_data['url'];
+                        }
+                    }
+                }
+            }
+            // Store CDN URLs in dedicated meta field for efficient lookup
+            if ( ! empty( $cdn_urls ) ) {
+                AttachmentMetaHandler::set_cdn_urls( $attachment_id, array_unique( $cdn_urls ) );
+            }
+
+            // Video conversion completed
+        } elseif ( ! $results['success'] && $attachment_id ) {
+            $this->logger->error( "Video conversion failed for attachment {$attachment_id}: " . implode( ', ', $results['errors'] ) );
+        }
+
+        return $results;
     }
 
     /**

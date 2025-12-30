@@ -17,6 +17,7 @@ use FluxMedia\FFMpeg\FFProbe;
 use FluxMedia\FFMpeg\Format\Video\WebM;
 use FluxMedia\FFMpeg\Format\Video\X264;
 use FluxMedia\FFMpeg\Exception\RuntimeException;
+use FluxMedia\App\Services\AV1Format;
 
 /**
  * FFmpeg-based video processor with high-quality conversion settings using PHP-FFmpeg.
@@ -186,10 +187,9 @@ class FFmpegProcessor implements VideoProcessorInterface {
 		try {
 			$video = $this->ffmpeg->open( $source_path );
 			
-			// Create AV1 format with custom parameters
-			$format = new X264();
-			$format->setVideoCodec( 'libaom-av1' );
-			$format->setAudioCodec( 'libopus' );
+			// Create AV1 format using custom AV1Format class
+			// X264 only supports libx264, so we need a custom format for AV1
+			$format = new AV1Format( 'libopus', 'libaom-av1' );
 			$format->setAudioKiloBitrate( 128 );
 			
 			// Set AV1-specific parameters
@@ -199,7 +199,9 @@ class FFmpegProcessor implements VideoProcessorInterface {
 			// cpu-used: 0-8, where lower = slower but better compression
 			// Validation is handled in Settings::get_video_av1_cpu_used()
 			
+			// -strict -2 is required for experimental codecs like libaom-av1
 			$format->setAdditionalParameters([
+				'-strict', '-2',
 				'-crf', (string) $crf,
 				'-cpu-used', (string) $cpu_used,
 				'-movflags', '+faststart',

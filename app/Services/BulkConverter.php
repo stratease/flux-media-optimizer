@@ -388,56 +388,8 @@ class BulkConverter {
 	 * @return array Conversion results.
 	 */
 	private function process_video_conversion( $attachment_id, $file_path ) {
-		// Get upload directory info
-		$file_info = pathinfo( $file_path );
-		$file_dir = $file_info['dirname'];
-		$file_name = $file_info['filename'];
-
-		// Get settings from WordPress
-		$settings = [
-			'video_hybrid_approach' => Settings::is_video_hybrid_approach_enabled(),
-			'video_av1_crf' => Settings::get_video_av1_crf(),
-			'video_av1_cpu_used' => Settings::get_video_av1_cpu_used(),
-			'video_webm_crf' => Settings::get_video_webm_crf(),
-			'video_webm_speed' => Settings::get_video_webm_speed(),
-		];
-
-		// Create destination paths for requested formats
-		$destination_paths = [];
-		$video_formats = Settings::get_video_formats();
-		
-		// Ensure video_formats is an array
-		if ( ! is_array( $video_formats ) ) {
-			$video_formats = [];
-		}
-		
-		foreach ( $video_formats as $format ) {
-			$destination_paths[ $format ] = $file_dir . '/' . $file_name . '.' . $format;
-		}
-
-		// Process the video
-		$results = $this->video_converter->process_video( $file_path, $destination_paths, $settings );
-
-		// Handle results
-		if ( $results['success'] ) {
-			// Get original file size
-			$original_size = file_exists( $file_path ) ? filesize( $file_path ) : 0;
-
-			// Record conversion with file size data for each format
-			// Videos don't have multiple sizes, so use 'full' as size_name
-			foreach ( $results['converted_formats'] as $format ) {
-				$converted_file_path = $results['converted_files'][ $format ] ?? '';
-				$converted_size = file_exists( $converted_file_path ) ? filesize( $converted_file_path ) : 0;
-				
-				$this->conversion_tracker->record_conversion( $attachment_id, $format, $original_size, $converted_size, 'full' );
-			}
-
-			// Update WordPress meta
-			AttachmentMetaHandler::set_converted_formats( $attachment_id, $results['converted_formats'] );
-			AttachmentMetaHandler::set_conversion_date_now( $attachment_id );
-		}
-
-		return $results;
+		// Process the video using centralized VideoConverter method
+		return $this->video_converter->process_video_conversion( $attachment_id, $file_path );
 	}
 
 }

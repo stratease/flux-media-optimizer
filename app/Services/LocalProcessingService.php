@@ -295,14 +295,7 @@ class LocalProcessingService implements ProcessingServiceInterface {
 			return false;
 		}
 
-		// For videos, use enqueue for async processing (manual) or direct conversion (Action Scheduler)
-		if ( doing_action( 'flux_media_optimizer_convert_attachment' ) ) {
-			$this->wordpress_provider->process_video_conversion( $attachment_id, $file_path );
-		} else {
-			$this->wordpress_provider->enqueue_video_processing( $attachment_id, $file_path );
-		}
-
-		return true;
+		return $this->wordpress_provider->process_video_conversion( $attachment_id, $file_path );
 	}
 
 	/**

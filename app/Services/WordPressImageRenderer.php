@@ -1116,12 +1116,25 @@ class WordPressImageRenderer {
             : [];
         $no_converted_files = empty( $converted_files );
         
-        // Show async notice for videos with no converted files
+        // Show status notice for videos with no converted files
         if ( $is_video && $no_converted_files && ! $conversion_disabled ) {
-            $html .= '<p style="margin: 0 0 10px 0; padding: 8px; background: #fff3cd; border-left: 4px solid #ffb900; color: #856404; font-size: 13px; line-height: 1.5;">';
-            $html .= '<strong>' . __( 'Note:', 'flux-media-optimizer' ) . '</strong> ';
-            $html .= __( 'Video conversions are processed asynchronously and may not appear immediately. Please check back in a few minutes.', 'flux-media-optimizer' );
-            $html .= '</p>';
+            // Check if external processing is enabled and get status
+            $external_enabled = Settings::is_external_service_enabled();
+            $external_status = null;
+            
+            if ( $external_enabled ) {
+                $external_status = AttachmentMetaHandler::get_external_job_state( $attachment_id );
+            }
+            
+            // Show external processing status if enabled and status exists, otherwise show async message
+            if ( $external_enabled && $external_status ) {
+                $html .= $this->get_external_processing_status_html( $attachment_id, $external_status );
+            } else {
+                $html .= '<p style="margin: 0 0 10px 0; padding: 8px; background: #fff3cd; border-left: 4px solid #ffb900; color: #856404; font-size: 13px; line-height: 1.5;">';
+                $html .= '<strong>' . __( 'Note:', 'flux-media-optimizer' ) . '</strong> ';
+                $html .= __( 'Video conversions are processed asynchronously and may not appear immediately. Please check back in a few minutes.', 'flux-media-optimizer' );
+                $html .= '</p>';
+            }
         }
         
         if ( $conversion_disabled ) {

@@ -49,6 +49,19 @@ if ( ! defined( 'FLUX_MEDIA_OPTIMIZER_EXTERNAL_SERVICE_TIMEOUT' ) ) {
 	define( 'FLUX_MEDIA_OPTIMIZER_EXTERNAL_SERVICE_TIMEOUT', 15 );
 }
 
+/**
+ * API namespace prefix for plugin-specific endpoints.
+ *
+ * Used to namespace plugin-specific endpoints (e.g., upload operations) for clear separation
+ * when multiple plugins integrate with the external service. Shared endpoints (validation,
+ * activation, compatibility) do not use this namespace.
+ *
+ * @since 3.0.0
+ */
+if ( ! defined( 'FLUX_MEDIA_OPTIMIZER_API_NAMESPACE' ) ) {
+	define( 'FLUX_MEDIA_OPTIMIZER_API_NAMESPACE', 'fmo' );
+}
+
 // Check PHP version compatibility.
 // @since 3.0.0 Updated PHP version requirement from 7.4 to 8.0.
 if ( version_compare( PHP_VERSION, '8.0', '<' ) ) {

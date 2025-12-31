@@ -155,7 +155,7 @@ class ExternalApiClient {
 			}
 		}
 
-		$endpoint = trailingslashit( $this->base_url ) . 'api/v1/upload/init';
+		$endpoint = trailingslashit( $this->base_url ) . 'api/v1/' . FLUX_MEDIA_OPTIMIZER_API_NAMESPACE . '/upload/init';
 		
 		$body = [
 			'account_id'     => $account_id,
@@ -712,7 +712,7 @@ class ExternalApiClient {
 			];
 		}
 
-		$endpoint = trailingslashit( $this->base_url ) . 'api/v1/upload/delete';
+		$endpoint = trailingslashit( $this->base_url ) . 'api/v1/' . FLUX_MEDIA_OPTIMIZER_API_NAMESPACE . '/upload/delete';
 		
 		$request_body = [
 			'account_id'    => $account_id,

@@ -331,6 +331,10 @@ class LocalProcessingService implements ProcessingServiceInterface {
 		$total_count = 0;
 
 		// Delete local files from size-specific structure
+		$upload_dir = wp_upload_dir();
+		$base_url = $upload_dir['baseurl'];
+		$base_dir = $upload_dir['basedir'];
+		
 		foreach ( $converted_files_by_size as $size_name => $size_formats ) {
 			if ( ! is_array( $size_formats ) ) {
 				continue;
@@ -344,22 +348,37 @@ class LocalProcessingService implements ProcessingServiceInterface {
 					$url_or_path = $data;
 				}
 				
-				// Skip if invalid or CDN URL (local service only deletes local files)
+				// Skip if invalid
 				if ( ! is_string( $url_or_path ) || empty( $url_or_path ) ) {
 					continue;
 				}
 				
-				// Skip CDN URLs (only remove from meta, don't delete)
+				// Convert URL to file path if it's a local WordPress upload URL
+				$file_path = $url_or_path;
 				if ( AttachmentMetaHandler::is_file_url( $url_or_path ) ) {
+					// Check if it's a local WordPress upload URL
+					if ( strpos( $url_or_path, $base_url ) === 0 ) {
+						// Convert URL to file path
+						$relative_path = str_replace( $base_url, '', $url_or_path );
+						$relative_path = ltrim( $relative_path, '/' );
+						$file_path = $base_dir . '/' . $relative_path;
+					} else {
+						// It's a CDN/external URL, skip deletion (only remove from meta)
+						continue;
+					}
+				}
+				
+				// Validate file path exists before attempting deletion
+				if ( empty( $file_path ) || ! is_string( $file_path ) ) {
 					continue;
 				}
 				
 				$total_count++;
-				if ( $wp_filesystem && $wp_filesystem->exists( $url_or_path ) && $wp_filesystem->delete( $url_or_path ) ) {
+				if ( $wp_filesystem && $wp_filesystem->exists( $file_path ) && $wp_filesystem->delete( $file_path ) ) {
 					$deleted_count++;
-					$this->logger->info( "Deleted converted file: {$url_or_path} (size: {$size_name}, format: {$format})" );
+					$this->logger->info( "Deleted converted file: {$file_path} (size: {$size_name}, format: {$format})" );
 				} else {
-					$this->logger->warning( "Failed to delete converted file: {$url_or_path} (size: {$size_name}, format: {$format})" );
+					$this->logger->warning( "Failed to delete converted file: {$file_path} (size: {$size_name}, format: {$format})" );
 				}
 			}
 		}

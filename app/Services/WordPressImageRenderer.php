@@ -916,12 +916,12 @@ class WordPressImageRenderer {
                 }
                 $html .= '</h5>';
                 
-                // Show "Original (CDN)" only once in the "full" size section
+                // Show "Original" only once in the "full" size section
                 if ( 'full' === $size_name && $original_cdn_url ) {
                     $format_color = $this->get_format_color( 'original' );
                     $html .= '<div style="background: white; border: 1px solid #e1e1e1; border-radius: 3px; padding: 12px; margin-bottom: 8px; margin-left: 15px;">';
                     $html .= '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">';
-                    $html .= '<span style="font-weight: bold; color: ' . $format_color . '; text-transform: uppercase; font-size: 12px;">' . esc_html( __( 'Original (CDN)', 'flux-media-optimizer' ) ) . '</span>';
+                    $html .= '<span style="font-weight: bold; color: ' . $format_color . '; text-transform: uppercase; font-size: 12px;">' . esc_html( __( 'Original', 'flux-media-optimizer' ) ) . '</span>';
                     $html .= '</div>';
                     $html .= '<div style="font-size: 12px; color: #666;">';
                     if ( $original_cdn_size > 0 ) {
@@ -1043,7 +1043,7 @@ class WordPressImageRenderer {
                 
                 // Format-specific styling and labels
                 $format_color = $this->get_format_color( $format );
-                $format_label = $format === 'original' ? __( 'Original (CDN)', 'flux-media-optimizer' ) : strtoupper( $format );
+                $format_label = $format === 'original' ? __( 'Original', 'flux-media-optimizer' ) : strtoupper( $format );
                 
                 $html .= '<div style="background: white; border: 1px solid #e1e1e1; border-radius: 3px; padding: 12px; margin-bottom: 8px;">';
                 $html .= '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">';

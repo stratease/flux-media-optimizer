@@ -2,6 +2,26 @@
 
 Thank you for your interest in contributing to Flux Media Optimizer by Flux Plugins! This document provides comprehensive guidelines and information for contributors, including detailed architecture documentation and coding standards.
 
+## 📋 Source Code
+
+This plugin includes minified JavaScript and CSS assets built from source code. The original, human-readable source code is available in the GitHub repository:
+
+* **Repository**: https://github.com/stratease/flux-media-optimizer
+* **JavaScript Source**: `assets/js/src/` - React components and application code
+* **Build Output**: `assets/js/dist/` - Compiled and minified production bundles
+* **Build Tool**: webpack (configured in `package.json`)
+
+To build from source:
+```bash
+npm install
+npm run build
+```
+
+For development with hot reload:
+```bash
+npm run dev
+```
+
 ## 🏗️ Architecture Overview
 
 This plugin has been completely refactored with a modern, decoupled architecture that separates business logic from WordPress dependencies, making it highly maintainable, testable, and ready for SaaS API integration.

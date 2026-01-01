@@ -7,9 +7,6 @@ Requires PHP: 8.0
 Stable tag: 3.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
-=======
-
-== Short Description ==
 
 Automatically optimize images, compress videos, and deliver media via global CDN. Boost Core Web Vitals and SEO with 50-70% smaller file sizes.
 
@@ -19,48 +16,30 @@ Automatically optimize images, compress videos, and deliver media via global CDN
 
 Flux Media Optimizer is the all-in-one media optimization plugin for WordPress – optimize images, compress videos, and deliver everything through a global CDN for lightning-fast page loads worldwide.
 
-Transform your WordPress site's media performance with Flux Media Optimizer. Compress images, convert to next-gen formats (WebP & AVIF), optimize videos with modern formats (av1, webm), and serve media through a global CDN, all while maintaining the visual quality your visitors expect.
+Transform your WordPress site's media performance with Flux Media Optimizer. Compress images, convert to next-gen formats (WebP & AVIF), optimize videos with modern formats (AV1, WebM), and serve media through a global CDN, all while maintaining the visual quality your visitors expect.
 
-**New advanced features with a Flux Media Optimizer License.**
-
-Take your site's performance to the next level with additional benefits including offloaded media optimization, global CDN delivery, and optimized compression quality. [Learn more about our service.](https://fluxplugins.com/media-optimizer/)
-
-All plugin features are enabled with the free version. Gain additional benefits with the remote service when you purchase a license.
+**All core features are available in the free version.** Gain additional benefits including offloaded processing, global CDN delivery, and advanced compression algorithms when you [purchase a license](https://fluxplugins.com/media-optimizer/).
 
 ### Professional-Grade Media Optimization
 
 Flux Media Optimizer boosts your site's performance metrics and Google PageSpeed Insights scores with intelligently compressed and optimized media. Real-world performance improvements translate directly to better user experiences, higher engagement, and improved search rankings.
 
-Discover the features that set Flux Media Optimizer apart from other media optimization plugins:
+**Key Features:**
 
-* **GIF Support** – Full support for static and animated GIFs with animation preservation (for local conversions it requires Imagick)
-* **Video Optimization** – FFmpeg-powered MP4/WebM generation with size & quality controls
 * **Hybrid Image Optimization** – Automatically creates both WebP and AVIF formats for optimal performance and browser compatibility
 * **Smart Format Serving** – Uses `<picture>` tags or direct URL replacement based on settings for maximum compatibility
-* **Quality Control** – Configurable quality settings with version-specific AVIF optimization
+* **Video Optimization** – FFmpeg-powered MP4/WebM generation with size & quality controls
+* **GIF Support** – Full support for static and animated GIFs with animation preservation (Imagick required for local animated GIF conversion)
 * **Automatic Processing** – Convert on upload and bulk process existing media with one click
-* **Bulk & On-Upload Support** – Convert existing library items or new uploads automatically
-* **Global CDN Delivery (with License Only)** – Optimized assets stored on Flux's Google Cloud CDN, ensuring lightning-fast delivery worldwide regardless of visitor location
-* **Offloaded Processing (with License Only)** – Heavy image/video conversion tasks handled by external service, reducing load on your server
-* **Secure Integration** – Uses license key authentication and secure webhooks for reliable communication
-* **Individual File Controls** – Disable or manually reconvert individual files for more granular control
-* **No Limits** – Optimize all of your images and videos up to your server's capabilities
+* **Quality Control** – Configurable quality settings with version-specific AVIF optimization
+* **Individual File Controls** – Disable or manually reconvert individual files for granular control
 * **Gutenberg Block Integration** – View image compression information directly in image blocks
-* **Optimize All Image Files** – Supports optimization for all of your PNG, JPEG, and GIF files
-* **No Performance Impact On Your Server (with License Only)** – Media optimizations runs locally by default, with optional cloud processing to prevent wasting server resources
-* And many, many, more!
-
-
-**Key Benefits:**
-
-* 50-70% smaller file sizes without quality loss
-* Faster page loads and improved Core Web Vitals scores
-* Better SEO rankings from faster-loading pages
-* Video and image optimization for faster streaming and smaller file sizes
-* Automatic optimization that works with any theme
-* Zero configuration required - works out of the box
-* Preserves original files as fallbacks for maximum compatibility
-* Optional global CDN for worldwide media delivery (requires License)
+* **WordPress Integration** – Seamless integration with galleries, responsive images, and all WordPress image functions
+* **Optimize All Image Files** – Supports optimization for PNG, JPEG, and GIF files
+* **No Limits** – Optimize all of your images and videos up to your server's capabilities
+* **Global CDN Delivery (License Only)** – Optimized assets stored on Flux's Google Cloud CDN, ensuring lightning-fast delivery worldwide
+* **Offloaded Processing (License Only)** – Heavy image/video conversion tasks handled by external service, reducing load on your server
+* **Secure Integration** – Uses license key authentication and secure webhooks for reliable communication
 
 **Perfect for:**
 
@@ -82,17 +61,11 @@ Flux Media Optimizer supports next-gen conversion for all image formats, includi
 
 ### Intelligent Compression Without Quality Loss (with License)
 
-Flux Media Optimizer remote processing uses advanced compression algorithms to reduce file sizes significantly without compromising visual quality. The plugin removes unnecessary metadata and optimizes image data, resulting in smaller files that look identical to the originals.
+Flux Media Optimizer uses advanced compression algorithms to reduce file sizes significantly without compromising visual quality. The plugin removes unnecessary metadata and optimizes image data, resulting in smaller files that look identical to the originals.
 
-Our optimization engine analyzes each image to determine the best compression strategy, ensuring maximum file size reduction while maintaining the visual quality standards your visitors expect. The result: faster-loading pages with images that look just as good as before.
+**Local Processing:** With local optimization, you have full control over your compression settings, allowing you to optimize according to your specific needs. Available formats depend on your server's installed libraries (GD, Imagick, FFmpeg).
 
-Local optimizations you have full control on your compression settings, so you can optimize for your needs, and is dependent on your server libraries.
-
-**Privacy**
-
-All image and video processing happens locally on your server by default. Your media files never leave your WordPress installation unless you explicitly opt-in to external processing and CDN services.
-
-Privacy Policy: https://fluxplugins.com/privacy-policy/
+**Remote Processing (License Only):** Our optimization engine analyzes each image to determine the best compression strategy, ensuring maximum file size reduction while maintaining the visual quality standards your visitors expect. All processing happens on our servers, reducing load on your server while delivering optimal results.
 
 == Frequently Asked Questions ==
 
@@ -126,7 +99,7 @@ Yes! Flux Media Optimizer fully supports both static and animated GIFs. When Ima
 
 = Will this slow down my site? =
 
-No, Flux Media Optimizer is designed to improve your site's performance, not slow it down. Media optimization happens in the background, and the plugin uses efficient caching to minimize any impact. However compressing images and especially videos can be CPU intensive, and it can use resources during conversion operations. With the optional CDN service, all compression operations are done on our remote servers, lightening the load. Also, your pages will actually load faster as media is served from a Google Cloud CDN network.
+No, Flux Media Optimizer is designed to improve your site's performance, not slow it down. Media optimization happens in the background, and the plugin uses efficient caching to minimize any impact. However, compressing images and especially videos can be CPU intensive during conversion operations. With the optional license service, all compression operations are done on our remote servers, reducing your server load. Your pages will load faster as optimized media is served efficiently.
 
 = Can I control the quality of the optimized images? =
 
@@ -220,7 +193,6 @@ Data is only sent when:
 
 **Service Provider:**
 The external service is provided by Flux Plugins:
-* **Service URL**: https://api.fluxplugins.com
 * **Terms of Service**: https://fluxplugins.com/terms-of-service/
 * **Privacy Policy**: https://fluxplugins.com/privacy-policy/
 
@@ -236,7 +208,7 @@ Flux Media Optimizer is committed to protecting your privacy. By default, all im
 
 **View our full privacy policy**: [https://fluxplugins.com/privacy-policy/](https://fluxplugins.com/privacy-policy/)
 
-Key points:
+**Key points:**
 * Local processing by default - no external data sharing
 * Email collection for marketing purposes only with opt-in consent
 * Account ID (UUID) generation: The plugin generates a unique identifier (UUID) locally on your server for service identification purposes. This UUID is stored only in your WordPress database and is used to match webhook requests and license validation when you explicitly enable external services. The UUID is NOT used for user tracking or analytics. It is automatically removed when you uninstall the plugin. The UUID is only transmitted to external services when you explicitly enable external processing AND provide a license key.

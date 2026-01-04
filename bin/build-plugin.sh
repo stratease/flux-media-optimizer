@@ -161,17 +161,30 @@ else
     echo ""
     echo "📝 Changelog Entry:"
     echo "   Enter changelog message for version $NEW_VERSION"
-    echo "   (Use bullet points, one per line. Press Enter twice when done, or type 'skip' to skip):"
+    echo "   (Use bullet points, one per line. Press Enter twice when done, or just Enter to skip):"
     CHANGELOG_ENTRY=""
     CHANGELOG_LINES=()
+    FIRST_LINE=true
     while IFS= read -r line; do
+        # If first line is empty, skip changelog entry
+        if [ "$FIRST_LINE" = true ] && [ -z "$line" ]; then
+            CHANGELOG_ENTRY=""
+            break
+        fi
+        FIRST_LINE=false
+        
+        # If line is empty and we have entries, we're done
         if [ -z "$line" ] && [ ${#CHANGELOG_LINES[@]} -gt 0 ]; then
             break
         fi
+        
+        # Check for skip command
         if [ "$line" = "skip" ]; then
             CHANGELOG_ENTRY=""
             break
         fi
+        
+        # Add non-empty line
         if [ -n "$line" ]; then
             CHANGELOG_LINES+=("$line")
         fi
@@ -247,10 +260,13 @@ else
                 fi
                 
                 # Keep only the 2 most recent entries (indices 0 and 1, if they exist)
-                for i in "${!VERSION_BLOCKS[@]}"; do
-                    if [ $i -lt 2 ]; then
-                        KEEP_ENTRIES+="${VERSION_BLOCKS[$i]}"
-                    fi
+                BLOCK_COUNT=${#VERSION_BLOCKS[@]}
+                MAX_KEEP=2
+                if [ $BLOCK_COUNT -lt $MAX_KEEP ]; then
+                    MAX_KEEP=$BLOCK_COUNT
+                fi
+                for ((i=0; i<MAX_KEEP; i++)); do
+                    KEEP_ENTRIES+="${VERSION_BLOCKS[$i]}"
                 done
                 
                 # Create new changelog section

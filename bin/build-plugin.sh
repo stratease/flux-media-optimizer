@@ -157,6 +157,124 @@ else
         fi
     fi
     
+    # Prompt for changelog message
+    echo ""
+    echo "📝 Changelog Entry:"
+    echo "   Enter changelog message for version $NEW_VERSION"
+    echo "   (Use bullet points, one per line. Press Enter twice when done, or type 'skip' to skip):"
+    CHANGELOG_ENTRY=""
+    CHANGELOG_LINES=()
+    while IFS= read -r line; do
+        if [ -z "$line" ] && [ ${#CHANGELOG_LINES[@]} -gt 0 ]; then
+            break
+        fi
+        if [ "$line" = "skip" ]; then
+            CHANGELOG_ENTRY=""
+            break
+        fi
+        if [ -n "$line" ]; then
+            CHANGELOG_LINES+=("$line")
+        fi
+    done
+    
+    # Format changelog entry
+    if [ ${#CHANGELOG_LINES[@]} -gt 0 ]; then
+        CHANGELOG_ENTRY=""
+        for line in "${CHANGELOG_LINES[@]}"; do
+            # Ensure line starts with * if it doesn't already
+            if [[ ! "$line" =~ ^\* ]]; then
+                CHANGELOG_ENTRY+="* $line"$'\n'
+            else
+                CHANGELOG_ENTRY+="$line"$'\n'
+            fi
+        done
+    fi
+    
+    # Update changelog files if entry provided
+    if [ -n "$CHANGELOG_ENTRY" ]; then
+        CHANGELOG_FILE="$PLUGIN_DIR/changelog.txt"
+        
+        # Update changelog.txt (full history) - prepend new entry
+        if [ -f "$CHANGELOG_FILE" ]; then
+            # Prepend new version entry to changelog.txt
+            NEW_CHANGELOG_ENTRY="= $NEW_VERSION ="$'\n'"$CHANGELOG_ENTRY"$'\n'
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+                echo "$NEW_CHANGELOG_ENTRY$(cat "$CHANGELOG_FILE")" > "$CHANGELOG_FILE"
+            else
+                echo "$NEW_CHANGELOG_ENTRY$(cat "$CHANGELOG_FILE")" > "$CHANGELOG_FILE"
+            fi
+        else
+            # Create new changelog.txt
+            echo "= $NEW_VERSION =" > "$CHANGELOG_FILE"
+            echo "$CHANGELOG_ENTRY" >> "$CHANGELOG_FILE"
+        fi
+        
+        # Update readme.txt changelog section (keep only last 3 entries)
+        if [ -f "$README_FILE" ]; then
+            # Find changelog section boundaries
+            CHANGELOG_START_LINE=$(grep -n "^== Changelog ==$" "$README_FILE" | cut -d: -f1)
+            UPGRADE_START_LINE=$(grep -n "^== Upgrade Notice ==$" "$README_FILE" | cut -d: -f1)
+            
+            if [ -n "$CHANGELOG_START_LINE" ]; then
+                # Extract existing changelog entries (lines after "== Changelog ==")
+                CHANGELOG_START_LINE=$((CHANGELOG_START_LINE + 1))
+                if [ -n "$UPGRADE_START_LINE" ]; then
+                    EXISTING_CHANGELOG=$(sed -n "${CHANGELOG_START_LINE},$((UPGRADE_START_LINE - 1))p" "$README_FILE")
+                else
+                    EXISTING_CHANGELOG=$(sed -n "${CHANGELOG_START_LINE},\$p" "$README_FILE")
+                fi
+                
+                # Extract version entries and keep only the 2 most recent (we're adding 1 new = 3 total)
+                KEEP_ENTRIES=""
+                VERSION_BLOCKS=()
+                CURRENT_BLOCK=""
+                
+                while IFS= read -r line; do
+                    if [[ "$line" =~ ^=\ [0-9] ]]; then
+                        # Save previous block if exists
+                        if [ -n "$CURRENT_BLOCK" ]; then
+                            VERSION_BLOCKS+=("$CURRENT_BLOCK")
+                        fi
+                        CURRENT_BLOCK="$line"$'\n'
+                    elif [ -n "$CURRENT_BLOCK" ]; then
+                        CURRENT_BLOCK+="$line"$'\n'
+                    fi
+                done <<< "$EXISTING_CHANGELOG"
+                
+                # Add last block
+                if [ -n "$CURRENT_BLOCK" ]; then
+                    VERSION_BLOCKS+=("$CURRENT_BLOCK")
+                fi
+                
+                # Keep only the 2 most recent entries (indices 0 and 1, if they exist)
+                for i in "${!VERSION_BLOCKS[@]}"; do
+                    if [ $i -lt 2 ]; then
+                        KEEP_ENTRIES+="${VERSION_BLOCKS[$i]}"
+                    fi
+                done
+                
+                # Create new changelog section
+                NEW_CHANGELOG_SECTION="== Changelog =="$'\n'$'\n'"= $NEW_VERSION ="$'\n'"$CHANGELOG_ENTRY"
+                if [ -n "$KEEP_ENTRIES" ]; then
+                    NEW_CHANGELOG_SECTION+="$KEEP_ENTRIES"
+                fi
+                
+                # Replace changelog section in readme.txt
+                TEMP_README=$(mktemp)
+                head -n $((CHANGELOG_START_LINE - 1)) "$README_FILE" > "$TEMP_README"
+                echo "$NEW_CHANGELOG_SECTION" >> "$TEMP_README"
+                if [ -n "$UPGRADE_START_LINE" ]; then
+                    tail -n +$UPGRADE_START_LINE "$README_FILE" >> "$TEMP_README"
+                fi
+                mv "$TEMP_README" "$README_FILE"
+            fi
+        fi
+        
+        echo "   ✅ Changelog updated"
+    else
+        echo "   ⏭️  Skipped changelog update"
+    fi
+    
     echo "   ✅ Version updated to: $NEW_VERSION"
     # Store tag info for output at end of build
     TAG_NAME="v${NEW_VERSION}"

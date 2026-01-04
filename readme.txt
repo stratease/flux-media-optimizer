@@ -4,7 +4,7 @@ Tags: media optimization, video compression, webp, avif, cdn
 Requires at least: 6.2
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 3.0.1
+Stable tag: 3.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -121,6 +121,10 @@ Flux Media Optimizer supports video optimization with FFmpeg. You can convert vi
 
 == Changelog ==
 
+= 3.0.2 =
+* Fixed status message on attachment screen
+* Fixed issue with local video processing not being queued to async
+
 = 3.0.0 =
 * Major architecture refactoring for improved performance and maintainability
 * Added optional global CDN integration for worldwide media delivery
@@ -140,24 +144,6 @@ Flux Media Optimizer supports video optimization with FFmpeg. You can convert vi
 * Code quality: Refactored settings sanitization to use declarative schema approach
 * Code quality: Added REST API input validation and sanitization callbacks
 * Internationalization: All error messages are now translatable
-
-= 2.0.0 =
-* Added animated GIF support with animation preservation
-* Automatic detection and use of Imagick for animated GIF conversion (when available)
-* Graceful fallback to GD for static GIFs and animated GIFs when Imagick is unavailable
-* Enhanced image format detection for GIF files
-* Improved processor selection logic for optimal format support
-
-= 1.0.0 =
-* Initial release
-* Automatic WebP and AVIF image conversion
-* Hybrid approach for maximum browser compatibility
-* Bulk processing for existing media
-* Modern React-based admin interface
-* WordPress integration with Gutenberg blocks
-* Quality control settings
-* Conversion statistics and performance metrics
-* Privacy-compliant architecture ready for optional external service integrations
 
 == Upgrade Notice ==
 

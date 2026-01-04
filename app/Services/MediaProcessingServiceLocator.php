@@ -177,8 +177,7 @@ class MediaProcessingServiceLocator {
 				$this->video_converter,
 				$this->conversion_tracker,
 				$this->bulk_converter,
-				$this->logger,
-				$this->wordpress_provider
+			    $this->logger
 			);
 		}
 

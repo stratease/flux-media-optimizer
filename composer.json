@@ -83,12 +83,15 @@
             "classmap_prefix": "FluxMedia_",
             "constant_prefix": "FluxMedia_",
             "packages": [
+                "monolog/monolog",
+                "php-ffmpeg/php-ffmpeg"
             ],
             "update_call_sites": false,
             "override_autoload": {
             },
             "exclude_from_copy": {
                 "packages": [
+                    "woocommerce/action-scheduler"
                 ],
                 "namespaces": [
                 ],
@@ -97,6 +100,7 @@
             },
             "exclude_from_prefix": {
                 "packages": [
+                    "woocommerce/action-scheduler"
                 ],
                 "namespaces": [
                 ],

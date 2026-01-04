@@ -1,3 +1,6 @@
+= 3.0.3 =
+* Fixed async operations in certain scenarios.
+
 = 3.0.2 =
 * Fixed status message on attachment screen
 * Fixed issue with local video processing not being queued to async
@@ -42,4 +45,3 @@
 * Quality control settings
 * Conversion statistics and performance metrics
 * Privacy-compliant architecture ready for optional external service integrations
-

@@ -3,15 +3,15 @@
  * Plugin Name: Flux Media Optimizer by Flux Plugins
  * Plugin URI: https://fluxplugins.com/media-optimizer
  * Description: One-click image (AVIF & WebP) and video optimization for WordPress.
- * Version: 3.0.2
+ * Version: 3.0.3
  * Author: Flux Plugins
  * Author URI: https://fluxplugins.com
  * License: GPL-2.0+
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: flux-media-optimizer
  * Domain Path: /languages
- * Requires at least: 6.2
- * Tested up to: 6.8
+ * Requires at least: 5.8
+ * Tested up to: 6.9
  * Requires PHP: 8.0
  *
  * Copyright 2025 Flux Plugins
@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'FLUX_MEDIA_OPTIMIZER_VERSION', '3.0.2' );
+define( 'FLUX_MEDIA_OPTIMIZER_VERSION', '3.0.3' );
 define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_FILE', __FILE__ );
 define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -68,7 +68,7 @@ if ( version_compare( PHP_VERSION, '8.0', '<' ) ) {
 // Check WordPress version compatibility.
 // @since 3.0.0 Added WordPress version requirement check.
 global $wp_version;
-if ( version_compare( $wp_version, '6.2', '<' ) ) {
+if ( version_compare( $wp_version, '5.8', '<' ) ) {
 	add_action( 'admin_notices', 'flux_media_optimizer_wp_version_notice' );
 	return;
 }
@@ -127,6 +127,20 @@ if ( file_exists( FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR . 'vendor/autoload.php' )
 } else {
 	add_action( 'admin_notices', 'flux_media_optimizer_composer_notice' );
 	return;
+}
+
+// Load Action Scheduler.
+// Action Scheduler is excluded from Strauss namespacing because it's a WordPress plugin/library
+// that uses global functions and should not be prefixed.
+// According to Action Scheduler docs, we only need to include the file - it handles its own initialization.
+// It registers on 'plugins_loaded' priority 0 and initializes on 'init' priority 1.
+// Action Scheduler APIs should not be used until after 'init' priority 1 or the 'action_scheduler_init' hook.
+// @since 3.0.3
+if ( ! function_exists( 'as_schedule_single_action' ) ) {
+	$action_scheduler_file = FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR . 'vendor/woocommerce/action-scheduler/action-scheduler.php';
+	if ( file_exists( $action_scheduler_file ) ) {
+		require_once $action_scheduler_file;
+	}
 }
 
 // Initialize custom FFmpeg autoloader.
@@ -321,6 +335,7 @@ function flux_media_optimizer_activate() {
 	if ( version_compare( PHP_VERSION, '8.0', '<' ) || version_compare( $wp_version, '6.2', '<' ) ) {
 		return;
 	}
+
 
 	// Create database tables
 	FluxMedia\App\Services\Database::create_tables();

@@ -1,10 +1,10 @@
 === Flux Media Optimizer by Flux Plugins ===
 Contributors: edaniels
 Tags: media optimization, video compression, webp, avif, cdn
-Requires at least: 6.2
+Requires at least: 5.8
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 3.0.2
+Stable tag: 3.0.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -121,6 +121,9 @@ Flux Media Optimizer supports video optimization with FFmpeg. You can convert vi
 
 == Changelog ==
 
+= 3.0.3 =
+* Fixed async operations in certain scenarios.
+
 = 3.0.2 =
 * Fixed status message on attachment screen
 * Fixed issue with local video processing not being queued to async
@@ -136,14 +139,6 @@ Flux Media Optimizer supports video optimization with FFmpeg. You can convert vi
 * Better WordPress integration with Gutenberg blocks
 * Full compatibility with WordPress 6.2+
 
-= 2.0.5 =
-* Security improvements: Added comprehensive input sanitization for all settings
-* Security improvements: Fixed unescaped error messages in AJAX handlers
-* Security improvements: Fixed database query safety in uninstall function
-* Security improvements: Escaped JavaScript values in onclick handlers
-* Code quality: Refactored settings sanitization to use declarative schema approach
-* Code quality: Added REST API input validation and sanitization callbacks
-* Internationalization: All error messages are now translatable
 
 == Upgrade Notice ==
 

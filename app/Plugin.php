@@ -120,9 +120,11 @@ class Plugin {
         $service_locator->init();
         $this->wordpress_provider->set_service_locator( $service_locator );
         
-        // Initialize Action Scheduler service
+        // Initialize Action Scheduler service on 'init' hook after Action Scheduler is ready.
+        // Action Scheduler initializes on 'init' priority 1, so we hook in after that.
+        // @since 3.0.3
         $action_scheduler_service = new ActionSchedulerService( $this->logger, $service_locator, $bulk_converter );
-        $action_scheduler_service->init();
+        add_action( 'init', [ $action_scheduler_service, 'init' ], 10 );
         $this->wordpress_provider->set_action_scheduler_service( $action_scheduler_service );
         
         // Initialize WordPress provider (registers hooks)

@@ -59,8 +59,19 @@ class Database {
 
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 		
-		dbDelta( $conversions_sql );
-		dbDelta( $logs_sql );
+		// Check if tables exist - if not, create them directly
+		// dbDelta tries to DESCRIBE tables first, which fails if they don't exist
+		$tables_exist = self::tables_exist();
+		
+		if ( ! $tables_exist ) {
+			// Tables don't exist, create them directly
+			$wpdb->query( $conversions_sql );
+			$wpdb->query( $logs_sql );
+		} else {
+			// Tables exist, use dbDelta to update them if needed
+			dbDelta( $conversions_sql );
+			dbDelta( $logs_sql );
+		}
 
 		// Store database version for future updates
 		update_option( 'flux_media_optimizer_db_version', '2.0' );
@@ -121,6 +132,13 @@ class Database {
 	 * @since 1.0.0
 	 */
 	public static function maybe_update_database() {
+		// Check if tables exist first - if not, create them
+		if ( ! self::tables_exist() ) {
+			self::create_tables();
+			return;
+		}
+
+		// If tables exist, check version and update if needed
 		$current_version = self::get_db_version();
 		$target_version = '2.0';
 

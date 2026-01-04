@@ -210,9 +210,16 @@ class WordPressProvider {
         add_action( 'flux_media_optimizer_process_video', [ $this, 'handle_process_video_cron' ], 10, 2 );
         // Bulk conversion via Action Scheduler
         // Detection of local vs external processing happens inside callback.
+        // Schedule on 'init' hook after Action Scheduler is ready.
+        // @since 3.0.3
         if ( Settings::is_bulk_conversion_enabled() && $this->action_scheduler_service ) {
             // Schedule bulk discovery action (replaces WP Cron)
-            $this->action_scheduler_service->schedule_bulk_discovery( 50 );
+            // Defer to 'init' hook to ensure Action Scheduler is ready
+            add_action( 'init', function() {
+                if ( $this->action_scheduler_service && Settings::is_bulk_conversion_enabled() ) {
+                    $this->action_scheduler_service->schedule_bulk_discovery( 50 );
+                }
+            }, 20 );
         }
 
         // ===== RENDER IMAGE =====
@@ -254,11 +261,15 @@ class WordPressProvider {
         // ===== CLEANUP =====
         // Cleanup hooks
         add_action( 'delete_attachment', [ $this, 'handle_attachment_deletion' ] );
+        // Unschedule Action Scheduler discovery action if bulk conversion is disabled
+        // Defer to 'init' hook to ensure Action Scheduler is ready.
+        // @since 3.0.3
         if ( ! Settings::is_bulk_conversion_enabled() ) {
-            // Unschedule Action Scheduler discovery action if bulk conversion is disabled
-            if ( $this->action_scheduler_service ) {
-                $this->action_scheduler_service->unschedule_bulk_discovery();
-            }
+            add_action( 'init', function() {
+                if ( $this->action_scheduler_service && ! Settings::is_bulk_conversion_enabled() ) {
+                    $this->action_scheduler_service->unschedule_bulk_discovery();
+                }
+            }, 20 );
         }
     }
 

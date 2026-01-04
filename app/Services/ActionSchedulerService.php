@@ -3,8 +3,8 @@
  * Action Scheduler service for Flux Media Optimizer.
  *
  * Manages Action Scheduler initialization and provides methods for scheduling
- * bulk conversion actions. Uses Strauss-prefixed Action Scheduler to avoid
- * namespace collisions.
+ * bulk conversion actions. Action Scheduler is excluded from Strauss namespacing
+ * because it's a WordPress plugin/library that uses global functions.
  *
  * @package FluxMedia
  * @since 3.0.0
@@ -60,41 +60,26 @@ class ActionSchedulerService {
 	/**
 	 * Initialize Action Scheduler.
 	 *
-	 * Loads the Strauss-prefixed Action Scheduler library and ensures
-	 * Action Scheduler is ready to use. Action Scheduler functions are global,
-	 * so we just need to ensure the library is loaded.
+	 * Verifies Action Scheduler is loaded and registers our action hooks.
+	 * This method is called on the 'init' hook after Action Scheduler has initialized
+	 * (Action Scheduler initializes on 'init' priority 1).
 	 *
 	 * @since 3.0.0
+	 * @since 3.0.3 Action Scheduler service initialization moved to 'init' hook.
 	 * @return void
 	 */
 	public function init() {
-		// Check if Action Scheduler is already loaded (e.g., by WooCommerce or another plugin)
-		if ( function_exists( 'as_schedule_single_action' ) ) {
-			// Action Scheduler already loaded, just register our hooks
-			$this->register_action_hooks();
+		// Verify Action Scheduler is loaded and ready
+		if ( ! function_exists( 'as_schedule_single_action' ) ) {
+			$this->logger->error( 'Action Scheduler library not found. Please run "composer install" to install dependencies.' );
 			return;
 		}
 
-		// Load Action Scheduler from vendor-prefixed directory
-		// Action Scheduler will be prefixed by Strauss but functions remain global
-		$action_scheduler_file = FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR . 'vendor-prefixed/woocommerce/action-scheduler/action-scheduler.php';
-		
-		if ( file_exists( $action_scheduler_file ) ) {
-			require_once $action_scheduler_file;
-		} else {
-			// Fallback: try vendor directory (if not yet prefixed)
-			$action_scheduler_file_fallback = FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR . 'vendor/woocommerce/action-scheduler/action-scheduler.php';
-			if ( file_exists( $action_scheduler_file_fallback ) ) {
-				require_once $action_scheduler_file_fallback;
-			} else {
-				$this->logger->error( 'Action Scheduler library not found. Please run "composer install" and then "composer run prefix-namespaces" to install and prefix Action Scheduler.' );
-				return;
-			}
-		}
-
-		// Verify Action Scheduler functions are available
-		if ( ! function_exists( 'as_schedule_single_action' ) ) {
-			$this->logger->error( 'Action Scheduler functions not available after loading. Check Action Scheduler installation.' );
+		// Ensure Action Scheduler is fully initialized before registering hooks
+		// Action Scheduler initializes on 'init' priority 1, so if we're called before that,
+		// wait for the action_scheduler_init hook
+		if ( ! did_action( 'action_scheduler_init' ) ) {
+			add_action( 'action_scheduler_init', [ $this, 'register_action_hooks' ], 10 );
 			return;
 		}
 
@@ -208,6 +193,17 @@ class ActionSchedulerService {
 			return false;
 		}
 
+		// Ensure Action Scheduler is fully initialized before calling its functions
+		// @since 3.0.3
+		if ( ! did_action( 'action_scheduler_init' ) ) {
+			// Action Scheduler not initialized yet, defer scheduling
+			$service = $this;
+			add_action( 'action_scheduler_init', function() use ( $service, $attachment_id ) {
+				$service->schedule_attachment_conversion( $attachment_id );
+			}, 20 );
+			return false;
+		}
+
 		// Check if action is already scheduled for this attachment
 		$next_scheduled = as_next_scheduled_action( 'flux_media_optimizer_convert_attachment', [ 'attachment_id' => $attachment_id ] );
 		
@@ -242,6 +238,17 @@ class ActionSchedulerService {
 	 */
 	public function cancel_attachment_conversion( $attachment_id ) {
 		if ( ! function_exists( 'as_unschedule_action' ) ) {
+			return;
+		}
+
+		// Ensure Action Scheduler is fully initialized before calling its functions
+		// @since 3.0.3
+		if ( ! did_action( 'action_scheduler_init' ) ) {
+			// Action Scheduler not initialized yet, defer cancellation
+			$service = $this;
+			add_action( 'action_scheduler_init', function() use ( $service, $attachment_id ) {
+				$service->cancel_attachment_conversion( $attachment_id );
+			}, 20 );
 			return;
 		}
 

@@ -212,15 +212,16 @@ class WordPressProvider {
         // Detection of local vs external processing happens inside callback.
         // Schedule on 'init' hook after Action Scheduler is ready.
         // @since 3.0.3
-        if ( Settings::is_bulk_conversion_enabled() && $this->action_scheduler_service ) {
-            // Schedule bulk discovery action (replaces WP Cron)
-            // Defer to 'init' hook to ensure Action Scheduler is ready
-            add_action( 'init', function() {
-                if ( $this->action_scheduler_service && Settings::is_bulk_conversion_enabled() ) {
-                    $this->action_scheduler_service->schedule_bulk_discovery( 50 );
-                }
-            }, 20 );
-        }
+        // Schedule bulk discovery action (replaces WP Cron)
+        // Defer to 'init' hook to ensure Action Scheduler is ready
+        $as = $this->action_scheduler_service;
+        add_action( 'init', function() use($as) {
+            if ( Settings::is_bulk_conversion_enabled() ) {
+                $as->schedule_bulk_discovery( 50 );
+            } else {
+                $as->unschedule_bulk_discovery();
+            }
+        }, 20 );
 
         // ===== RENDER IMAGE =====
         // Primary mechanism: WordPress filters (image_downsize, wp_get_attachment_url, wp_get_attachment_image_src)
@@ -261,16 +262,6 @@ class WordPressProvider {
         // ===== CLEANUP =====
         // Cleanup hooks
         add_action( 'delete_attachment', [ $this, 'handle_attachment_deletion' ] );
-        // Unschedule Action Scheduler discovery action if bulk conversion is disabled
-        // Defer to 'init' hook to ensure Action Scheduler is ready.
-        // @since 3.0.3
-        if ( ! Settings::is_bulk_conversion_enabled() ) {
-            add_action( 'init', function() {
-                if ( $this->action_scheduler_service && ! Settings::is_bulk_conversion_enabled() ) {
-                    $this->action_scheduler_service->unschedule_bulk_discovery();
-                }
-            }, 20 );
-        }
     }
 
     /**

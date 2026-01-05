@@ -225,12 +225,14 @@ else
         # Update readme.txt changelog section (keep only last 3 entries)
         if [ -f "$README_FILE" ]; then
             # Find changelog section boundaries
-            CHANGELOG_START_LINE=$(grep -n "^== Changelog ==$" "$README_FILE" | cut -d: -f1)
-            UPGRADE_START_LINE=$(grep -n "^== Upgrade Notice ==$" "$README_FILE" | cut -d: -f1)
+            # Use head -1 to get only the first match in case of duplicates
+            CHANGELOG_HEADER_LINE=$(grep -n "^== Changelog ==$" "$README_FILE" | head -1 | cut -d: -f1)
+            UPGRADE_START_LINE=$(grep -n "^== Upgrade Notice ==$" "$README_FILE" | head -1 | cut -d: -f1)
             
-            if [ -n "$CHANGELOG_START_LINE" ]; then
+            if [ -n "$CHANGELOG_HEADER_LINE" ]; then
                 # Extract existing changelog entries (lines after "== Changelog ==")
-                CHANGELOG_START_LINE=$((CHANGELOG_START_LINE + 1))
+                # Skip the header line and any empty lines immediately after it
+                CHANGELOG_START_LINE=$((CHANGELOG_HEADER_LINE + 1))
                 if [ -n "$UPGRADE_START_LINE" ]; then
                     EXISTING_CHANGELOG=$(sed -n "${CHANGELOG_START_LINE},$((UPGRADE_START_LINE - 1))p" "$README_FILE")
                 else
@@ -242,19 +244,27 @@ else
                 VERSION_BLOCKS=()
                 CURRENT_BLOCK=""
                 
-                while IFS= read -r line; do
-                    if [[ "$line" =~ ^=\ [0-9] ]]; then
+                # Process changelog line by line, handling version entries
+                # Use a more robust method to read lines
+                while IFS= read -r line || [ -n "$line" ]; do
+                    # Trim leading/trailing whitespace for pattern matching
+                    TRIMMED_LINE=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                    
+                    # Check if line is a version header (format: "= x.y.z =" with optional spaces)
+                    if [[ "$TRIMMED_LINE" =~ ^=\ [0-9]+\.[0-9]+\.[0-9]+[[:space:]]*=$ ]]; then
                         # Save previous block if exists
                         if [ -n "$CURRENT_BLOCK" ]; then
                             VERSION_BLOCKS+=("$CURRENT_BLOCK")
                         fi
+                        # Start new block with version header (preserve original line format)
                         CURRENT_BLOCK="$line"$'\n'
                     elif [ -n "$CURRENT_BLOCK" ]; then
+                        # Add line to current block (including empty lines)
                         CURRENT_BLOCK+="$line"$'\n'
                     fi
                 done <<< "$EXISTING_CHANGELOG"
                 
-                # Add last block
+                # Add last block if exists
                 if [ -n "$CURRENT_BLOCK" ]; then
                     VERSION_BLOCKS+=("$CURRENT_BLOCK")
                 fi
@@ -276,9 +286,15 @@ else
                 fi
                 
                 # Replace changelog section in readme.txt
+                # Use CHANGELOG_HEADER_LINE (already found above) for replacement
                 TEMP_README=$(mktemp)
-                head -n $((CHANGELOG_START_LINE - 1)) "$README_FILE" > "$TEMP_README"
+                # Write everything before changelog section (up to and including line before header)
+                if [ -n "$CHANGELOG_HEADER_LINE" ] && [ "$CHANGELOG_HEADER_LINE" -gt 1 ]; then
+                    head -n $((CHANGELOG_HEADER_LINE - 1)) "$README_FILE" > "$TEMP_README"
+                fi
+                # Write new changelog section
                 echo "$NEW_CHANGELOG_SECTION" >> "$TEMP_README"
+                # Write everything after changelog section (upgrade notice and beyond)
                 if [ -n "$UPGRADE_START_LINE" ]; then
                     tail -n +$UPGRADE_START_LINE "$README_FILE" >> "$TEMP_README"
                 fi

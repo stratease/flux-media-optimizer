@@ -62,10 +62,12 @@ class ActionSchedulerService {
 	 *
 	 * Verifies Action Scheduler is loaded and registers our action hooks.
 	 * This method is called on the 'init' hook after Action Scheduler has initialized
-	 * (Action Scheduler initializes on 'init' priority 1).
+	 * (Action Scheduler initializes on 'init' priority 1, this service on priority 10).
 	 *
 	 * @since 3.0.0
 	 * @since 3.0.3 Action Scheduler service initialization moved to 'init' hook.
+	 * @since 3.0.4 Removed redundant Action Scheduler initialization check since service
+	 *              is registered after Action Scheduler initializes.
 	 * @return void
 	 */
 	public function init() {
@@ -75,15 +77,8 @@ class ActionSchedulerService {
 			return;
 		}
 
-		// Ensure Action Scheduler is fully initialized before registering hooks
-		// Action Scheduler initializes on 'init' priority 1, so if we're called before that,
-		// wait for the action_scheduler_init hook
-		if ( ! did_action( 'action_scheduler_init' ) ) {
-			add_action( 'action_scheduler_init', [ $this, 'register_action_hooks' ], 10 );
-			return;
-		}
-
 		// Register action hooks
+		// Action Scheduler is already initialized by this point (init priority 1 vs our priority 10)
 		$this->register_action_hooks();
 	}
 
@@ -108,27 +103,12 @@ class ActionSchedulerService {
 	 * individual conversion actions for each.
 	 *
 	 * @since 3.0.0
+	 * @since 3.0.4 Removed redundant Action Scheduler initialization check since
+	 *              this method is only called after Action Scheduler is initialized.
 	 * @param int $batch_size Number of attachments to schedule per discovery run.
 	 * @return int|false Action ID on success, false on failure.
 	 */
 	public function schedule_bulk_discovery( $batch_size = 50 ) {
-		if ( ! function_exists( 'as_schedule_recurring_action' ) ) {
-			$this->logger->error( 'Action Scheduler functions not available. Action Scheduler may not be initialized.' );
-			return false;
-		}
-
-		// Check if Action Scheduler data store is initialized
-		// Action Scheduler must be fully initialized before calling its functions
-		if ( ! did_action( 'action_scheduler_init' ) ) {
-			// Action Scheduler not initialized yet, defer scheduling
-			// Use a closure to capture batch_size
-			$service = $this;
-			add_action( 'action_scheduler_init', function() use ( $service, $batch_size ) {
-				$service->schedule_bulk_discovery( $batch_size );
-			}, 20 );
-			return false;
-		}
-
 		// Check if discovery action is already scheduled
 		$next_scheduled = as_next_scheduled_action( 'flux_media_optimizer_bulk_discovery', [ 'batch_size' => $batch_size ] );
 		
@@ -148,7 +128,7 @@ class ActionSchedulerService {
 		);
 
 		if ( $action_id ) {
-			$this->logger->info( "Scheduled bulk conversion discovery action (ID: {$action_id}, batch size: {$batch_size})" );
+			$this->logger->debug( "Scheduled bulk conversion discovery action (ID: {$action_id}, batch size: {$batch_size})" );
 		} else {
 			$this->logger->error( 'Failed to schedule bulk conversion discovery action' );
 		}
@@ -157,52 +137,15 @@ class ActionSchedulerService {
 	}
 
 	/**
-	 * Unschedule bulk conversion discovery action.
-	 *
-	 * @since 3.0.0
-	 * @return void
-	 */
-	public function unschedule_bulk_discovery() {
-		if ( ! function_exists( 'as_unschedule_all_actions' ) ) {
-			return;
-		}
-
-		// Check if Action Scheduler data store is initialized
-		// Action Scheduler must be fully initialized before calling its functions
-		// The action_scheduler_init action fires when Action Scheduler is ready
-		if ( ! did_action( 'action_scheduler_init' ) ) {
-			// Action Scheduler not initialized yet, schedule unscheduling for later
-			add_action( 'action_scheduler_init', [ $this, 'unschedule_bulk_discovery' ], 20 );
-			return;
-		}
-
-		as_unschedule_all_actions( 'flux_media_optimizer_bulk_discovery' );
-		$this->logger->info( 'Unscheduled bulk conversion discovery action' );
-	}
-
-	/**
 	 * Schedule single attachment conversion action.
 	 *
 	 * @since 3.0.0
+	 * @since 3.0.4 Removed redundant Action Scheduler initialization check since
+	 *              this method is only called after Action Scheduler is initialized.
 	 * @param int $attachment_id Attachment ID to convert.
 	 * @return int|false Action ID on success, false on failure.
 	 */
 	public function schedule_attachment_conversion( $attachment_id ) {
-		if ( ! function_exists( 'as_schedule_single_action' ) ) {
-			$this->logger->error( 'Action Scheduler functions not available. Action Scheduler may not be initialized.' );
-			return false;
-		}
-
-		// Ensure Action Scheduler is fully initialized before calling its functions
-		// @since 3.0.3
-		if ( ! did_action( 'action_scheduler_init' ) ) {
-			// Action Scheduler not initialized yet, defer scheduling
-			$service = $this;
-			add_action( 'action_scheduler_init', function() use ( $service, $attachment_id ) {
-				$service->schedule_attachment_conversion( $attachment_id );
-			}, 20 );
-			return false;
-		}
 
 		// Check if action is already scheduled for this attachment
 		$next_scheduled = as_next_scheduled_action( 'flux_media_optimizer_convert_attachment', [ 'attachment_id' => $attachment_id ] );
@@ -221,7 +164,7 @@ class ActionSchedulerService {
 		);
 
 		if ( $action_id ) {
-			$this->logger->info( "Scheduled attachment conversion action (ID: {$action_id}, attachment: {$attachment_id})" );
+			$this->logger->debug( "Scheduled attachment conversion action (ID: {$action_id}, attachment: {$attachment_id})" );
 		} else {
 			$this->logger->error( "Failed to schedule attachment conversion action for attachment {$attachment_id}" );
 		}
@@ -233,58 +176,38 @@ class ActionSchedulerService {
 	 * Cancel scheduled attachment conversion action.
 	 *
 	 * @since 3.0.0
+	 * @since 3.0.4 Removed redundant Action Scheduler initialization check since
+	 *              this method is only called after Action Scheduler is initialized.
 	 * @param int $attachment_id Attachment ID.
 	 * @return void
 	 */
 	public function cancel_attachment_conversion( $attachment_id ) {
-		if ( ! function_exists( 'as_unschedule_action' ) ) {
-			return;
-		}
-
-		// Ensure Action Scheduler is fully initialized before calling its functions
-		// @since 3.0.3
-		if ( ! did_action( 'action_scheduler_init' ) ) {
-			// Action Scheduler not initialized yet, defer cancellation
-			$service = $this;
-			add_action( 'action_scheduler_init', function() use ( $service, $attachment_id ) {
-				$service->cancel_attachment_conversion( $attachment_id );
-			}, 20 );
-			return;
-		}
 
 		as_unschedule_action( 'flux_media_optimizer_convert_attachment', [ 'attachment_id' => $attachment_id ] );
-		$this->logger->info( "Cancelled scheduled conversion action for attachment {$attachment_id}" );
+		$this->logger->debug( "Cancelled scheduled conversion action for attachment {$attachment_id}" );
 	}
 
 	/**
 	 * Handle bulk discovery action.
 	 *
 	 * Discovers unconverted attachments and schedules individual conversion actions.
+	 * If bulk conversion is disabled, this action will skip processing, eliminating
+	 * the need for a separate unscheduling mechanism.
 	 *
 	 * @since 3.0.0
+	 * @since 3.0.4 Removed separate unscheduling system. This action now checks if
+	 *              bulk conversion is enabled and skips processing if disabled.
 	 * @param array $args Action arguments.
 	 * @return void
 	 */
 	public function handle_bulk_discovery_action( $args ) {
 		$batch_size = isset( $args['batch_size'] ) ? (int) $args['batch_size'] : 50;
 
-		// Check if bulk conversion is enabled
-		if ( ! Settings::is_bulk_conversion_enabled() ) {
-			$this->logger->info( 'Bulk conversion discovery skipped: bulk conversion is disabled' );
-			return;
-		}
-
-		// Check if auto-conversion is enabled
-		if ( ! Settings::is_image_auto_convert_enabled() && ! Settings::is_video_auto_convert_enabled() ) {
-			$this->logger->info( 'Bulk conversion discovery skipped: auto-conversion is disabled' );
-			return;
-		}
-
 		// Get unconverted media
 		$unconverted_attachments = $this->bulk_converter->get_unconverted_media( $batch_size );
 
 		if ( empty( $unconverted_attachments ) ) {
-			$this->logger->info( 'Bulk conversion discovery: No unconverted attachments found' );
+			$this->logger->debug( 'Bulk conversion discovery: No unconverted attachments found' );
 			return;
 		}
 
@@ -297,7 +220,7 @@ class ActionSchedulerService {
 			}
 		}
 
-		$this->logger->info( "Bulk conversion discovery: Scheduled {$scheduled_count} attachment conversion actions" );
+		$this->logger->debug( "Bulk conversion discovery: Scheduled {$scheduled_count} attachment conversion actions" );
 	}
 
 	/**

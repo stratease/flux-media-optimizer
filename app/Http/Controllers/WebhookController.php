@@ -11,7 +11,7 @@ namespace FluxMedia\App\Http\Controllers;
 use FluxMedia\App\Services\AttachmentMetaHandler;
 use FluxMedia\App\Services\ConversionTracker;
 use FluxMedia\App\Services\Logger;
-use FluxMedia\App\Services\Settings;
+use FluxMedia\FluxPlugins\Common\Account\AccountIdService;
 use WP_REST_Request;
 use WP_REST_Response;
 
@@ -81,7 +81,7 @@ class WebhookController extends BaseController {
 	public function handle_webhook( WP_REST_Request $request ) {
 		// Validate account_id from request.
 		$request_account_id = sanitize_text_field( $request->get_param( 'account_id' ) );
-		$stored_account_id = Settings::get_account_id();
+		$stored_account_id = AccountIdService::get_instance()->get_account_id();
 
 		if ( empty( $request_account_id ) ) {
 			return $this->create_error_response( 'Missing account_id', 'missing_account_id', 400 );

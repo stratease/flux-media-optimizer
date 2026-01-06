@@ -593,17 +593,6 @@ class Settings {
 		return update_site_option( 'flux-plugins_license_key', $license_key );
 	}
 
-	/**
-	 * Get the account ID (UUID) for this site.
-	 *
-	 * UUID is generated on plugin initialization and never changes.
-	 *
-	 * @since 3.0.0
-	 * @return string Account ID (UUID) or empty string if not set.
-	 */
-	public static function get_account_id() {
-		return (string) get_site_option( 'flux-plugins_account_id', '' );
-	}
 
 	/**
 	 * Check if external service is enabled.

@@ -11,6 +11,7 @@ namespace FluxMedia\App\Services;
 use FluxMedia\App\Http\Controllers\WebhookController;
 use FluxMedia\App\Services\CompatibilityResponse;
 use FluxMedia\App\Services\CompatibilityValidator;
+use FluxMedia\FluxPlugins\Common\Account\AccountIdService;
 
 /**
  * Handles communication with external CDN and processing service.
@@ -92,7 +93,7 @@ class ExternalApiClient {
 			];
 		}
 
-		$account_id = Settings::get_account_id();
+		$account_id = AccountIdService::get_instance()->get_account_id();
 
 		if ( empty( $account_id ) ) {
 			return [
@@ -243,7 +244,7 @@ class ExternalApiClient {
 			];
 		}
 
-		$account_id = Settings::get_account_id();
+		$account_id = AccountIdService::get_instance()->get_account_id();
 		
 		if ( empty( $account_id ) ) {
 			$this->logger->error( "License activation failed: Account ID not found" );
@@ -435,7 +436,7 @@ class ExternalApiClient {
 			];
 		}
 
-		$account_id = Settings::get_account_id();
+		$account_id = AccountIdService::get_instance()->get_account_id();
 		
 		if ( empty( $account_id ) ) {
 			$this->logger->error( "License validation failed: Account ID not found" );
@@ -701,7 +702,7 @@ class ExternalApiClient {
 	public function delete_attachment( $attachment_id ) {
 		// Do not Check compatibility before making API request. We want to avoid orphan data when files are being deleted, even if this fails we at least try.
 
-		$account_id = Settings::get_account_id();
+		$account_id = AccountIdService::get_instance()->get_account_id();
 		
 		if ( empty( $account_id ) ) {
 			$this->logger->error( "Attachment deletion failed for attachment {$attachment_id}: Account ID not found" );

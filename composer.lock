@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ce9f0011a32dfdf1a22b3cf4d79e4f8c",
+    "content-hash": "0c5ccb33072efbe9e65146020bc5267c",
     "packages": [
         {
             "name": "alchemy/binary-driver",
@@ -503,6 +503,47 @@
                 "source": "https://github.com/php-fig/log/tree/1.1.4"
             },
             "time": "2021-05-03T11:20:27+00:00"
+        },
+        {
+            "name": "stratease/flux-plugins-common",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/stratease/flux-plugins-common.git",
+                "reference": "509c31a6378874e401f1a700522f95e7fef9217a"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/stratease/flux-plugins-common/zipball/509c31a6378874e401f1a700522f95e7fef9217a",
+                "reference": "509c31a6378874e401f1a700522f95e7fef9217a",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.4"
+            },
+            "default-branch": true,
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "FluxPlugins\\Common\\": "src/"
+                }
+            },
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "Flux Plugins",
+                    "email": "eddie@fluxplugins.com",
+                    "homepage": "https://fluxplugins.com"
+                }
+            ],
+            "description": "Shared library for Flux Plugins suite providing common services, React components, and infrastructure.",
+            "support": {
+                "source": "https://github.com/stratease/flux-plugins-common/tree/master",
+                "issues": "https://github.com/stratease/flux-plugins-common/issues"
+            },
+            "time": "2026-01-06T20:05:27+00:00"
         },
         {
             "name": "symfony/cache",
@@ -2168,30 +2209,29 @@
         },
         {
             "name": "doctrine/instantiator",
-            "version": "2.0.0",
+            "version": "2.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/doctrine/instantiator.git",
-                "reference": "c6222283fa3f4ac679f8b9ced9a4e23f163e80d0"
+                "reference": "23da848e1a2308728fe5fdddabf4be17ff9720c7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/doctrine/instantiator/zipball/c6222283fa3f4ac679f8b9ced9a4e23f163e80d0",
-                "reference": "c6222283fa3f4ac679f8b9ced9a4e23f163e80d0",
+                "url": "https://api.github.com/repos/doctrine/instantiator/zipball/23da848e1a2308728fe5fdddabf4be17ff9720c7",
+                "reference": "23da848e1a2308728fe5fdddabf4be17ff9720c7",
                 "shasum": ""
             },
             "require": {
-                "php": "^8.1"
+                "php": "^8.4"
             },
             "require-dev": {
-                "doctrine/coding-standard": "^11",
+                "doctrine/coding-standard": "^14",
                 "ext-pdo": "*",
                 "ext-phar": "*",
                 "phpbench/phpbench": "^1.2",
-                "phpstan/phpstan": "^1.9.4",
-                "phpstan/phpstan-phpunit": "^1.3",
-                "phpunit/phpunit": "^9.5.27",
-                "vimeo/psalm": "^5.4"
+                "phpstan/phpstan": "^2.1",
+                "phpstan/phpstan-phpunit": "^2.0",
+                "phpunit/phpunit": "^10.5.58"
             },
             "type": "library",
             "autoload": {
@@ -2218,7 +2258,7 @@
             ],
             "support": {
                 "issues": "https://github.com/doctrine/instantiator/issues",
-                "source": "https://github.com/doctrine/instantiator/tree/2.0.0"
+                "source": "https://github.com/doctrine/instantiator/tree/2.1.0"
             },
             "funding": [
                 {
@@ -2234,7 +2274,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2022-12-30T00:23:10+00:00"
+            "time": "2026-01-05T06:47:08+00:00"
         },
         {
             "name": "elazar/flystream",
@@ -6090,7 +6130,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "stratease/flux-plugins-common": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {

@@ -21,6 +21,7 @@
  */
 
 use FluxMedia\App\Services\FFmpegAutoloader;
+use FluxMedia\FluxPlugins\Common\FluxPlugins;
 
 // Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
@@ -185,11 +186,12 @@ add_action( 'init', 'flux_media_optimizer_load_translations' );
  * Initialize the Flux Media Optimizer plugin.
  *
  * @since 0.1.0
+ * @since 4.0.0 Initialize Flux Plugins common library.
  */
 function flux_media_optimizer_init() {
-	// Generate and store UUID (account_id) if it doesn't exist.
-	// This is done on plugin initialization, not on license key activation.
-	flux_media_optimizer_ensure_account_id();
+	// Initialize Flux Plugins common library.
+	// This handles account ID, menu setup, and required pages.
+	FluxPlugins::init( FLUX_MEDIA_OPTIMIZER_PLUGIN_SLUG, FLUX_MEDIA_OPTIMIZER_VERSION );
 	
 	// Initialize the main plugin class.
 	$flux_media_optimizer = new FluxMedia\App\Plugin();
@@ -201,51 +203,6 @@ function flux_media_optimizer_init() {
 	}
 }
 
-/**
- * Ensure account ID (UUID) exists for this site.
- *
- * Generates and stores UUID on first plugin load if it doesn't exist.
- * This UUID is persistent and never changes, even if license keys change.
- *
- * Privacy & Usage:
- * - UUID is generated locally and stored only in WordPress site options
- * - UUID is used for service identification (matching webhooks, license validation)
- * - UUID is NOT used for user tracking or analytics
- * - UUID is only transmitted to external service when user explicitly enables external service AND provides a license key
- * - UUID is automatically removed on plugin uninstall for privacy compliance
- * - See readme.txt Privacy Policy section for full details
- *
- * @since 3.0.0
- * @return void
- */
-function flux_media_optimizer_ensure_account_id() {
-	$account_id = get_site_option( 'flux-plugins_account_id', '' );
-	
-	if ( empty( $account_id ) ) {
-		// Generate UUID v4.
-		$uuid = flux_media_optimizer_generate_uuid();
-		update_site_option( 'flux-plugins_account_id', $uuid );
-	}
-}
-
-/**
- * Generate a UUID v4.
- *
- * @since 3.0.0
- * @return string UUID v4 string.
- */
-function flux_media_optimizer_generate_uuid() {
-	// Use WordPress's wp_generate_uuid4() if available (WP 6.1+), otherwise generate manually.
-	if ( function_exists( 'wp_generate_uuid4' ) ) {
-		return wp_generate_uuid4();
-	}
-	
-	// Fallback UUID v4 generation.
-	$data = random_bytes( 16 );
-	$data[6] = chr( ord( $data[6] ) & 0x0f | 0x40 ); // Set version to 0100.
-	$data[8] = chr( ord( $data[8] ) & 0x3f | 0x80 ); // Set bits 6-7 to 10.
-	return vsprintf( '%s%s-%s-%s-%s-%s%s%s', str_split( bin2hex( $data ), 4 ) );
-}
 
 /**
  * Check if Flux Media Optimizer is activated on the network.

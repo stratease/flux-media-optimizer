@@ -54,6 +54,30 @@ This plugin has been completely refactored with a modern, decoupled architecture
 - **Future-Ready**: Architecture prepared for optional cloud processing integration (opt-in only)
 - **Local-First**: All functionality works locally without any external dependencies
 
+#### 5. **Shared Library Architecture**
+- **Flux Plugins Common**: This plugin uses `flux-plugins-common` for shared services across the Flux Plugins suite
+- **Shared Services**: Menu system, account ID management, logging, and API client are provided by the shared library
+- **Namespace Prefixing**: The shared library is namespace-prefixed using Strauss to avoid conflicts
+- **Repository**: See [flux-plugins-common repository](https://github.com/stratease/flux-plugins-common) for detailed documentation
+
+##### Hook Naming Convention
+The shared library uses a standardized WordPress hook naming convention: `{plugin_namespace}/{class_name}/{method_name}`
+
+- **Plugin Namespace**: `flux_suite` - Identifies the Flux Plugins suite
+- **Class Name**: The class name in snake_case (e.g., `MenuService` -> `menu_service`)
+- **Method Name**: The method name that fires the hook (e.g., `register_top_level_menu`)
+
+For more refined callbacks within a method, append `/{operation}`:
+- `{plugin_namespace}/{class_name}/{method_name}/{operation}`
+
+**Examples:**
+- `flux_suite/menu_service/register_top_level_menu` - Fired when top-level menu is registered
+- `flux_suite/menu_service/register_license_page` - Fired when License page is registered
+- `flux_suite/menu_service/register_logs_page` - Fired when Logs page is registered
+- `flux_suite/menu_service/register_settings_page` - Fired when Settings page is registered
+
+This convention makes hook names intuitive and directly traceable to the class and method that fires them, improving code discoverability and maintainability. When you see a hook name, you can immediately identify which class and method is responsible for it.
+
 ## 📁 Project Structure
 
 ```

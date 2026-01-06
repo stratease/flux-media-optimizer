@@ -129,6 +129,7 @@ This plugin uses a modern, decoupled architecture that separates business logic 
 - **Dependency Injection**: Uses interfaces for testable, decoupled components
 - **Unified Converter Interface**: Fluent API with centralized format constants
 - **External Optimization**: `ExternalOptimizationProvider` manages communication with the SaaS processing service and CDN
+- **Shared Library**: Uses `flux-plugins-common` for shared services (menu system, account ID, logging, API client) - See [flux-plugins-common repository](https://github.com/stratease/flux-plugins-common) for details
 
 ## 📁 Project Structure
 

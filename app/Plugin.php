@@ -15,7 +15,7 @@ use FluxMedia\App\Services\ImageConverter;
 use FluxMedia\App\Services\VideoConverter;
 use FluxMedia\App\Services\FormatSupportDetector;
 use FluxMedia\App\Services\ProcessorDetector;
-
+use FluxMedia\FluxPlugins\Common\Services\MenuService;
 use FluxMedia\App\Http\Controllers\AdminController;
 use FluxMedia\App\Http\Controllers\OptionsController;
 use FluxMedia\App\Http\Controllers\StatusController;
@@ -90,6 +90,11 @@ class Plugin {
     public function init() {
         // Ensure database tables exist
         Database::maybe_update_database();
+
+        // Setup our Settings and License pages
+        $menu_service = MenuService::get_instance();
+        $menu_service->register_settings_page( 'FluxMediaOptimizerSettings', __( 'Media Optimizer', 'flux-media-optimizer' ) );
+        $menu_service->register_license_page();
         
         // Initialize logger first
         $this->logger = new Logger();

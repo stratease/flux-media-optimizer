@@ -9,6 +9,7 @@
 namespace FluxMedia\App\Http\Controllers;
 
 use FluxMedia\App\Services\Settings;
+use FluxMedia\FluxPlugins\Common\Services\MenuService;
 
 /**
  * Handles WordPress admin page registration and management.
@@ -49,17 +50,28 @@ class AdminController {
 	 * Add admin menu pages.
 	 *
 	 * @since 0.1.0
+	 * @since 4.0.0 Use MenuService from shared library.
 	 */
 	public function add_admin_menu() {
-		// Main menu page
-		add_menu_page(
-			__( 'Flux Media Optimizer', 'flux-media-optimizer' ),
-			__( 'Flux Media Optimizer', 'flux-media-optimizer' ),
+		// Register plugin-specific submenu page using MenuService.
+		// Placement 1 makes this the primary menu item (first submenu under "Flux Suite").
+		$menu_service = MenuService::get_instance();
+		$menu_service->register_submenu_page(
+			'flux-media-optimizer',
+			__( 'Media Optimizer', 'flux-media-optimizer' ),
+			[ $this, 'render_main_page' ],
+			'manage_options',
+			1 // Placement: 1 = first submenu item under "Flux Suite".
+		);
+
+		// Also register under WordPress Media menu.
+		add_submenu_page(
+			'upload.php', // WordPress Media menu slug.
+			__( 'Media Optimizer', 'flux-media-optimizer' ),
+			__( 'Media Optimizer', 'flux-media-optimizer' ),
 			'manage_options',
 			'flux-media-optimizer',
-			[ $this, 'render_main_page' ],
-			'dashicons-images-alt2',
-			30
+			[ $this, 'render_main_page' ]
 		);
 	}
 

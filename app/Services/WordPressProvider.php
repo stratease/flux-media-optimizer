@@ -212,15 +212,11 @@ class WordPressProvider {
         // Detection of local vs external processing happens inside callback.
         // Schedule on 'init' hook after Action Scheduler is ready.
         // @since 3.0.3
-        // Schedule bulk discovery action (replaces WP Cron)
-        // Defer to 'init' hook to ensure Action Scheduler is ready
+        // Ensure bulk discovery action is scheduled (replaces WP Cron).
+        // Defer to 'init' hook to ensure Action Scheduler is ready.
         $as = $this->action_scheduler_service;
         add_action( 'init', function() use($as) {
-            if ( Settings::is_bulk_conversion_enabled() ) {
-                $as->schedule_bulk_discovery( 50 );
-            } else {
-                $as->unschedule_bulk_discovery();
-            }
+            $as->ensure_bulk_discovery_scheduled();
         }, 20 );
 
         // ===== RENDER IMAGE =====

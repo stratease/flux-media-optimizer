@@ -135,17 +135,6 @@ class ExternalProcessingService implements ProcessingServiceInterface {
 		$this->submit_processing_job( $attachment_id, $file_path );
 	}
 
-	/**
-	 * Process bulk conversion via cron.
-	 *
-	 * @since 3.0.0
-	 * @return void
-	 */
-	public function process_bulk_conversion_cron() {
-		// Bulk conversion for external service is handled via the external service's own mechanisms.
-		// This method exists for interface compliance.
-		return; // TODO
-	}
 
 	/**
 	 * Process attachment conversion.
@@ -278,13 +267,9 @@ class ExternalProcessingService implements ProcessingServiceInterface {
 		$is_image = ! empty( $mimetype ) && strpos( $mimetype, 'image/' ) === 0;
 		$is_video = ! empty( $mimetype ) && strpos( $mimetype, 'video/' ) === 0;
 
-		// Check if auto-conversion is enabled.
-		if ( $is_image && ! Settings::is_image_auto_convert_enabled() ) {
-			return;
-		}
-		if ( $is_video && ! Settings::is_video_auto_convert_enabled() ) {
-			return;
-		}
+		// Auto-convert checks are handled in upload hooks.
+		// This method is called after those checks, so we only need to verify file type support.
+		// For non-image/non-video files, we still process them for CDN storage.
 
 		// Get formats to process.
 		$formats = [];

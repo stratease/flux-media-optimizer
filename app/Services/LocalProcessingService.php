@@ -179,28 +179,7 @@ class LocalProcessingService implements ProcessingServiceInterface {
 		$this->video_converter->process_video_conversion( $attachment_id, $file_path );
 	}
 
-	/**
-	 * Process bulk conversion via cron.
-	 *
-	 * @since 3.0.0
-	 * @return void
-	 */
-	public function process_bulk_conversion_cron() {
-		// Check if bulk conversion is enabled
-		if ( ! Settings::is_bulk_conversion_enabled() ) {
-			return;
-		}
 
-		// Check if auto-conversion is enabled
-		if ( ! Settings::is_image_auto_convert_enabled() && ! Settings::is_video_auto_convert_enabled() ) {
-			return;
-		}
-
-		// Process bulk conversion with small batch size for cron
-		$results = $this->bulk_converter->process_bulk_conversion( 5 );
-
-		$this->logger->info( 'Bulk conversion cron completed. Processed: ' . $results['processed'] . ', Converted: ' . $results['converted'] . ', Errors: ' . $results['errors'] );
-	}
 
 	/**
 	 * Process attachment conversion.
@@ -262,17 +241,15 @@ class LocalProcessingService implements ProcessingServiceInterface {
 	 *
 	 * Converts all WordPress image sizes to WebP/AVIF formats. Supports incremental conversion
 	 * (skips sizes already fully converted). Does not check disabled flag as explicit conversions should override.
+	 * Auto-convert checks are handled in upload hooks; this method processes if called.
 	 *
 	 * @since 3.0.2
+	 * @since 4.0.0 Removed auto-convert check (moved to upload hooks).
 	 * @param int    $attachment_id Attachment ID.
 	 * @param string $file_path     File path.
 	 * @return bool True if conversion was initiated successfully, false otherwise.
 	 */
 	private function process_image( $attachment_id, $file_path ) {
-		if ( ! Settings::is_image_auto_convert_enabled() ) {
-			return false;
-		}
-
 		// Verify file exists before processing
 		if ( ! file_exists( $file_path ) ) {
 			$this->logger->warning( "Source file does not exist for attachment {$attachment_id}: {$file_path}" );
@@ -623,18 +600,16 @@ class LocalProcessingService implements ProcessingServiceInterface {
 	 * Process video conversion asynchronously.
 	 *
 	 * Enqueues video processing via cron to avoid blocking uploads.
+	 * Auto-convert checks are handled in upload hooks; this method processes if called.
 	 *
 	 * @since 3.0.0
 	 * @since 3.0.2 Simplified to always enqueue videos for async processing via cron.
+	 * @since 4.0.0 Removed auto-convert check (moved to upload hooks).
 	 * @param int    $attachment_id Attachment ID.
 	 * @param string $file_path     File path.
 	 * @return bool True if conversion was queued successfully, false otherwise.
 	 */
 	private function process_video( $attachment_id, $file_path ) {
-		if ( ! Settings::is_video_auto_convert_enabled() ) {
-			return false;
-		}
-
 		// Always enqueue video processing via cron for async processing
 		// This prevents blocking during upload or manual conversion
 		$this->enqueue_video_processing( $attachment_id, $file_path );

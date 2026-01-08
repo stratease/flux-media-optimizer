@@ -88,7 +88,7 @@ class MediaProcessingServiceLocator {
 	 * Bulk converter instance.
 	 *
 	 * @since 3.0.0
-	 * @var BulkConverter
+	 * @var BulkConverter|null
 	 */
 	private $bulk_converter;
 
@@ -108,7 +108,7 @@ class MediaProcessingServiceLocator {
 	 * @param ImageConverter         $image_converter Image converter service.
 	 * @param VideoConverter         $video_converter Video converter service.
 	 * @param ConversionTracker      $conversion_tracker Conversion tracker service.
-	 * @param BulkConverter          $bulk_converter Bulk converter service.
+	 * @param BulkConverter|null     $bulk_converter Bulk converter service (optional, can be set later).
 	 * @param LoggerInterface        $logger Logger instance.
 	 * @param WordPressProvider       $wordpress_provider WordPress provider instance.
 	 */
@@ -117,7 +117,7 @@ class MediaProcessingServiceLocator {
 		ImageConverter $image_converter,
 		VideoConverter $video_converter,
 		ConversionTracker $conversion_tracker,
-		BulkConverter $bulk_converter,
+		BulkConverter $bulk_converter = null,
 		LoggerInterface $logger,
 		WordPressProvider $wordpress_provider
 	) {
@@ -172,6 +172,11 @@ class MediaProcessingServiceLocator {
 	 */
 	private function get_local_service() {
 		if ( null === $this->local_service ) {
+			// Create BulkConverter if not already set (to avoid circular dependency)
+			if ( null === $this->bulk_converter ) {
+				$this->bulk_converter = new BulkConverter( $this->logger, $this, $this->conversion_tracker );
+			}
+
 			$this->local_service = new LocalProcessingService(
 				$this->image_converter,
 				$this->video_converter,

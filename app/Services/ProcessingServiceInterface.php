@@ -67,14 +67,6 @@ interface ProcessingServiceInterface {
 	public function process_video_cron( $attachment_id, $file_path );
 
 	/**
-	 * Process bulk conversion via cron.
-	 *
-	 * @since 3.0.0
-	 * @return void
-	 */
-	public function process_bulk_conversion_cron();
-
-	/**
 	 * Process attachment conversion.
 	 *
 	 * Unified method for processing attachment conversion. Handles both images and videos.

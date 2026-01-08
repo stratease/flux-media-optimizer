@@ -12,7 +12,6 @@ use FluxMedia\App\Services\ImageConverter;
 use FluxMedia\App\Services\VideoConverter;
 
 use FluxMedia\App\Services\ConversionTracker;
-use FluxMedia\App\Services\BulkConverter;
 use FluxMedia\App\Services\WordPressImageRenderer;
 use FluxMedia\App\Services\WordPressVideoRenderer;
 use FluxMedia\App\Services\Logger;
@@ -61,14 +60,6 @@ class WordPressProvider {
      * @var ConversionTracker
      */
     private $conversion_tracker;
-
-    /**
-     * Bulk converter instance.
-     *
-     * @since 0.1.0
-     * @var BulkConverter
-     */
-    private $bulk_converter;
 
     /**
      * WordPress image renderer instance.
@@ -124,16 +115,8 @@ class WordPressProvider {
         $this->image_renderer = new WordPressImageRenderer( $video_converter );
         $this->video_renderer = new WordPressVideoRenderer();
         $this->conversion_tracker = new ConversionTracker( $this->logger );
-        $this->bulk_converter = new BulkConverter( $this->logger, $image_converter, $video_converter, $this->conversion_tracker );
     }
 
-    /**
-     * Set the service locator instance.
-     *
-     * @since 3.0.0
-     * @param MediaProcessingServiceLocator $service_locator Service locator instance.
-     * @return void
-     */
     /**
      * Set service locator instance.
      *
@@ -264,9 +247,11 @@ class WordPressProvider {
      * Check if attachment can be processed.
      *
      * Prevents processing if conversion is disabled, already queued for processing,
-     * or external job is in progress. Allows reprocessing if job is 'completed' or 'failed'.
+     * external job is in progress, or auto-convert is disabled for the file type.
+     * Allows reprocessing if job is 'completed' or 'failed'.
      *
      * @since 3.0.0
+     * @since 4.0.0 Added auto-convert checks based on file type.
      * @param int $attachment_id Attachment ID.
      * @return bool True if processing should be skipped, false if processing can proceed.
      */
@@ -287,7 +272,21 @@ class WordPressProvider {
             return true;
         }
 
-        // Allow processing if state is 'completed', 'failed', or null (no state set)
+        // Check auto-convert settings based on file type
+        $file_path = get_attached_file( $attachment_id );
+
+        // Determine file type and check auto-convert settings.
+        $is_supported_image = $this->image_converter->is_supported_image( $file_path );
+        $is_supported_video = $this->video_converter->is_supported_video( $file_path );
+
+        if ( $file_path && $is_supported_image && ! Settings::is_image_auto_convert_enabled() ) {
+            return true;
+        }
+        if ( $file_path && $is_supported_video && ! Settings::is_video_auto_convert_enabled() ) {
+            return true;
+        }
+
+        // Allow processing if all checks pass
         return false;
     }
 
@@ -1287,21 +1286,6 @@ class WordPressProvider {
         $processor->process_video_cron( $attachment_id, $file_path );
     }
 
-    /**
-     * Handle bulk conversion cron job.
-     *
-     * @since 0.1.0
-     * @since 3.0.0 Updated to use service locator pattern for consistent processing routing.
-     * @return void
-     */
-    public function handle_bulk_conversion_cron() {
-        if ( ! $this->service_locator ) {
-            return;
-        }
-
-        $processor = $this->service_locator->get_processor();
-        $processor->process_bulk_conversion_cron();
-    }
 
     /**
      * Handle image editor file save to reconvert edited images.

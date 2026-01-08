@@ -190,8 +190,8 @@ add_action( 'init', 'flux_media_optimizer_load_translations' );
  */
 function flux_media_optimizer_init() {
 	// Initialize Flux Plugins common library.
-	// This handles account ID, menu setup, and required pages.
-	FluxPlugins::init( FLUX_MEDIA_OPTIMIZER_PLUGIN_SLUG, FLUX_MEDIA_OPTIMIZER_VERSION );
+	// This handles account ID, menu setup, and required pages etc.
+	FluxPlugins::init( FLUX_MEDIA_OPTIMIZER_PLUGIN_SLUG, FLUX_MEDIA_OPTIMIZER_VERSION, 'flux-media-optimizer' );
 	
 	// Initialize the main plugin class.
 	$flux_media_optimizer = new FluxMedia\App\Plugin();

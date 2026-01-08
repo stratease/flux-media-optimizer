@@ -30,8 +30,6 @@ use FluxMedia\App\Services\LicenseValidationCache;
 use FluxMedia\App\Services\MediaProcessingServiceLocator;
 use FluxMedia\App\Services\BulkConverter;
 use FluxMedia\App\Services\ActionSchedulerService;
-use FluxMedia\App\Services\CompatibilityValidator;
-use FluxMedia\App\Services\CompatibilityNoticeHandler;
 use FluxMedia\App\Services\ExternalApiClient;
 
 /**
@@ -91,10 +89,11 @@ class Plugin {
         // Ensure database tables exist
         Database::maybe_update_database();
 
-        // Setup our Settings and License pages
-        $menu_service = MenuService::get_instance();
-        $menu_service->register_settings_page( 'FluxMediaOptimizerSettings', __( 'Media Optimizer', 'flux-media-optimizer' ) );
-        $menu_service->register_license_page();
+        // Setup our Settings and License pages (register during init to ensure pages are registered before menu.php loads).
+        // Translations are available during init, so __() works fine here.
+        if ( is_admin() ) {
+            add_action( 'init', [ $this, 'register_menu_pages' ], 10 );
+        }
         
         // Initialize logger first
         $this->logger = new Logger();
@@ -111,17 +110,17 @@ class Plugin {
         
         // Initialize service locator and set it on WordPress provider
         $conversion_tracker = new ConversionTracker( $this->logger );
-        $bulk_converter = new BulkConverter( $this->logger, $this->image_converter, $this->video_converter, $conversion_tracker );
         $license_cache = new LicenseValidationCache( $this->logger );
         $service_locator = new MediaProcessingServiceLocator(
             $license_cache,
             $this->image_converter,
             $this->video_converter,
             $conversion_tracker,
-            $bulk_converter,
+            null, // BulkConverter will be created after service locator
             $this->logger,
             $this->wordpress_provider
         );
+        $bulk_converter = new BulkConverter( $this->logger, $service_locator, $conversion_tracker );
         $service_locator->init();
         $this->wordpress_provider->set_service_locator( $service_locator );
         
@@ -135,39 +134,13 @@ class Plugin {
         // Initialize WordPress provider (registers hooks)
         $this->wordpress_provider->init();
         
-        // Initialize compatibility validation system.
-        $this->init_compatibility_validation();
+        // Compatibility validation is now handled by FluxPlugins::init() in the shared library.
         
         // Initialize admin functionality
         $this->init_admin();
         
         // Initialize REST API
         $this->init_rest_api();
-    }
-
-    /**
-     * Initialize compatibility validation system.
-     *
-     * Runs compatibility check and displays notices if needed.
-     * This runs after plugin bootstrap but before external API operations.
-     *
-     * @since 3.0.0
-     * @return void
-     */
-    private function init_compatibility_validation() {
-        // Initialize compatibility validator using factory (singleton pattern).
-        // Dependencies are initialized internally, so no parameters needed.
-        $compatibility_validator = CompatibilityValidator::get_instance();
-        
-        // Invalidate cache on version change.
-        $compatibility_validator->invalidate_on_version_change();
-        
-        // Initialize notice handler.
-        $notice_handler = new CompatibilityNoticeHandler( $compatibility_validator );
-        $notice_handler->init();
-        
-        // Compatibility checks will be performed before external API requests (activate, validate, upload).
-        // The ExternalApiClient will use CompatibilityValidator::get_instance() to access the validator.
     }
 
     /**
@@ -188,6 +161,25 @@ class Plugin {
         
         // Initialize license validation check
         add_action( 'admin_init', [ $this, 'check_license_validity' ] );
+    }
+
+    /**
+     * Register menu pages.
+     *
+     * Called during init (before menu.php loads) to ensure pages are registered before WordPress checks access.
+     *
+     * Note: The "Media Optimizer" submenu page is registered by AdminController::register_menu(),
+     * so we register the Settings and License pages here.
+     *
+     * @since 4.0.0
+     * @return void
+     */
+    public function register_menu_pages() {
+        $menu_service = MenuService::get_instance();
+        // Media Optimizer submenu is registered by AdminController, not here.
+        // Register Settings and License pages.
+    //    $menu_service->register_settings_page( 'FluxMediaOptimizerSettings', __( 'Media Optimizer', 'flux-media-optimizer' ) );
+  //      $menu_service->register_license_page();
     }
 
     /**

@@ -40,19 +40,28 @@ class AdminController {
 	 * Initialize admin functionality.
 	 *
 	 * @since 0.1.0
+	 * @since 4.0.0 Register menu during init (before menu.php loads) to ensure page is registered before access check.
 	 */
 	public function init() {
-		add_action( 'admin_menu', [ $this, 'add_admin_menu' ] );
+		// Register menu during init (before menu.php loads) to ensure page is registered before WordPress checks access.
+		// menu.php is loaded at line 163 of admin.php, which is BEFORE admin_init fires at line 180.
+		// We must register the page before menu.php loads, so we use init hook with is_admin() check.
+		// Use priority 1 to ensure Media Optimizer is registered very early.
+		if ( is_admin() ) {
+			add_action( 'init', [ $this, 'register_menu' ], 1 );
+		}
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_scripts' ] );
 	}
 
 	/**
-	 * Add admin menu pages.
+	 * Register admin menu pages.
 	 *
-	 * @since 0.1.0
-	 * @since 4.0.0 Use MenuService from shared library.
+	 * Called during init (before menu.php loads) to ensure page is registered before WordPress checks access.
+	 *
+	 * @since 4.0.0
+	 * @return void
 	 */
-	public function add_admin_menu() {
+	public function register_menu() {
 		// Register plugin-specific submenu page using MenuService.
 		// Placement 1 makes this the primary menu item (first submenu under "Flux Suite").
 		$menu_service = MenuService::get_instance();
@@ -64,15 +73,8 @@ class AdminController {
 			1 // Placement: 1 = first submenu item under "Flux Suite".
 		);
 
-		// Also register under WordPress Media menu.
-		add_submenu_page(
-			'upload.php', // WordPress Media menu slug.
-			__( 'Media Optimizer', 'flux-media-optimizer' ),
-			__( 'Media Optimizer', 'flux-media-optimizer' ),
-			'manage_options',
-			'flux-media-optimizer',
-			[ $this, 'render_main_page' ]
-		);
+		// Note: Plugin registration in Flux Suite overview is now handled centrally
+		// in MenuService::init_plugin_registry() for marketing purposes only.
 	}
 
 	/**

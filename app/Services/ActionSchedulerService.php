@@ -196,94 +196,35 @@ class ActionSchedulerService {
 	/**
 	 * Handle bulk discovery action.
 	 *
-	 * Checks for pending conversion actions and schedules new ones if needed.
-	 * Runs every 20 minutes to discover unconverted attachments and schedule
-	 * them for processing with incremental delays to spread out server load.
+	 * Delegates to BulkConverter to handle bulk discovery logic.
 	 *
 	 * @since 3.0.0
-	 * @since 4.0.0 Revised to check for pending actions first, then schedule with incremental delays.
+	 * @since 4.0.0 Delegated to BulkConverter::handle_bulk_discovery().
 	 * @param array $args Action arguments (unused, kept for compatibility).
 	 * @return void
 	 */
 	public function handle_bulk_discovery_action( $args = [] ) {
-		// Check if bulk conversion is enabled.
-		if ( ! Settings::is_bulk_conversion_enabled() ) {
-			$this->logger->debug( 'Bulk conversion discovery: Bulk conversion is disabled, skipping' );
-			return;
-		}
-
-		// Check if any conversion actions are already queued.
-		$pending_actions = as_get_scheduled_actions(
-			[
-				'hook'   => 'flux_media_optimizer_convert_attachment',
-				'status' => \ActionScheduler_Store::STATUS_PENDING,
-			],
-			'ids'
-		);
-
-		if ( ! empty( $pending_actions ) ) {
-			// Actions already queued, skip discovery.
-			$this->logger->debug( 'Bulk conversion discovery: Conversion actions already queued, skipping' );
-			return;
-		}
-
-		// Get unconverted media (batch size of 50).
-		$batch_size = 50;
-		$unconverted_attachments = $this->bulk_converter->get_unconverted_media( $batch_size );
-
-		if ( empty( $unconverted_attachments ) ) {
-			$this->logger->debug( 'Bulk conversion discovery: No unconverted attachments found' );
-			return;
-		}
-
-		// Schedule individual conversion actions with incremental delays (10 seconds apart).
-		$base_time = time();
-		$delay_increment = 10; // 10 seconds between each action to spread out server load.
-		$scheduled_count = 0;
-
-		foreach ( $unconverted_attachments as $index => $attachment_id ) {
-			$schedule_time = $base_time + ( $index * $delay_increment );
-			$action_id = $this->schedule_attachment_conversion( $attachment_id, $schedule_time );
-
-			if ( $action_id ) {
-				$scheduled_count++;
-			}
-		}
-
-		$this->logger->debug( "Bulk conversion discovery: Scheduled {$scheduled_count} attachment conversion actions with incremental delays" );
+		// Delegate to BulkConverter for bulk discovery logic.
+		$this->bulk_converter->handle_bulk_discovery( [ $this, 'schedule_attachment_conversion' ] );
 	}
 
 	/**
 	 * Handle single attachment conversion action.
 	 *
-	 * Processes conversion for a single attachment.
+	 * Delegates to BulkConverter to process a single attachment.
 	 *
 	 * @since 3.0.0
-	 * @param array $args Action arguments.
+	 * @since 4.0.0 Delegated to BulkConverter::process_attachment().
+	 * @param int $attachment_id Attachment ID to convert.
 	 * @return void
 	 */
-	public function handle_convert_attachment_action( $args ) {
-		$attachment_id = isset( $args['attachment_id'] ) ? (int) $args['attachment_id'] : 0;
-
+	public function handle_convert_attachment_action( $attachment_id ) {
 		if ( ! $attachment_id ) {
 			$this->logger->error( 'Attachment conversion action: Invalid attachment ID' );
 			return;
 		}
 
-		// Check if conversion is disabled for this attachment
-		if ( AttachmentMetaHandler::is_conversion_disabled( $attachment_id ) ) {
-			$this->logger->info( "Attachment conversion action skipped: Conversion disabled for attachment {$attachment_id}" );
-			return;
-		}
-
-		// Get processing service
-		$processor = $this->service_locator->get_processor();
-		if ( ! $processor ) {
-			$this->logger->error( "Processor not available for attachment conversion action (attachment: {$attachment_id})" );
-			return;
-		}
-
-		// Process the attachment
-		$processor->process( $attachment_id );
+		// Delegate to BulkConverter for processing logic.
+		$this->bulk_converter->process_attachment( $attachment_id );
 	}
 }

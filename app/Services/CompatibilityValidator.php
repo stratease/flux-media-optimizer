@@ -124,7 +124,7 @@ class CompatibilityValidator {
 	 */
 	public function check_compatibility( $force_refresh = false ) {
 		// Check if cache is disabled via constant.
-		$cache_disabled = defined( 'FLUX_MEDIA_OPTIMIZER_DISABLE_CACHE' ) && FLUX_MEDIA_OPTIMIZER_DISABLE_CACHE;
+		$cache_disabled = defined( 'FLUX_PLUGINS_COMMON_DISABLE_CACHE' ) && FLUX_PLUGINS_COMMON_DISABLE_CACHE;
 
 		// Check cache first unless forced refresh or cache is disabled.
 		if ( ! $force_refresh && ! $cache_disabled ) {

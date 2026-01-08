@@ -14,6 +14,12 @@ use FluxMedia\App\Services\Logger;
 use FluxMedia\App\Services\BulkConverter;
 use FluxMedia\App\Services\Settings;
 use FluxMedia\App\Services\AttachmentMetaHandler;
+use FluxMedia\App\Services\ImageConverter;
+use FluxMedia\App\Services\VideoConverter;
+use FluxMedia\App\Services\ConversionTracker;
+use FluxMedia\App\Services\LicenseValidationCache;
+use FluxMedia\App\Services\MediaProcessingServiceLocator;
+use FluxMedia\App\Services\WordPressProvider;
 
 /**
  * WP-CLI command for managing Flux Media Optimizer conversions.
@@ -50,11 +56,31 @@ class FluxMediaCommand extends WP_CLI_Command {
      * Constructor.
      *
      * @since 0.1.0
+     * @since 4.0.0 Updated to create full service setup for BulkConverter.
      */
     public function __construct() {
         $this->logger = new Logger();
         $this->settings = new Settings();
-        $this->bulk_converter = new BulkConverter( $this->logger, $this->settings );
+
+        // Create minimal service setup for WP-CLI
+        $image_converter = new ImageConverter( $this->logger );
+        $video_converter = new VideoConverter( $this->logger );
+        $conversion_tracker = new ConversionTracker( $this->logger );
+        $license_cache = new LicenseValidationCache( $this->logger );
+        $wordpress_provider = new WordPressProvider( $image_converter, $video_converter );
+
+        $service_locator = new MediaProcessingServiceLocator(
+            $license_cache,
+            $image_converter,
+            $video_converter,
+            $conversion_tracker,
+            null, // BulkConverter will be created after service locator
+            $this->logger,
+            $wordpress_provider
+        );
+        $service_locator->init();
+
+        $this->bulk_converter = new BulkConverter( $this->logger, $service_locator, $conversion_tracker );
     }
 
     /**

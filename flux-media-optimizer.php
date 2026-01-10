@@ -3,7 +3,7 @@
  * Plugin Name: Flux Media Optimizer by Flux Plugins
  * Plugin URI: https://fluxplugins.com/media-optimizer
  * Description: One-click image (AVIF & WebP) and video optimization for WordPress.
- * Version: 3.0.3
+ * Version: 4.0.0
  * Author: Flux Plugins
  * Author URI: https://fluxplugins.com
  * License: GPL-2.0+
@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'FLUX_MEDIA_OPTIMIZER_VERSION', '3.0.3' );
+define( 'FLUX_MEDIA_OPTIMIZER_VERSION', '4.0.0' );
 define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_FILE', __FILE__ );
 define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -112,7 +112,7 @@ function flux_media_optimizer_wp_version_notice() {
 				/* translators: 1: Current WordPress version, 2: Required WordPress version */
 				esc_html__( 'Flux Media Optimizer requires WordPress %2$s or higher. You are running WordPress %1$s.', 'flux-media-optimizer' ),
 				esc_html( $wp_version ),
-				'6.2'
+				'5.8'
 			);
 			?>
 		</p>
@@ -289,7 +289,7 @@ register_uninstall_hook( __FILE__, 'flux_media_optimizer_uninstall' );
 function flux_media_optimizer_activate() {
 	// Check requirements before activation.
 	global $wp_version;
-	if ( version_compare( PHP_VERSION, '8.0', '<' ) || version_compare( $wp_version, '6.2', '<' ) ) {
+	if ( version_compare( PHP_VERSION, '8.0', '<' ) || version_compare( $wp_version, '5.8', '<' ) ) {
 		return;
 	}
 
@@ -310,7 +310,7 @@ function flux_media_optimizer_activate() {
 	if ( flux_media_optimizer_is_active_for_network() ) {
 		set_site_transient( 'flux_media_optimizer_activation_redirect', true, 60 );
 	} else {
-	set_transient( 'flux_media_optimizer_activation_redirect', true, 60 );
+		set_transient( 'flux_media_optimizer_activation_redirect', true, 60 );
 	}
 }
 

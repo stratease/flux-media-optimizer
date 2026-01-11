@@ -1,3 +1,6 @@
+= 4.0.1 =
+* Accidental commit removed.
+
 = 4.0.0 =
 * Updated navigation in preparation for features and plugin organization.
 * Fixed issues with Action Scheduler Bulk Processing.

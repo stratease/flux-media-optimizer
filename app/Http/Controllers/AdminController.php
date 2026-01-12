@@ -118,6 +118,7 @@ class AdminController {
 		wp_enqueue_style( 'wp-components' );
 	}
 
+
 	/**
 	 * Get script URL based on debug mode.
 	 *

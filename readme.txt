@@ -123,11 +123,16 @@ Flux Media Optimizer supports video optimization with FFmpeg. You can convert vi
 
 = 4.0.1 =
 * Accidental commit removed.
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 = 4.0.0 =
 * Updated navigation in preparation for features and plugin organization.
 * Fixed issues with Action Scheduler Bulk Processing.
 * Core system is being decoupled for future plugin integrations.
 * Fixed WP min version verification tags - we support WP 5.8 now.
+
 = 3.0.3 =
 * Fixed async operations in certain scenarios.
 

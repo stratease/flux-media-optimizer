@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Typography, Box, Grid, Switch, FormControlLabel, Alert, Divider, TextField, Stack, FormHelperText, Skeleton, Button, CircularProgress, InputAdornment, Tooltip, IconButton, Link, Collapse } from '@mui/material';
 import { CheckCircle, Error as ErrorIcon, Refresh } from '@mui/icons-material';
 import { __, _x } from '@wordpress/i18n';
 import { useAutoSaveForm } from '@flux-media-optimizer/hooks/useAutoSaveForm';
 import { useOptions, useUpdateOptions } from '@flux-media-optimizer/hooks/useOptions';
 import { useSystemStatus } from '@flux-media-optimizer/hooks/useSystemStatus';
-import { useLicense, useActivateLicense, useValidateLicense } from '@flux-media-optimizer/hooks/useLicense';
 import { SubscribeForm, SettingsSkeleton } from '@flux-media-optimizer/components';
 
 /**
@@ -14,24 +13,15 @@ import { SubscribeForm, SettingsSkeleton } from '@flux-media-optimizer/component
 const SettingsPage = () => {
   // Local state for immediate UI updates - completely decoupled from server state
   const [localSettings, setLocalSettings] = useState({});
-  const [licenseKey, setLicenseKey] = useState('');
-  const [licenseActivationError, setLicenseActivationError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [isLicenseInitialized, setIsLicenseInitialized] = useState(false);
   
   // React Query hooks for data fetching
   const { data: serverSettings, isLoading: optionsLoading, error: optionsError } = useOptions();
   const { data: systemStatus, isLoading: systemLoading, error: systemError } = useSystemStatus();
-  const { data: licenseData, isLoading: licenseLoading, error: licenseError } = useLicense();
   const updateOptionsMutation = useUpdateOptions();
-  const activateLicenseMutation = useActivateLicense();
-  const validateLicenseMutation = useValidateLicense();
 
   // Auto-save hook - use local settings for immediate feedback
   const { debouncedSave, manualSave } = useAutoSaveForm('settings', localSettings);
-  
-  // Debounce timer for license activation
-  const debounceTimerRef = useRef(null);
 
   // Initialize local settings ONCE from server data on first load only
   // After initialization, local state is completely independent
@@ -41,62 +31,6 @@ const SettingsPage = () => {
       setIsInitialized(true);
     }
   }, [serverSettings, isInitialized]);
-
-  // Initialize license key ONCE from license data on first load only
-  // This is independent from settings initialization
-  useEffect(() => {
-    if (!isLicenseInitialized && licenseData && typeof licenseData === 'object') {
-      if (licenseData.license_key !== undefined) {
-        setLicenseKey(licenseData.license_key || '');
-        setIsLicenseInitialized(true);
-      }
-    }
-  }, [licenseData, isLicenseInitialized]);
-
-  // Debounced license activation function
-  const debouncedActivateLicense = useCallback((key) => {
-    // Clear any existing timer
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    
-    // Set new timer
-    debounceTimerRef.current = setTimeout(() => {
-      const trimmedKey = key.trim();
-      // Activate if key is not empty
-      if (trimmedKey) {
-        activateLicenseMutation.mutate(trimmedKey);
-      }
-    }, 1000); // 1 second debounce
-  }, [activateLicenseMutation]);
-
-  // Cleanup debounce timer on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, []);
-  
-  // Monitor license activation mutation for errors
-  useEffect(() => {
-    if (activateLicenseMutation.isError) {
-      const error = activateLicenseMutation.error;
-      const errorData = error?.data || {};
-      const errorCode = errorData.error_code || error?.code || 'unknown_error';
-      const errorMessage = errorData.message || error?.message || __('License activation failed', 'flux-media-optimizer');
-      
-      setLicenseActivationError({
-        success: false,
-        error: errorCode,
-        message: errorMessage,
-      });
-    } else if (activateLicenseMutation.isSuccess) {
-      // Clear error on success
-      setLicenseActivationError(null);
-    }
-  }, [activateLicenseMutation.isError, activateLicenseMutation.isSuccess, activateLicenseMutation.error]);
 
   // Use local settings for display (immediate updates)
   const settings = localSettings;
@@ -136,70 +70,6 @@ const SettingsPage = () => {
     debouncedSave({ [key]: newValue });
   };
 
-  const handleLicenseKeyChange = (event) => {
-    const newLicenseKey = event.target.value;
-    
-    // Update local state immediately for instant feedback
-    setLicenseKey(newLicenseKey);
-    
-    // Clear any previous activation errors
-    setLicenseActivationError(null);
-    
-    // Trigger debounced activation on change
-    if (newLicenseKey.trim()) {
-      debouncedActivateLicense(newLicenseKey);
-    } else {
-      // Clear debounce timer if field is empty
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    }
-  };
-
-  const handleRevalidateLicense = async () => {
-    if (!licenseKey) {
-      return;
-    }
-    
-    // First activate the license to ensure it's activated
-    try {
-      await activateLicenseMutation.mutateAsync(licenseKey);
-      // After activation succeeds, validate the license
-      await validateLicenseMutation.mutateAsync();
-    } catch (error) {
-      // Error handling is done by the mutation hooks
-      // If activation fails, we still try to validate
-      await validateLicenseMutation.mutateAsync();
-    }
-  };
-
-  // Format date for display using WordPress date formatting
-  const formatLicenseDate = (dateString) => {
-    if (!dateString) {
-      return null;
-    }
-    
-    try {
-      // Use WordPress date formatting if available
-      if (window.wp?.date?.dateI18n) {
-        // WordPress date format from settings
-        const dateFormat = window.wp?.date?.settings?.formats?.date || 'F j, Y';
-        const timeFormat = window.wp?.date?.settings?.formats?.time || 'g:i a';
-        const format = `${dateFormat} ${timeFormat}`;
-        
-        // Parse the GMT date and format it
-        const date = new Date(dateString + ' UTC');
-        return window.wp.date.dateI18n(format, date);
-      } else {
-        // Fallback to JavaScript date formatting
-        const date = new Date(dateString + ' UTC');
-        return date.toLocaleString();
-      }
-    } catch (e) {
-      // Fallback to simple date string
-      return dateString;
-    }
-  };
 
   // Determine if there are any errors
   const hasError = optionsError || systemError;
@@ -207,7 +77,9 @@ const SettingsPage = () => {
   
   // Check if data is still loading (only for initial load)
   const isLoading = !isInitialized && (optionsLoading || systemLoading);
-  const shouldEnableQualitySettings = !(licenseData?.license_is_valid && settings?.external_service_enabled);
+  // Note: License check removed - license is now handled in the standalone License page
+  // External service should check license via common library API
+  const shouldEnableQualitySettings = !settings?.external_service_enabled;
 
   return (
     <Box>
@@ -218,20 +90,6 @@ const SettingsPage = () => {
         </Alert>
       )}
 
-      {licenseActivationError && (
-        <Alert 
-          severity="error" 
-          sx={{ mb: 3 }}
-          onClose={() => setLicenseActivationError(null)}
-        >
-          <Typography variant="body2" component="div">
-            <strong>{__('License Activation Failed', 'flux-media-optimizer')}</strong>
-            <Typography variant="body2" component="div" sx={{ mt: 0.5 }}>
-              {licenseActivationError.formatted_message || licenseActivationError.message || __('An error occurred while activating your license. Please check your license key and try again.', 'flux-media-optimizer')}
-            </Typography>
-          </Typography>
-        </Alert>
-      )}
 
       {isLoading ? (
         <SettingsSkeleton />
@@ -605,111 +463,31 @@ const SettingsPage = () => {
           </Collapse>
         </Grid>
 
-        {/* License Settings */}
+        {/* External Service Settings */}
         <Grid item xs={12}>
           <Divider sx={{ my: 2 }} />
           <Box>
             <Typography variant="h5" gutterBottom>
-              {__('License Settings', 'flux-media-optimizer')}
+              {__('External Service Settings', 'flux-media-optimizer')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {__('Enter your Flux Plugins license key.', 'flux-media-optimizer')}{' '}
-              <Link
-                href="https://fluxplugins.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{ textDecoration: 'none' }}
-              >
-                {__('Purchase a license.', 'flux-media-optimizer')}
-              </Link>
+              {__('Configure external service settings. A valid license key is required. Manage your license in the License page.', 'flux-media-optimizer')}
             </Typography>
-            <Grid container spacing={2} alignItems="flex-start">
-              <Grid item xs={12} md={6}>
-                <Stack spacing={2}>
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                    <TextField
-                      fullWidth
-                      label={__('License Key', 'flux-media-optimizer')}
-                      placeholder={__('Enter your license key', 'flux-media-optimizer')}
-                      value={licenseKey}
-                      disabled={isLoading || activateLicenseMutation.isPending}
-                      onChange={handleLicenseKeyChange}
-                      variant="outlined"
-                      size="small"
-                      InputProps={{
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <Stack direction="row" spacing={0.5} alignItems="center">
-                              {activateLicenseMutation.isPending || validateLicenseMutation.isPending ? (
-                                <CircularProgress size={20} />
-                              ) : licenseKey && licenseData?.license_is_valid ? (
-                                <CheckCircle color="success" sx={{ fontSize: 20 }} />
-                              ) : licenseKey && licenseData?.license_is_valid === false ? (
-                                <ErrorIcon color="error" sx={{ fontSize: 20 }} />
-                              ) : null}
-                              {licenseKey && (
-                                <Tooltip title={__('Revalidate license', 'flux-media-optimizer')}>
-                                  <IconButton
-                                    size="small"
-                                    onClick={handleRevalidateLicense}
-                                    disabled={isLoading || licenseLoading || activateLicenseMutation.isPending || validateLicenseMutation.isPending || !licenseKey}
-                                    sx={{ ml: 0.5 }}
-                                  >
-                                    <Refresh fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                              )}
-                            </Stack>
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </Box>
-                  {licenseKey && licenseData?.license_is_valid && licenseData?.license_last_valid_date && (
-                    <Typography variant="body2" color="text.secondary">
-                      {__('Last validated:', 'flux-media-optimizer')} {formatLicenseDate(licenseData.license_last_valid_date)}
-                    </Typography>
-                  )}
-                  <Box>
-                    <Tooltip
-                      title={!licenseData?.license_is_valid ? __('A valid license key is required to enable CDN and external processing', 'flux-media-optimizer') : ''}
-                      arrow
-                    >
-                      <span>
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              checked={settings?.external_service_enabled || false}
-                              onChange={handleSettingChange('external_service_enabled')}
-                              disabled={isLoading || !licenseData?.license_is_valid}
-                            />
-                          }
-                          label={__('Enable CDN and External Processing', 'flux-media-optimizer')}
-                        />
-                      </span>
-                    </Tooltip>
-                    <FormHelperText sx={{ ml: 0, mt: 1 }}>
-                      {__('When enabled, all media files will be stored on the CDN. Images and videos will be processed and optimized by the external service, while other file types (PDFs, documents, etc.) will be stored directly for CDN delivery. Local processing will be disabled.', 'flux-media-optimizer')}
-                    </FormHelperText>
-                  </Box>
-                </Stack>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                {licenseActivationError && (
-                  <Alert 
-                    severity="error" 
-                    onClose={() => setLicenseActivationError(null)}
-                  >
-                    <Typography variant="body2" component="div">
-                      <strong>{__('License Activation Failed', 'flux-media-optimizer')}</strong>
-                      <Typography variant="body2" component="div" sx={{ mt: 0.5 }}>
-                        {licenseActivationError.message || __('An error occurred while activating your license. Please check your license key and try again.', 'flux-media-optimizer')}
-                      </Typography>
-                    </Typography>
-                  </Alert>
-                )}
-              </Grid>
-            </Grid>
+            <Stack spacing={2}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={settings?.external_service_enabled || false}
+                    onChange={handleSettingChange('external_service_enabled')}
+                    disabled={isLoading}
+                  />
+                }
+                label={__('Enable CDN and External Processing', 'flux-media-optimizer')}
+              />
+              <FormHelperText sx={{ ml: 0, mt: 1 }}>
+                {__('When enabled, all media files will be stored on the CDN. Images and videos will be processed and optimized by the external service, while other file types (PDFs, documents, etc.) will be stored directly for CDN delivery. Local processing will be disabled.', 'flux-media-optimizer')}
+              </FormHelperText>
+            </Stack>
           </Box>
         </Grid>
 

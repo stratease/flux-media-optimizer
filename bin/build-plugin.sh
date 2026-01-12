@@ -282,7 +282,8 @@ else
                 # Create new changelog section
                 NEW_CHANGELOG_SECTION="== Changelog =="$'\n'$'\n'"= $NEW_VERSION ="$'\n'"$CHANGELOG_ENTRY"
                 if [ -n "$KEEP_ENTRIES" ]; then
-                    NEW_CHANGELOG_SECTION+="$KEEP_ENTRIES"
+                    # Add blank line between new entry and old entries
+                    NEW_CHANGELOG_SECTION+=$'\n'"$KEEP_ENTRIES"
                 fi
                 
                 # Replace changelog section in readme.txt

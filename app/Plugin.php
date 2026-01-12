@@ -177,9 +177,10 @@ class Plugin {
     public function register_menu_pages() {
         $menu_service = MenuService::get_instance();
         // Media Optimizer submenu is registered by AdminController, not here.
-        // Register Settings and License pages.
-    //    $menu_service->register_settings_page( 'FluxMediaOptimizerSettings', __( 'Media Optimizer', 'flux-media-optimizer' ) );
-  //      $menu_service->register_license_page();
+        
+        // Register License page if this plugin needs it.
+        // The common library provides the page, but individual plugins decide if they want to register it.
+        $menu_service->register_license_page();
     }
 
     /**

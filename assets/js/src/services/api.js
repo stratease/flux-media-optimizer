@@ -11,8 +11,6 @@ class ApiService {
     // Configure apiFetch with proper API root
     const apiRoot = window.fluxMediaAdmin?.apiUrl || '/wp-json/';
     apiFetch.use(apiFetch.createRootURLMiddleware(apiRoot));
-    
-    console.log('API Service initialized with root:', apiRoot);
   }
 
   /**
@@ -48,20 +46,8 @@ class ApiService {
       },
     };
 
-    console.log('API Request:', {
-      endpoint,
-      path: mergedOptions.path,
-      method: mergedOptions.method,
-      apiRoot: window.fluxMediaAdmin?.apiUrl,
-      nonce: window.fluxMediaAdmin?.nonce,
-      headers: mergedOptions.headers,
-      options: mergedOptions
-    });
-
     try {
       const response = await apiFetch(mergedOptions);
-      
-      console.log('API Response:', response);
       
       // Handle the new structured response format
       if (response && typeof response === 'object' && response.success !== undefined) {
@@ -72,14 +58,6 @@ class ApiService {
       // Legacy format: return data directly
       return response;
     } catch (error) {
-      console.error('API Error:', error);
-      console.error('Error details:', {
-        message: error.message,
-        code: error.code,
-        status: error.status,
-        data: error.data
-      });
-      
       // Throw the error for React Query to handle
       throw error;
     }

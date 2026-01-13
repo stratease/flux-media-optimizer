@@ -38,15 +38,13 @@
 					if (response && response.success) {
 						// Fade out and remove notice.
 						$notice.fadeOut(300, function() {
-							$(this).remove();
-						});
-					} else {
-						console.error('Error dismissing notice:', response && response.data && response.data.message ? response.data.message : 'Unknown error');
-					}
-				},
-				error: function(xhr, status, error) {
-					console.error('Error dismissing notice:', error);
+						$(this).remove();
+					});
 				}
+			},
+			error: function(xhr, status, error) {
+				// Silently handle error - notice will remain visible
+			}
 			});
 
 			return false;

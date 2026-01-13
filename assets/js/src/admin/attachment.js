@@ -52,7 +52,6 @@ function fluxMediaConvertAttachment(attachmentId) {
         }
     })
     .catch(error => {
-        console.error('Conversion error:', error);
         showNotice('Conversion failed: Network error', 'error');
     })
     .finally(() => {
@@ -113,7 +112,6 @@ function fluxMediaDisableConversion(attachmentId) {
         }
     })
     .catch(error => {
-        console.error('Disable conversion error:', error);
         showNotice('Failed to disable conversion: Network error', 'error');
     })
     .finally(() => {
@@ -170,7 +168,6 @@ function fluxMediaEnableConversion(attachmentId) {
         }
     })
     .catch(error => {
-        console.error('Enable conversion error:', error);
         showNotice('Failed to enable conversion: Network error', 'error');
     })
     .finally(() => {
@@ -226,10 +223,4 @@ window.fluxMediaDisableConversion = fluxMediaDisableConversion;
 window.fluxMediaEnableConversion = fluxMediaEnableConversion;
 
 // Initialize when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('Flux Media Optimizer attachment functionality loaded');
-    });
-} else {
-    console.log('Flux Media Optimizer attachment functionality loaded');
-}
+// Attachment functionality is loaded and ready

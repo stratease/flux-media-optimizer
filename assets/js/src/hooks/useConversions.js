@@ -37,9 +37,6 @@ export const useStartConversion = () => {
       // Invalidate conversion-related queries
       queryClient.invalidateQueries({ queryKey: ['conversions'] });
     },
-    onError: (error) => {
-      console.error('Failed to start conversion:', error);
-    },
   });
 };
 
@@ -54,9 +51,6 @@ export const useCancelConversion = () => {
     onSuccess: () => {
       // Invalidate conversion-related queries
       queryClient.invalidateQueries({ queryKey: ['conversions'] });
-    },
-    onError: (error) => {
-      console.error('Failed to cancel conversion:', error);
     },
   });
 };
@@ -73,9 +67,6 @@ export const useBulkConvert = () => {
       // Invalidate conversion-related queries
       queryClient.invalidateQueries({ queryKey: ['conversions'] });
     },
-    onError: (error) => {
-      console.error('Failed to start bulk conversion:', error);
-    },
   });
 };
 
@@ -91,9 +82,6 @@ export const useDeleteConvertedFile = () => {
     onSuccess: () => {
       // Invalidate conversion-related queries
       queryClient.invalidateQueries({ queryKey: ['conversions'] });
-    },
-    onError: (error) => {
-      console.error('Failed to delete converted file:', error);
     },
   });
 };

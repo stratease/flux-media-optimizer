@@ -33,8 +33,5 @@ export const useUpdateOptions = () => {
       // Return the response data so callers can access license_activation
       return responseData;
     },
-    onError: (error) => {
-      console.error('Failed to update options:', error);
-    },
   });
 };

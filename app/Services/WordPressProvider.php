@@ -251,10 +251,12 @@ class WordPressProvider {
      *
      * @since 3.0.0
      * @since 4.0.0 Added auto-convert checks based on file type.
-     * @param int $attachment_id Attachment ID.
+     * @since 4.1.0 Added $skip_auto_convert_check parameter for manual convert actions.
+     * @param int  $attachment_id            Attachment ID.
+     * @param bool $skip_auto_convert_check  If true, skip auto-convert setting checks (for manual convert actions).
      * @return bool True if processing should be skipped, false if processing can proceed.
      */
-    private function should_skip_processing( $attachment_id ) {
+    private function should_skip_processing( $attachment_id, $skip_auto_convert_check = false ) {
         // Check if already queued for processing
         if ( in_array( $attachment_id, self::$pending_attachments, true ) ) {
             return true;
@@ -271,18 +273,20 @@ class WordPressProvider {
             return true;
         }
 
-        // Check auto-convert settings based on file type
-        $file_path = get_attached_file( $attachment_id );
+        // Check auto-convert settings based on file type (only for upload hooks, not manual actions)
+        if ( ! $skip_auto_convert_check ) {
+            $file_path = get_attached_file( $attachment_id );
 
-        // Determine file type and check auto-convert settings.
-        $is_supported_image = $this->image_converter->is_supported_image( $file_path );
-        $is_supported_video = $this->video_converter->is_supported_video( $file_path );
+            // Determine file type and check auto-convert settings.
+            $is_supported_image = $this->image_converter->is_supported_image( $file_path );
+            $is_supported_video = $this->video_converter->is_supported_video( $file_path );
 
-        if ( $file_path && $is_supported_image && ! Settings::is_image_auto_convert_enabled() ) {
-            return true;
-        }
-        if ( $file_path && $is_supported_video && ! Settings::is_video_auto_convert_enabled() ) {
-            return true;
+            if ( $file_path && $is_supported_image && ! Settings::is_image_auto_convert_enabled() ) {
+                return true;
+            }
+            if ( $file_path && $is_supported_video && ! Settings::is_video_auto_convert_enabled() ) {
+                return true;
+            }
         }
 
         // Allow processing if all checks pass
@@ -1141,15 +1145,16 @@ class WordPressProvider {
         }
 
         // Queue for processing on shutdown hook
-        // queue_attachment_processing() handles all skip logic centrally
-        $this->queue_attachment_processing( $attachment_id );
-            // For external service, other file types are also processed
-            return [
-                'success' => true,
-                'type' => 'other',
-                'queued' => true,
-                'message' => 'File processing job has been queued',
-            ];
+        // Skip auto-convert check since this is a manual convert action
+        $this->queue_attachment_processing( $attachment_id, true );
+        
+        // For external service, other file types are also processed
+        return [
+            'success' => true,
+            'type' => 'other',
+            'queued' => true,
+            'message' => 'File processing job has been queued',
+        ];
     
     }
 
@@ -1367,10 +1372,12 @@ class WordPressProvider {
      * All processing callbacks should use this method to queue attachments.
      *
      * @since 3.0.0
-     * @param int $attachment_id Attachment ID to queue.
+     * @since 4.1.0 Added $skip_auto_convert_check parameter for manual convert actions.
+     * @param int  $attachment_id            Attachment ID to queue.
+     * @param bool $skip_auto_convert_check  If true, skip auto-convert setting checks (for manual convert actions).
      * @return void
      */
-    private function queue_attachment_processing( $attachment_id ) {
+    private function queue_attachment_processing( $attachment_id, $skip_auto_convert_check = false ) {
         // Validate attachment ID
         if ( ! $attachment_id || ! is_numeric( $attachment_id ) ) {
             return;
@@ -1382,7 +1389,7 @@ class WordPressProvider {
         }
 
         // Check if processing should be skipped (includes pending_attachments check)
-        if ( $this->should_skip_processing( $attachment_id ) ) {
+        if ( $this->should_skip_processing( $attachment_id, $skip_auto_convert_check ) ) {
             return;
         }
 

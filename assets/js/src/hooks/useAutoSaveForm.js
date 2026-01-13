@@ -40,7 +40,6 @@ export const useAutoSaveForm = (saveKey, initialData = {}, saveFunction = null, 
         markSaveError(saveKey, 'Save failed - invalid response');
       }
     } catch (error) {
-      console.error('Auto-save error:', error);
       markSaveError(saveKey, error.message || 'An unexpected error occurred');
     }
   }, [saveKey, saveFn, startSave, markSaveSuccess, markSaveError]);

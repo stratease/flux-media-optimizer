@@ -21,8 +21,5 @@ export const useSubscribeNewsletter = () => {
       // Return success if no network error occurred
       return { success: true };
     },
-    onError: (error) => {
-      console.error('Newsletter subscription error:', error);
-    },
   });
 };

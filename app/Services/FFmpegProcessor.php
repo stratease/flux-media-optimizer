@@ -9,7 +9,7 @@
 namespace FluxMedia\App\Services;
 
 use FluxMedia\App\Services\VideoProcessorInterface;
-use FluxMedia\App\Services\LoggerInterface;
+use FluxMedia\FluxPlugins\Common\Logger\Logger;
 use FluxMedia\App\Services\ProcessorDetector;
 use FluxMedia\App\Services\ProcessorTypes;
 use FluxMedia\FFMpeg\FFMpeg;
@@ -30,7 +30,7 @@ class FFmpegProcessor implements VideoProcessorInterface {
 	 * Logger instance.
 	 *
 	 * @since 0.1.0
-	 * @var LoggerInterface
+	 * @var Logger
 	 */
 	private $logger;
 
@@ -62,10 +62,10 @@ class FFmpegProcessor implements VideoProcessorInterface {
 	 * Constructor.
 	 *
 	 * @since 1.0.0
-	 * @param LoggerInterface   $logger Logger instance.
+	 * @param Logger   $logger Logger instance.
 	 * @param ProcessorDetector $detector Optional processor detector instance.
 	 */
-	public function __construct( LoggerInterface $logger, ProcessorDetector $detector ) {
+	public function __construct( Logger $logger, ProcessorDetector $detector ) {
 		$this->logger = $logger;
 		$this->detector = $detector ? $detector : new ProcessorDetector();
 		$this->initialize_ffmpeg();

@@ -8,6 +8,7 @@
 
 namespace FluxMedia\App\Services;
 
+use FluxMedia\FluxPlugins\Common\Logger\Logger;
 use FluxMedia\App\Http\Controllers\WebhookController;
 use FluxMedia\App\Services\ConversionTracker;
 use FluxMedia\App\Services\AttachmentMetaHandler;
@@ -25,7 +26,7 @@ class ExternalOptimizationProvider {
 	 * Logger instance.
 	 *
 	 * @since 3.0.0
-	 * @var LoggerInterface
+	 * @var Logger
 	 */
 	private $logger;
 
@@ -41,9 +42,9 @@ class ExternalOptimizationProvider {
 	 * Constructor.
 	 *
 	 * @since 3.0.0
-	 * @param LoggerInterface $logger Logger instance.
+	 * @param Logger $logger Logger instance.
 	 */
-	public function __construct( LoggerInterface $logger ) {
+	public function __construct( Logger $logger ) {
 		$this->logger = $logger;
 		$this->api_client = new ExternalApiClient( $logger );
 	}

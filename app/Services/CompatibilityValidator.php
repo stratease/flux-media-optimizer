@@ -11,8 +11,8 @@
 
 namespace FluxMedia\App\Services;
 
+use FluxMedia\FluxPlugins\Common\Logger\Logger;
 use FluxMedia\App\Services\CompatibilityResponse;
-use FluxMedia\App\Services\Logger;
 use FluxMedia\App\Services\ExternalApiClient;
 
 /**
@@ -34,7 +34,7 @@ class CompatibilityValidator {
 	 * Logger instance.
 	 *
 	 * @since 3.0.0
-	 * @var LoggerInterface
+	 * @var Logger
 	 */
 	private $logger;
 
@@ -78,8 +78,8 @@ class CompatibilityValidator {
 	 * @since 3.0.0
 	 */
 	private function __construct() {
-		// Initialize logger internally.
-		$this->logger = new Logger();
+		// Initialize logger from common library.
+		$this->logger = \FluxMedia\FluxPlugins\Common\Logger\Logger::get_instance();
 		
 		// Initialize external API client internally.
 		$this->api_client = new ExternalApiClient( $this->logger );

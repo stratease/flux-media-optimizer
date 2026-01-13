@@ -8,6 +8,7 @@
 
 namespace FluxMedia\App\Http\Controllers;
 
+use FluxMedia\FluxPlugins\Common\Logger\Logger;
 use FluxMedia\App\Services\Settings;
 use FluxMedia\App\Services\ExternalApiClient;
 use FluxMedia\App\Services\LicenseValidationCache;
@@ -37,7 +38,7 @@ class OptionsController extends BaseController {
 	 */
 	public function __construct( Settings $settings ) {
 		$this->settings = $settings;
-		parent::__construct( new \FluxMedia\App\Services\Logger() );
+		parent::__construct( Logger::get_instance() );
 	}
 
 	/**
@@ -70,36 +71,8 @@ class OptionsController extends BaseController {
 			],
 		] );
 
-		register_rest_route( 'flux-media-optimizer/v1', '/license', [
-			[
-				'methods' => 'GET',
-				'callback' => [ $this, 'get_license' ],
-				'permission_callback' => [ $this, 'check_permissions' ],
-			],
-		] );
-
-		register_rest_route( 'flux-media-optimizer/v1', '/license/activate', [
-			[
-				'methods' => 'POST',
-				'callback' => [ $this, 'activate_license' ],
-				'permission_callback' => [ $this, 'check_permissions' ],
-				'args' => [
-					'license_key' => [
-						'required' => true,
-						'type' => 'string',
-						'description' => 'License key to activate',
-					],
-				],
-			],
-		] );
-
-		register_rest_route( 'flux-media-optimizer/v1', '/license/validate', [
-			[
-				'methods' => 'POST',
-				'callback' => [ $this, 'validate_license' ],
-				'permission_callback' => [ $this, 'check_permissions' ],
-			],
-		] );
+		// License routes are now handled by flux-plugins-common/v1/license endpoints
+		// Removed duplicate routes to avoid conflicts
 	}
 
 	/**

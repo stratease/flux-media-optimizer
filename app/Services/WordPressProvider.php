@@ -14,7 +14,6 @@ use FluxMedia\App\Services\VideoConverter;
 use FluxMedia\App\Services\ConversionTracker;
 use FluxMedia\App\Services\WordPressImageRenderer;
 use FluxMedia\App\Services\WordPressVideoRenderer;
-use FluxMedia\App\Services\Logger;
 use FluxMedia\App\Services\Settings;
 use FluxMedia\App\Services\Converter;
 use FluxMedia\App\Services\AttachmentMetaHandler;
@@ -109,7 +108,7 @@ class WordPressProvider {
      * @param VideoConverter $video_converter Video converter service.
      */
     public function __construct( ImageConverter $image_converter, VideoConverter $video_converter ) {
-        $this->logger = new Logger();
+        $this->logger = \FluxMedia\FluxPlugins\Common\Logger\Logger::get_instance();
         $this->image_converter = $image_converter;
         $this->video_converter = $video_converter;
         $this->image_renderer = new WordPressImageRenderer( $video_converter );

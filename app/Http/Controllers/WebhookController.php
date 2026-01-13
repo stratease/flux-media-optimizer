@@ -8,9 +8,9 @@
 
 namespace FluxMedia\App\Http\Controllers;
 
+use FluxMedia\FluxPlugins\Common\Logger\Logger;
 use FluxMedia\App\Services\AttachmentMetaHandler;
 use FluxMedia\App\Services\ConversionTracker;
-use FluxMedia\App\Services\Logger;
 use FluxMedia\FluxPlugins\Common\Account\AccountIdService;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -28,7 +28,7 @@ class WebhookController extends BaseController {
 	 * @since 3.0.0
 	 */
 	public function __construct() {
-		parent::__construct( new Logger() );
+		parent::__construct( Logger::get_instance() );
 	}
 
 	/**

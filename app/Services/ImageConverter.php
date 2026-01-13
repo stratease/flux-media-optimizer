@@ -8,7 +8,7 @@
 
 namespace FluxMedia\App\Services;
 
-use FluxMedia\App\Services\LoggerInterface;
+use FluxMedia\FluxPlugins\Common\Logger\Logger;
 use FluxMedia\App\Services\Converter;
 use FluxMedia\App\Services\ImageProcessorInterface;
 use FluxMedia\App\Services\GDProcessor;
@@ -28,7 +28,7 @@ class ImageConverter implements Converter {
      * Logger instance.
      *
      * @since 0.1.0
-     * @var LoggerInterface
+     * @var Logger
      */
     private $logger;
 
@@ -114,9 +114,9 @@ class ImageConverter implements Converter {
      * Constructor.
      *
      * @since 0.1.0
-     * @param LoggerInterface $logger Logger instance.
+     * @param Logger $logger Logger instance.
      */
-    public function __construct( LoggerInterface $logger ) {
+    public function __construct( Logger $logger ) {
         $this->logger = $logger;
         $this->processor_detector = new ProcessorDetector();
         $this->format_detector = new FormatSupportDetector( $this->processor_detector );

@@ -82,7 +82,7 @@ const SettingsPage = () => {
   const shouldEnableQualitySettings = !settings?.external_service_enabled;
 
   return (
-    <Box>
+    <>
 
       {hasError && (
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -500,7 +500,7 @@ const SettingsPage = () => {
           </Grid>
         </>
       )}
-    </Box>
+    </>
   );
 };
 

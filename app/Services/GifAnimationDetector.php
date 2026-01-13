@@ -8,7 +8,7 @@
 
 namespace FluxMedia\App\Services;
 
-use FluxMedia\App\Services\LoggerInterface;
+use FluxMedia\FluxPlugins\Common\Logger\Logger;
 
 /**
  * Service to detect if a GIF file is animated.
@@ -21,7 +21,7 @@ class GifAnimationDetector {
 	 * Logger instance.
 	 *
 	 * @since 2.0.1
-	 * @var LoggerInterface
+	 * @var Logger
 	 */
 	private $logger;
 
@@ -29,9 +29,9 @@ class GifAnimationDetector {
 	 * Constructor.
 	 *
 	 * @since 2.0.1
-	 * @param LoggerInterface $logger Logger instance.
+	 * @param Logger $logger Logger instance.
 	 */
-	public function __construct( LoggerInterface $logger ) {
+	public function __construct( Logger $logger ) {
 		$this->logger = $logger;
 	}
 

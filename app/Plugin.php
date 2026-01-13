@@ -8,7 +8,7 @@
 
 namespace FluxMedia\App;
 
-use FluxMedia\App\Services\Logger;
+use FluxMedia\FluxPlugins\Common\Logger\Logger;
 use FluxMedia\App\Services\WordPressProvider;
 use FluxMedia\App\Services\Settings;
 use FluxMedia\App\Services\ImageConverter;
@@ -95,8 +95,8 @@ class Plugin {
             add_action( 'init', [ $this, 'register_menu_pages' ], 10 );
         }
         
-        // Initialize logger first
-        $this->logger = new Logger();
+        // Initialize logger from common library
+        $this->logger = Logger::get_instance();
         
         // Initialize settings
         $this->settings = new Settings();
@@ -181,6 +181,10 @@ class Plugin {
         // Register License page if this plugin needs it.
         // The common library provides the page, but individual plugins decide if they want to register it.
         $menu_service->register_license_page();
+        
+        // Register Logs page if this plugin needs it.
+        // The common library provides the page, but individual plugins decide if they want to register it.
+        $menu_service->register_logs_page();
     }
 
     /**

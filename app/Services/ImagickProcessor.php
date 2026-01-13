@@ -9,7 +9,7 @@
 namespace FluxMedia\App\Services;
 
 use FluxMedia\App\Services\ImageProcessorInterface;
-use FluxMedia\App\Services\LoggerInterface;
+use FluxMedia\FluxPlugins\Common\Logger\Logger;
 use Imagick;
 use ImagickException;
 
@@ -24,7 +24,7 @@ class ImagickProcessor implements ImageProcessorInterface {
 	 * Logger instance.
 	 *
 	 * @since 0.1.0
-	 * @var LoggerInterface
+	 * @var Logger
 	 */
 	private $logger;
 
@@ -40,9 +40,9 @@ class ImagickProcessor implements ImageProcessorInterface {
 	 * Constructor.
 	 *
 	 * @since 0.1.0
-	 * @param LoggerInterface $logger Logger instance.
+	 * @param Logger $logger Logger instance.
 	 */
-	public function __construct( LoggerInterface $logger ) {
+	public function __construct( Logger $logger ) {
 		$this->logger = $logger;
 		$this->imagick = new Imagick();
 	}

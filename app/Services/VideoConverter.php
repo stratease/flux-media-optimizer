@@ -8,8 +8,7 @@
 
 namespace FluxMedia\App\Services;
 
-use FluxMedia\App\Services\LoggerInterface;
-use FluxMedia\App\Services\Logger;
+use FluxMedia\FluxPlugins\Common\Logger\Logger;
 use FluxMedia\App\Services\Converter;
 use FluxMedia\App\Services\VideoProcessorInterface;
 use FluxMedia\App\Services\FFmpegProcessor;
@@ -29,7 +28,7 @@ class VideoConverter implements Converter {
      * Logger instance.
      *
      * @since 0.1.0
-     * @var LoggerInterface
+     * @var Logger
      */
     private $logger;
 
@@ -102,9 +101,9 @@ class VideoConverter implements Converter {
      * Constructor.
      *
      * @since 0.1.0
-     * @param LoggerInterface $logger Logger instance.
+     * @param Logger $logger Logger instance.
      */
-    public function __construct( LoggerInterface $logger ) {
+    public function __construct( Logger $logger ) {
         $this->logger = $logger;
         // Processor is lazy-loaded when needed, not on every page load
     }
@@ -454,11 +453,8 @@ class VideoConverter implements Converter {
 
         // Lazy-load conversion tracker if needed
         if ( $attachment_id && ! $this->conversion_tracker ) {
-            // ConversionTracker requires Logger, but we have LoggerInterface
-            // Check if logger is a Logger instance
-            if ( $this->logger instanceof Logger ) {
-                $this->conversion_tracker = new ConversionTracker( $this->logger );
-            }
+            // ConversionTracker now accepts Logger
+            $this->conversion_tracker = new ConversionTracker( $this->logger );
         }
 
         // Get file path components

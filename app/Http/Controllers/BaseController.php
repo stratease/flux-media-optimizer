@@ -8,7 +8,7 @@
 
 namespace FluxMedia\App\Http\Controllers;
 
-use FluxMedia\App\Services\Logger;
+use FluxMedia\FluxPlugins\Common\Logger\Logger;
 use WP_REST_Controller;
 use WP_REST_Request;
 use WP_REST_Response;

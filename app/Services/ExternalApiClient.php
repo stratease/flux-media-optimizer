@@ -9,6 +9,7 @@
 
 namespace FluxMedia\App\Services;
 
+use FluxMedia\FluxPlugins\Common\Logger\Logger;
 use FluxMedia\App\Http\Controllers\WebhookController;
 use FluxMedia\FluxPlugins\Common\Account\AccountIdService;
 use FluxMedia\FluxPlugins\Common\Api\ExternalApiClient as SharedExternalApiClient;
@@ -25,7 +26,7 @@ class ExternalApiClient {
 	 * Logger instance.
 	 *
 	 * @since 3.0.0
-	 * @var LoggerInterface
+	 * @var Logger
 	 */
 	private $logger;
 
@@ -42,9 +43,9 @@ class ExternalApiClient {
 	 *
 	 * @since 3.0.0
 	 * @since 4.0.0 Initialize shared API client (uses constants internally).
-	 * @param LoggerInterface $logger Logger instance.
+	 * @param Logger $logger Logger instance.
 	 */
-	public function __construct( LoggerInterface $logger ) {
+	public function __construct( Logger $logger ) {
 		$this->logger = $logger;
 		// Shared API client will use constants internally (FLUX_PLUGINS_COMMON_* or FLUX_MEDIA_OPTIMIZER_* for backward compatibility).
 		$this->shared_api_client = new SharedExternalApiClient( $logger );

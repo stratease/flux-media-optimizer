@@ -1,6 +1,6 @@
 === Flux Media Optimizer by Flux Plugins ===
 Contributors: edaniels
-Tags: media optimization, video compression, webp, avif, cdn
+Tags: media optimizer, video compression, webp, avif, cdn
 Requires at least: 5.8
 Tested up to: 6.9
 Requires PHP: 8.0
@@ -14,7 +14,7 @@ Automatically optimize images, compress videos, and deliver media via global CDN
 
 ### The Complete Media Performance Solution for WordPress
 
-Flux Media Optimizer is the all-in-one media optimization plugin for WordPress – optimize images, compress videos, and deliver everything through a global CDN for lightning-fast page loads worldwide.
+Flux Media Optimizer is the all-in-one media optimizer plugin for WordPress – optimize images, compress videos, and deliver everything through a global CDN for lightning-fast page loads worldwide.
 
 Transform your WordPress site's media performance with Flux Media Optimizer. Compress images, convert to next-gen formats (WebP & AVIF), optimize videos with modern formats (AV1, WebM), and serve media through a global CDN, all while maintaining the visual quality your visitors expect.
 
@@ -123,10 +123,7 @@ Flux Media Optimizer supports video optimization with FFmpeg. You can convert vi
 
 = 4.0.1 =
 * Accidental commit removed.
-<<<<<<< Updated upstream
-=======
 
->>>>>>> Stashed changes
 = 4.0.0 =
 * Updated navigation in preparation for features and plugin organization.
 * Fixed issues with Action Scheduler Bulk Processing.
@@ -138,6 +135,9 @@ Flux Media Optimizer supports video optimization with FFmpeg. You can convert vi
 
 
 == Upgrade Notice ==
+
+= 4.0.0 =
+Major update with improved bulk optimization processing, fixed Action Scheduler bulk operations, and core system decoupling for future plugin integrations. Bulk optimization issues have been resolved for more reliable processing of existing media libraries.
 
 = 3.0.0 =
 Major update with optional CDN integration, enhanced video optimization, and improved architecture. All existing functionality continues to work as before. CDN features require explicit opt-in.

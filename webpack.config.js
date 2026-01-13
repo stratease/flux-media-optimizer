@@ -63,7 +63,10 @@ module.exports = {
       '@flux-media-optimizer': path.resolve(__dirname, 'assets/js/src'),
       // For importing shared components (like PageLayout) from common library
       // Use the source path - these will be compiled by plugin's webpack using React from plugin's node_modules
-      '@flux-plugins-common': path.join(commonLibDir, 'assets/js/src'),
+      // Note: Paths use src/assets/ structure since Strauss copies from src/
+      '@flux-plugins-common': path.join(commonLibDir, 'src/assets/js/src'),
+      // Alias for images directory in common library
+      '@flux-plugins-common/images': path.join(commonLibDir, 'src/assets/images'),
     },
   },
   module: {

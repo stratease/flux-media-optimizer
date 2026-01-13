@@ -10,7 +10,6 @@ namespace FluxMedia\App\Console\Commands;
 
 use WP_CLI;
 use WP_CLI_Command;
-use FluxMedia\App\Services\Logger;
 use FluxMedia\App\Services\BulkConverter;
 use FluxMedia\App\Services\Settings;
 use FluxMedia\App\Services\AttachmentMetaHandler;
@@ -59,7 +58,7 @@ class FluxMediaCommand extends WP_CLI_Command {
      * @since 4.0.0 Updated to create full service setup for BulkConverter.
      */
     public function __construct() {
-        $this->logger = new Logger();
+        $this->logger = \FluxMedia\FluxPlugins\Common\Logger\Logger::get_instance();
         $this->settings = new Settings();
 
         // Create minimal service setup for WP-CLI

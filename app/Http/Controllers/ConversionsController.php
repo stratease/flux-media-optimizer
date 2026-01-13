@@ -8,6 +8,7 @@
 
 namespace FluxMedia\App\Http\Controllers;
 
+use FluxMedia\FluxPlugins\Common\Logger\Logger;
 use FluxMedia\App\Services\ConversionTracker;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -35,7 +36,7 @@ class ConversionsController extends BaseController {
 	 */
 	public function __construct( ConversionTracker $conversion_tracker ) {
 		$this->conversion_tracker = $conversion_tracker;
-		parent::__construct( new \FluxMedia\App\Services\Logger() );
+		parent::__construct( Logger::get_instance() );
 	}
 
 	/**

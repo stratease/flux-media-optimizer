@@ -29,7 +29,7 @@ const OverviewPage = () => {
 
 
   return (
-    <Box>
+    <>
       <Grid container spacing={3}>
         <Grid item xs={12} md={6}>
           <ImageStatusCard 
@@ -53,7 +53,7 @@ const OverviewPage = () => {
         </Grid>
       </Grid>   
 
-      {/* Conversion Savings Section - without Paper wrapper */}
+      {/* Conversion Savings Section */}
       {!conversionsLoading && getSavingsStats() && (
         <Box sx={{ mt: 4 }}>
           <Typography variant="h5" component="h2" gutterBottom>
@@ -107,8 +107,7 @@ const OverviewPage = () => {
           </Grid>
         </Box>
       )}
-
-    </Box>
+    </>
   );
 };
 

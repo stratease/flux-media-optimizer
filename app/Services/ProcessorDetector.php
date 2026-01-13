@@ -32,7 +32,7 @@ class ProcessorDetector {
      * @since 3.0.4 Added Logger instance for detection error logging.
      */
     public function __construct() {
-        $this->logger = new Logger();
+        $this->logger = \FluxMedia\FluxPlugins\Common\Logger\Logger::get_instance();
     }
 
     /**

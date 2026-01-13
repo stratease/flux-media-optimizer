@@ -17,13 +17,21 @@ class ApiService {
 
   /**
    * Make a request using WordPress apiFetch
-   * @param {string} endpoint - The API endpoint
+   * @param {string} endpoint - The API endpoint (will be prefixed with namespace)
    * @param {Object} options - Request options
    * @returns {Promise} - API response
    */
   async request(endpoint, options = {}) {
+    // Prepend namespace if not already included
+    let path = endpoint;
+    if (!endpoint.startsWith(`/${this.namespace}/`) && !endpoint.startsWith(this.namespace)) {
+      // Ensure endpoint starts with /
+      const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+      path = `/${this.namespace}${cleanEndpoint}`;
+    }
+    
     const defaultOptions = {
-      path: endpoint,
+      path: path,
       method: 'GET',
       headers: {
         'X-WP-Nonce': window.fluxMediaAdmin?.nonce || '',

@@ -13,7 +13,6 @@ use FluxMedia\App\Services\AttachmentMetaHandler;
 use FluxMedia\App\Services\AttachmentIdResolver;
 use FluxMedia\App\Services\ExternalOptimizationProvider;
 use FluxMedia\App\Services\Settings;
-use FluxMedia\App\Services\Logger;
 
 /**
  * WordPress image renderer for handling image display and optimization.
@@ -435,7 +434,7 @@ class WordPressImageRenderer {
         // Check for external service processing status
         if ( Settings::is_external_service_enabled() ) {
             try {
-                $external_provider = new ExternalOptimizationProvider( new Logger() );
+                $external_provider = new ExternalOptimizationProvider( \FluxMedia\FluxPlugins\Common\Logger\Logger::get_instance() );
                 $status = $external_provider->get_job_status( $post->ID );
                 
                 if ( $status ) {

@@ -8,7 +8,7 @@
 
 namespace FluxMedia\App\Services;
 
-use FluxMedia\App\Services\Logger;
+use FluxMedia\FluxPlugins\Common\Logger\Logger;
 use FluxMedia\App\Services\Converter;
 
 /**

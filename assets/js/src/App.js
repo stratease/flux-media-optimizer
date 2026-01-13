@@ -1,14 +1,12 @@
 import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ThemeProvider } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
-import { Box, Typography, Container, Tabs, Tab, Paper, Grid } from '@mui/material';
+import { Box, Tabs, Tab } from '@mui/material';
 import { __ } from '@wordpress/i18n';
-import { ErrorBoundary, FluxMediaIcon, LogsPage } from '@flux-media-optimizer/components';
+import { ErrorBoundary } from '@flux-media-optimizer/components';
+import { FluxAppProvider, PageLayout } from '@flux-plugins-common/components';
 import OverviewPage from '@flux-media-optimizer/pages/OverviewPage';
 import SettingsPage from '@flux-media-optimizer/pages/SettingsPage';
-import theme from '@flux-media-optimizer/theme';
 import { AutoSaveProvider } from '@flux-media-optimizer/contexts/AutoSaveContext';
 
 // Create a client
@@ -35,28 +33,18 @@ const Navigation = () => {
         return 0;
       case '/settings':
         return 1;
-      case '/logs':
-        return 2;
       default:
         return 0;
     }
   };
 
   const handleTabChange = (event, newValue) => {
-    const paths = ['/overview', '/settings', '/logs'];
+    const paths = ['/overview', '/settings'];
     navigate(paths[newValue]);
   };
 
   return (
     <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-      <Grid container alignItems="center" sx={{ mb: 2 }}>
-        <Grid item sx={{ display: 'flex', alignItems: 'center' }}>
-          <FluxMediaIcon size={40} sx={{ mr: 2 }} />
-          <Typography variant="h4" component="h1" sx={{ m: 0, lineHeight: 1 }}>
-            {__('Flux Media Optimizer', 'flux-media-optimizer')}
-          </Typography>
-        </Grid>
-      </Grid>
       <Tabs
         value={getTabValue(location.pathname)}
         onChange={handleTabChange}
@@ -66,7 +54,6 @@ const Navigation = () => {
       >
         <Tab label={__('Overview', 'flux-media-optimizer')} />
         <Tab label={__('Settings', 'flux-media-optimizer')} />
-        <Tab label={__('Logs', 'flux-media-optimizer')} />
       </Tabs>
     </Box>
   );
@@ -93,24 +80,20 @@ const App = () => {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
+        <FluxAppProvider>
           <AutoSaveProvider>
             <Router>
-              <Container maxWidth="xl" sx={{ py: 4 }}>
-                <Paper elevation={1} sx={{ p: 3 }}>
-                  <Navigation />
-                  <Routes>
-                    <Route path="/overview" element={<OverviewPage />} />
-                    <Route path="/settings" element={<SettingsPage />} />
-                    <Route path="/logs" element={<LogsPage />} />
-                    <Route path="/" element={<Navigate to="/overview" replace />} />
-                  </Routes>
-                </Paper>
-              </Container>
+              <PageLayout title={__('Flux Media Optimizer', 'flux-media-optimizer')} maxWidth="xl">
+                <Navigation />
+                <Routes>
+                  <Route path="/overview" element={<OverviewPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/" element={<Navigate to="/overview" replace />} />
+                </Routes>
+              </PageLayout>
             </Router>
           </AutoSaveProvider>
-        </ThemeProvider>
+        </FluxAppProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );

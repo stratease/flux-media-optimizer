@@ -8,6 +8,7 @@
 
 namespace FluxMedia\App\Services;
 
+use FluxMedia\FluxPlugins\Common\Logger\Logger;
 use FluxMedia\App\Http\Controllers\WebhookController;
 use FluxMedia\App\Services\AttachmentMetaHandler;
 
@@ -33,7 +34,7 @@ class ExternalProcessingService implements ProcessingServiceInterface {
 	 * Logger instance.
 	 *
 	 * @since 3.0.0
-	 * @var LoggerInterface
+	 * @var Logger
 	 */
 	private $logger;
 
@@ -53,7 +54,7 @@ class ExternalProcessingService implements ProcessingServiceInterface {
 	 */
 	public function __construct( ExternalOptimizationProvider $external_provider ) {
 		$this->external_provider = $external_provider;
-		$this->logger = new Logger();
+		$this->logger = \FluxMedia\FluxPlugins\Common\Logger\Logger::get_instance();
 		$this->api_client = new ExternalApiClient( $this->logger );
 	}
 

@@ -11,6 +11,8 @@
 
 namespace FluxMedia\App\Services;
 
+use FluxMedia\FluxPlugins\Common\Logger\Logger;
+
 /**
  * License validation cache.
  *
@@ -25,7 +27,7 @@ class LicenseValidationCache {
 	 * Logger instance.
 	 *
 	 * @since 3.0.0
-	 * @var LoggerInterface
+	 * @var Logger
 	 */
 	private $logger;
 
@@ -49,9 +51,9 @@ class LicenseValidationCache {
 	 * Constructor.
 	 *
 	 * @since 3.0.0
-	 * @param LoggerInterface $logger Logger instance.
+	 * @param Logger $logger Logger instance.
 	 */
-	public function __construct( LoggerInterface $logger ) {
+	public function __construct( Logger $logger ) {
 		$this->logger = $logger;
 		$this->api_client = new ExternalApiClient( $logger );
 	}

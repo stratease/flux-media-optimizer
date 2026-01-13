@@ -8,6 +8,7 @@
 
 namespace FluxMedia\App\Http\Controllers;
 
+use FluxMedia\FluxPlugins\Common\Logger\Logger;
 use FluxMedia\App\Services\LogsService;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -35,7 +36,7 @@ class LogsController extends BaseController {
 	 */
 	public function __construct( LogsService $logs_service ) {
 		$this->logs_service = $logs_service;
-		parent::__construct( new \FluxMedia\App\Services\Logger() );
+		parent::__construct( Logger::get_instance() );
 	}
 
 	/**

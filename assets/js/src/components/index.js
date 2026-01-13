@@ -12,5 +12,3 @@ export { default as PHPConfigurationCard } from './features/PHPConfigurationCard
 // Form components
 export { default as SubscribeForm } from './forms/SubscribeForm';
 
-// Page components
-export { default as LogsPage } from './pages/LogsPage';

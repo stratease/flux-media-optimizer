@@ -8,7 +8,7 @@
 
 namespace FluxMedia\App\Services;
 
-use FluxMedia\App\Services\Logger;
+use FluxMedia\FluxPlugins\Common\Logger\Logger;
 use FluxMedia\App\Services\Settings;
 use FluxMedia\App\Services\AttachmentMetaHandler;
 
@@ -48,7 +48,7 @@ class BulkConverter {
 	 *
 	 * @since 0.1.0
 	 * @since 4.0.0 Updated to use service locator instead of individual converters.
-	 * @param Logger                        $logger Logger instance.
+	 * @param Logger      $logger Logger instance.
 	 * @param MediaProcessingServiceLocator $service_locator Service locator instance.
 	 * @param ConversionTracker             $conversion_tracker Conversion tracker service.
 	 */

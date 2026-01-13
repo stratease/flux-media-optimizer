@@ -11,6 +11,8 @@
 
 namespace FluxMedia\App\Services;
 
+use FluxMedia\FluxPlugins\Common\Logger\Logger;
+
 /**
  * Media processing service locator.
  *
@@ -56,7 +58,7 @@ class MediaProcessingServiceLocator {
 	 * Logger instance.
 	 *
 	 * @since 3.0.0
-	 * @var LoggerInterface
+	 * @var Logger
 	 */
 	private $logger;
 
@@ -109,7 +111,7 @@ class MediaProcessingServiceLocator {
 	 * @param VideoConverter         $video_converter Video converter service.
 	 * @param ConversionTracker      $conversion_tracker Conversion tracker service.
 	 * @param BulkConverter|null     $bulk_converter Bulk converter service (optional, can be set later).
-	 * @param LoggerInterface        $logger Logger instance.
+	 * @param Logger        $logger Logger instance.
 	 * @param WordPressProvider       $wordpress_provider WordPress provider instance.
 	 */
 	public function __construct(
@@ -118,7 +120,7 @@ class MediaProcessingServiceLocator {
 		VideoConverter $video_converter,
 		ConversionTracker $conversion_tracker,
 		BulkConverter $bulk_converter = null,
-		LoggerInterface $logger,
+		Logger $logger,
 		WordPressProvider $wordpress_provider
 	) {
 		$this->license_cache = $license_cache;

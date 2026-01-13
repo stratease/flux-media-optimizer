@@ -8,6 +8,7 @@
 
 namespace FluxMedia\App\Http\Controllers;
 
+use FluxMedia\FluxPlugins\Common\Logger\Logger;
 use FluxMedia\App\Services\FormatSupportDetector;
 use FluxMedia\App\Services\ProcessorDetector;
 use FluxMedia\App\Services\ProcessorTypes;
@@ -49,7 +50,7 @@ class StatusController extends BaseController {
 	public function __construct( FormatSupportDetector $format_detector, ProcessorDetector $processor_detector ) {
 		$this->format_detector = $format_detector;
 		$this->processor_detector = $processor_detector;
-		parent::__construct( new \FluxMedia\App\Services\Logger() );
+		parent::__construct( Logger::get_instance() );
 	}
 
 	/**

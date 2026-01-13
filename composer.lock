@@ -510,12 +510,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/stratease/flux-plugins-common.git",
-                "reference": "4f7321299b8a00c8a152784e0f60fc089a040c61"
+                "reference": "8ee449fa0cbd0e2b45f6e89b56260cf5fc3e67b9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/stratease/flux-plugins-common/zipball/4f7321299b8a00c8a152784e0f60fc089a040c61",
-                "reference": "4f7321299b8a00c8a152784e0f60fc089a040c61",
+                "url": "https://api.github.com/repos/stratease/flux-plugins-common/zipball/8ee449fa0cbd0e2b45f6e89b56260cf5fc3e67b9",
+                "reference": "8ee449fa0cbd0e2b45f6e89b56260cf5fc3e67b9",
                 "shasum": ""
             },
             "require": {
@@ -555,7 +555,7 @@
                 "source": "https://github.com/stratease/flux-plugins-common/tree/master",
                 "issues": "https://github.com/stratease/flux-plugins-common/issues"
             },
-            "time": "2026-01-12T11:43:03+00:00"
+            "time": "2026-01-13T13:50:31+00:00"
         },
         {
             "name": "symfony/cache",

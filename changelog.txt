@@ -1,3 +1,6 @@
+= 4.1.0 =
+* Moved logs and more infrastructure to common lib - internal prepartion for Flux Suite development.
+
 = 4.0.1 =
 * Accidental commit removed.
 

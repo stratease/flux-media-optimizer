@@ -4,7 +4,7 @@ Tags: media optimizer, video compression, webp, avif, cdn
 Requires at least: 5.8
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 4.0.1
+Stable tag: 4.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -121,6 +121,9 @@ Flux Media Optimizer supports video optimization with FFmpeg. You can convert vi
 
 == Changelog ==
 
+= 4.1.0 =
+* Moved logs and more infrastructure to common lib - internal prepartion for Flux Suite development.
+
 = 4.0.1 =
 * Accidental commit removed.
 
@@ -129,9 +132,6 @@ Flux Media Optimizer supports video optimization with FFmpeg. You can convert vi
 * Fixed issues with Action Scheduler Bulk Processing.
 * Core system is being decoupled for future plugin integrations.
 * Fixed WP min version verification tags - we support WP 5.8 now.
-
-= 3.0.3 =
-* Fixed async operations in certain scenarios.
 
 
 == Upgrade Notice ==

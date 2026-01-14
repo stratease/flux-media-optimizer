@@ -158,9 +158,6 @@ class Plugin {
         
         // Enqueue admin scripts
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_scripts' ] );
-        
-        // Initialize license validation check
-        add_action( 'admin_init', [ $this, 'check_license_validity' ] );
     }
 
     /**
@@ -327,67 +324,4 @@ class Plugin {
         ] );
     }
 
-    /**
-     * Check license validity and display notice if invalid.
-     *
-     * Runs on admin_init to check if a license key exists but is invalid.
-     * Displays an admin notice to prompt the user to validate their license.
-     *
-     * @since 3.0.0
-     * @return void
-     */
-    public function check_license_validity() {
-        // Only check in admin area
-        if ( ! is_admin() ) {
-            return;
-        }
-
-        // Only show to users with manage_options capability
-        if ( ! current_user_can( 'manage_options' ) ) {
-            return;
-        }
-
-        // Get license key
-        $license_key = Settings::get_license_key();
-        
-        // If no license key, nothing to check
-        if ( empty( $license_key ) ) {
-            return;
-        }
-
-        // Check if license is valid
-        $is_valid = Settings::is_license_valid();
-        
-        // If license is valid, no notice needed
-        if ( $is_valid ) {
-            return;
-        }
-
-        // License key exists but is invalid - show notice
-        add_action( 'admin_notices', [ $this, 'display_invalid_license_notice' ] );
-    }
-
-    /**
-     * Display admin notice for invalid license key.
-     *
-     * @since 3.0.0
-     * @return void
-     */
-    public function display_invalid_license_notice() {
-        // Get settings page URL
-        $settings_url = admin_url( 'admin.php?page=flux-media-optimizer' );
-        
-        // Build notice message
-        $message = sprintf(
-            /* translators: %1$s: Settings page URL */
-            __( 'Your Flux Media Optimizer license key is invalid or has expired. Please <a href="%1$s">validate your license key</a> to enable external processing features.', 'flux-media-optimizer' ),
-            esc_url( $settings_url )
-        );
-
-        // Output notice
-        printf(
-            '<div class="notice notice-warning is-dismissible"><p>%s</p></div>',
-            wp_kses_post( $message )
-        );
-    }
 }

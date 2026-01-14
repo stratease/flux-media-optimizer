@@ -510,12 +510,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/stratease/flux-plugins-common.git",
-                "reference": "8ee449fa0cbd0e2b45f6e89b56260cf5fc3e67b9"
+                "reference": "fc641becd6f8e80b593c53bdf3efb7ea8c997d66"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/stratease/flux-plugins-common/zipball/8ee449fa0cbd0e2b45f6e89b56260cf5fc3e67b9",
-                "reference": "8ee449fa0cbd0e2b45f6e89b56260cf5fc3e67b9",
+                "url": "https://api.github.com/repos/stratease/flux-plugins-common/zipball/fc641becd6f8e80b593c53bdf3efb7ea8c997d66",
+                "reference": "fc641becd6f8e80b593c53bdf3efb7ea8c997d66",
                 "shasum": ""
             },
             "require": {
@@ -555,7 +555,7 @@
                 "source": "https://github.com/stratease/flux-plugins-common/tree/master",
                 "issues": "https://github.com/stratease/flux-plugins-common/issues"
             },
-            "time": "2026-01-13T13:50:31+00:00"
+            "time": "2026-01-14T12:51:16+00:00"
         },
         {
             "name": "symfony/cache",
@@ -6028,16 +6028,16 @@
         },
         {
             "name": "webmozart/assert",
-            "version": "2.1.1",
+            "version": "2.1.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/webmozarts/assert.git",
-                "reference": "bdbabc199a7ba9965484e4725d66170e5711323b"
+                "reference": "ce6a2f100c404b2d32a1dd1270f9b59ad4f57649"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/webmozarts/assert/zipball/bdbabc199a7ba9965484e4725d66170e5711323b",
-                "reference": "bdbabc199a7ba9965484e4725d66170e5711323b",
+                "url": "https://api.github.com/repos/webmozarts/assert/zipball/ce6a2f100c404b2d32a1dd1270f9b59ad4f57649",
+                "reference": "ce6a2f100c404b2d32a1dd1270f9b59ad4f57649",
                 "shasum": ""
             },
             "require": {
@@ -6084,9 +6084,9 @@
             ],
             "support": {
                 "issues": "https://github.com/webmozarts/assert/issues",
-                "source": "https://github.com/webmozarts/assert/tree/2.1.1"
+                "source": "https://github.com/webmozarts/assert/tree/2.1.2"
             },
-            "time": "2026-01-08T11:28:40+00:00"
+            "time": "2026-01-13T14:02:24+00:00"
         },
         {
             "name": "wp-coding-standards/wpcs",

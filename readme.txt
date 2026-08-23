@@ -20,7 +20,7 @@ Flux Media Optimizer is the all-in-one media optimizer plugin for WordPress – 
 
 Transform your WordPress site's media performance with Flux Media Optimizer. Compress images, convert to next-gen formats (WebP & AVIF), optimize videos with modern formats (AV1, WebM), and serve media through a global CDN, all while maintaining the visual quality your visitors expect.
 
-**All core features are available in the free version.** Gain additional benefits including offloaded processing, global CDN delivery, and advanced compression algorithms when you [purchase a license](https://fluxplugins.com/media-optimizer/).
+**All core features are available in the free version.** Gain additional benefits including offloaded processing, global CDN delivery, and advanced compression algorithms when you [purchase a license](https://fluxplugins.com/media-optimizer/?utm_source=flux-media-optimizer&utm_medium=wporg&utm_campaign=product-page&utm_content=readme-purchase).
 
 ### Professional-Grade Media Optimization
 

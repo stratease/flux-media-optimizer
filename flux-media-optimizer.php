@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: Flux Media Optimizer – Image & Video Optimization by Flux Plugins
- * Plugin URI: https://fluxplugins.com/media-optimizer
+ * Plugin URI: https://fluxplugins.com/media-optimizer?utm_source=flux-media-optimizer&utm_medium=plugin&utm_campaign=plugin-uri&utm_content=plugins-list
  * Description: One-click image (AVIF & WebP) and video optimization for WordPress.
  * Version: 4.3.0
  * Author: Flux Plugins
- * Author URI: https://fluxplugins.com
+ * Author URI: https://fluxplugins.com?utm_source=flux-media-optimizer&utm_medium=plugin&utm_campaign=author-uri&utm_content=plugins-list
  * License: GPL-2.0+
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: flux-media-optimizer

@@ -18,12 +18,13 @@ use FluxMedia\FluxPlugins\Common\License\LicenseService;
 class AttachmentDetailsPresenter {
 
 	/**
-	 * CDN purchase URL for the license upsell.
+	 * CDN purchase URL for the license upsell (includes UTM tracking).
 	 *
 	 * @since 4.3.0
+	 * @since 4.3.1 Appends UTM parameters for attribution.
 	 * @var string
 	 */
-	const CDN_BUY_URL = 'https://fluxplugins.com/buy';
+	const CDN_BUY_URL = 'https://fluxplugins.com/buy?utm_source=flux-media-optimizer&utm_medium=plugin&utm_campaign=cdn-upsell&utm_content=attachment-details';
 
 	/**
 	 * Shared brand icon size in pixels for attachment and settings headers.

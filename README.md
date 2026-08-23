@@ -120,11 +120,25 @@ Mount markup is a documented core full-width custom `tr` (`colspan="2"`) wrappin
 
 The panel shows media-neutral size accordion rows (images: registered sizes; videos: full size). Format columns are limited to enabled formats the active processor can produce (WebP/AVIF for images, AV1/WebM for videos). Each row compares savings against the same-size original using the smallest available output. While status is Pending (including locally deferred video work), the island polls every 15 seconds and refreshes in place without a full page reload.
 
-Convert / Disable / Enable require `edit_post` on the attachment and use authenticated admin-ajax actions (`wp_ajax_flux_media_optimizer_*`), not REST writes. Convert / Re-convert is disabled while conversion is submitted or deferred (`processing` in the presenter payload). A CDN upsell links to `https://fluxplugins.com/buy` only when the license is **not** valid.
+Convert / Disable / Enable require `edit_post` on the attachment and use authenticated admin-ajax actions (`wp_ajax_flux_media_optimizer_*`), not REST writes. Convert / Re-convert is disabled while conversion is submitted or deferred (`processing` in the presenter payload). A CDN upsell links to `https://fluxplugins.com/buy` (with UTM params; see [Outbound UTM tracking](#outbound-utm-tracking)) only when the license is **not** valid.
 
 The attachment webpack entry (`assets/js/src/admin/attachment.js` → `assets/js/dist/attachment.bundle.js`) is **self-contained**: React, ReactDOM, MUI, Emotion, TanStack Query, theme, and attachment components are bundled. WordPress script dependencies stay an empty array because the entry imports no `@wordpress/*` packages. Production bundles are Git-tracked; source maps and `assets/js/src` are excluded from the WordPress.org zip via flux-plugins-common distribution excludes. The entry hydrates existing mount nodes with an idempotent DOM scan + `MutationObserver` (AttachmentCompat HTML swaps and classic edit); it does **not** inject markup into `.attachment-details`.
 
 **Layout density** uses CSS **container queries** on `.flux-media-optimizer-attachment-root` (`container-type: inline-size`), not MUI viewport breakpoints (`sm` / `md` / `lg` / `useMediaQuery`). Compact stacked layout (per-field labels, no table column headers, single-column variant cards) applies when the **parent container** is **≤ 480px** wide (typical media modal sidebar). Comfortable horizontal summary + multi-column cards apply above that. Panel title and Core badge use ellipsis overflow with tooltip + `aria-label` for the full string. Ephemeral check `flux-media-optimizer.attachment-details-panel` asserts modal mount is inside AttachmentCompat under Copy URL, classic width matches the Description column, action controls are present, and narrow containment holds.
+
+### Outbound UTM tracking
+
+Clickable marketing/support links to `fluxplugins.com` include UTM query args for attribution. Do **not** add UTMs to API (`api.fluxplugins.com`), CDN hosts, or newsletter POST endpoints.
+
+| Surface | `utm_source` | `utm_medium` | `utm_campaign` | `utm_content` |
+|---------|--------------|--------------|----------------|---------------|
+| Attachment CDN upsell | `flux-media-optimizer` | `plugin` | `cdn-upsell` | `attachment-details` |
+| Newsletter privacy policy | `flux-media-optimizer` | `plugin` | `newsletter` | `privacy-policy` |
+| Plugin URI (Plugins screen) | `flux-media-optimizer` | `plugin` | `plugin-uri` | `plugins-list` |
+| Author URI (Plugins screen) | `flux-media-optimizer` | `plugin` | `author-uri` | `plugins-list` |
+| `readme.txt` purchase link | `flux-media-optimizer` | `wporg` | `product-page` | `readme-purchase` |
+
+Suite License page and Flux Suite cross-sell links are defined in `flux-plugins-common` (`utm_source=flux-suite`). See that library’s README for the suite table.
 
 ### Future: webhook attempt correlation
 

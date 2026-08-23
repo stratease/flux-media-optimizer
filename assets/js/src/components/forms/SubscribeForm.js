@@ -98,7 +98,7 @@ const SubscribeForm = () => {
               <Typography component="span" variant="body2">
                 {__('I accept the', 'flux-media-optimizer')}{' '}
                 <a 
-                  href="https://fluxplugins.com/privacy-policy" 
+                  href="https://fluxplugins.com/privacy-policy/?utm_source=flux-media-optimizer&utm_medium=plugin&utm_campaign=newsletter&utm_content=privacy-policy" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   style={{ color: 'inherit', textDecoration: 'underline' }}

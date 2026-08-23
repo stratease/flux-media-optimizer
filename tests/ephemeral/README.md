@@ -12,7 +12,7 @@ Registry: `task-dashboard/config/flux-plugin-test.registry.json` → `plugins.fl
 |----------|---------|
 | `flux-media-optimizer.admin-shell` | Settings Overview shell loads |
 | `flux-media-optimizer.heic-upload` | HEIC upload when Imagick libheif available (skips cleanly if not) |
-| `flux-media-optimizer.attachment-details-panel` | Upload PNG → Media Library modal + classic edit → attachment island (`data-flux-media-attachment-*`) |
+| `flux-media-optimizer.attachment-details-panel` | Upload PNG → Media Library modal + classic edit → AttachmentCompat island under Copy URL (`data-flux-media-attachment-*`, full-width classic) |
 
 ## Regression checks
 

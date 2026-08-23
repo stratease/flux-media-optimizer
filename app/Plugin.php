@@ -381,6 +381,7 @@ class Plugin {
 
         // Compact SSR skeleton styles until React replaces the mount.
         // container-type enables attachment island @container queries (compact ≤480px parent).
+        // Full-width compat tr + hide required-fields notice when Flux is the only compat row.
         // @since 4.3.0
         $skeleton_css = '
 .flux-media-optimizer-attachment-root{max-width:100%;width:100%;overflow:hidden;box-sizing:border-box;container-type:inline-size;container-name:flux-media-attachment;}
@@ -389,6 +390,15 @@ class Plugin {
 .flux-media-optimizer-attachment-skeleton__header{height:18px;width:55%;max-width:220px;background:#f0f0f1;border-radius:3px;margin-bottom:12px;}
 .flux-media-optimizer-attachment-skeleton__row{height:12px;width:100%;background:#f0f0f1;border-radius:3px;margin-bottom:8px;}
 .flux-media-optimizer-attachment-skeleton__row--short{width:70%;margin-bottom:0;}
+table.compat-attachment-fields{width:100%;max-width:100%;table-layout:fixed;box-sizing:border-box;}
+table.compat-attachment-fields tr.compat-field-flux_media_optimizer>td.field,
+table.compat-attachment-fields td.flux-media-optimizer-compat-field{width:100%;max-width:100%;padding-left:0;padding-right:0;box-sizing:border-box;}
+.compat-item:has(table.compat-attachment-fields>tbody>tr.compat-field-flux_media_optimizer:only-child)>p.media-types-required-info,
+.compat-item:has(table.compat-attachment-fields>tr.compat-field-flux_media_optimizer:only-child)>p.media-types-required-info,
+.attachment-compat:has(table.compat-attachment-fields>tbody>tr.compat-field-flux_media_optimizer:only-child)>p.media-types-required-info,
+.attachment-compat:has(table.compat-attachment-fields>tr.compat-field-flux_media_optimizer:only-child)>p.media-types-required-info,
+#post-body-content:has(table.compat-attachment-fields>tbody>tr.compat-field-flux_media_optimizer:only-child)>p.media-types-required-info,
+#post-body-content:has(table.compat-attachment-fields>tr.compat-field-flux_media_optimizer:only-child)>p.media-types-required-info{display:none;}
 ';
         wp_register_style( 'flux-media-optimizer-attachment', false, [], FLUX_MEDIA_OPTIMIZER_VERSION );
         wp_enqueue_style( 'flux-media-optimizer-attachment' );

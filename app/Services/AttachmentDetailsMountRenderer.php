@@ -11,8 +11,8 @@ namespace FluxMedia\App\Services;
 /**
  * Emits a compact skeleton mount point for the attachment React island.
  *
- * Classic attachment edit uses attachment_fields_to_edit. Media modals inject
- * the same markup via JS after .attachment-info (show_in_modal is false).
+ * Classic edit and media modals both use attachment_fields_to_edit → AttachmentCompat
+ * with a full-width custom tr (colspan=2). Mount HTML is SSOT via build_mount_html().
  *
  * @since 4.3.0
  */
@@ -21,7 +21,7 @@ class AttachmentDetailsMountRenderer {
 	/**
 	 * Build the React island mount HTML for an attachment.
 	 *
-	 * Shared SSOT for classic form fields and media-modal JS injection.
+	 * Shared SSOT for classic form fields and media-modal AttachmentCompat markup.
 	 *
 	 * @since 4.3.0
 	 * @param int $attachment_id Attachment post ID.
@@ -41,10 +41,29 @@ class AttachmentDetailsMountRenderer {
 	}
 
 	/**
+	 * Build a full-width compat table row wrapping the React mount.
+	 *
+	 * Uses core's documented `tr` field escape hatch so the panel is not squeezed
+	 * into a labeled th/td.field pair. Core applies `tr` before show_in_* checks.
+	 *
+	 * @since 4.3.0
+	 * @param int $attachment_id Attachment post ID.
+	 * @return string Table row markup for get_compat_media_markup().
+	 */
+	public function build_compat_tr( $attachment_id ) {
+		$mount = $this->build_mount_html( (int) $attachment_id );
+
+		return "\t\t<tr class=\"compat-field-flux_media_optimizer\">\n"
+			. "\t\t\t<td colspan=\"2\" class=\"field flux-media-optimizer-compat-field\">"
+			. $mount
+			. "</td>\n\t\t</tr>\n";
+	}
+
+	/**
 	 * Add Flux Media Optimizer fields to the attachment edit form.
 	 *
 	 * Emits a React island mount with a compact PHP skeleton. Payload loads asynchronously.
-	 * Modal surfaces use JS injection instead (show_in_modal false).
+	 * Field is prepended so AttachmentCompat renders it first (directly under Copy URL).
 	 *
 	 * @since 4.3.0
 	 * @param array    $form_fields Attachment form fields.
@@ -61,14 +80,22 @@ class AttachmentDetailsMountRenderer {
 				return $form_fields;
 			}
 
-			$form_fields['flux_media_optimizer'] = [
+			if ( ! is_array( $form_fields ) ) {
+				$form_fields = [];
+			}
+
+			$field = [
 				'label'         => '',
 				'input'         => 'html',
 				'html'          => $this->build_mount_html( (int) $post->ID ),
-				// Compat table is for small fields; modal mounts via attachment.js.
-				'show_in_modal' => false,
+				// Core uses `tr` when set; show_in_* remain for intent/docs (tr bypasses them).
+				'tr'            => $this->build_compat_tr( (int) $post->ID ),
+				'show_in_modal' => true,
 				'show_in_edit'  => true,
 			];
+
+			// Prepend so Flux is the first compat row (under Copy URL, before taxonomies).
+			$form_fields = [ 'flux_media_optimizer' => $field ] + $form_fields;
 		} catch ( \Exception $e ) {
 			\FluxMedia\FluxPlugins\Common\Logger\Logger::get_instance()->error(
 				'Error in AttachmentDetailsMountRenderer::modify_attachment_fields: ' . $e->getMessage()

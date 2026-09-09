@@ -380,4 +380,20 @@ class ConversionTracker {
 			'savings_percentage' => $stats['total_original'] > 0 ? round( ( $stats['total_savings'] / $stats['total_original'] ) * 100, 2 ) : 0,
 		];
 	}
+
+	/**
+	 * Count distinct attachments that have at least one recorded conversion.
+	 *
+	 * @since 4.3.1
+	 * @return int Distinct attachment count.
+	 */
+	public function count_distinct_optimized_attachments() {
+		global $wpdb;
+
+		$count = $wpdb->get_var(
+			"SELECT COUNT(DISTINCT attachment_id) FROM {$this->table_name}"
+		);
+
+		return (int) $count;
+	}
 }

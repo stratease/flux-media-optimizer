@@ -148,9 +148,10 @@ class VideoConverterTest extends TestCase {
     }
 
     /**
-     * Test conversion statistics.
+     * Test conversion statistics stub shape.
      *
      * @since 0.1.0
+     * @since 4.3.1 Documents deprecated zero stub; live stats use ConversionTracker.
      * @return void
      */
     public function testGetConversionStats() {
@@ -163,11 +164,11 @@ class VideoConverterTest extends TestCase {
         $this->assertArrayHasKey( 'av1_conversions', $stats );
         $this->assertArrayHasKey( 'webm_conversions', $stats );
         
-        $this->assertIsInt( $stats['total_conversions'] );
-        $this->assertIsInt( $stats['successful_conversions'] );
-        $this->assertIsInt( $stats['failed_conversions'] );
-        $this->assertIsInt( $stats['av1_conversions'] );
-        $this->assertIsInt( $stats['webm_conversions'] );
+        $this->assertSame( 0, $stats['total_conversions'] );
+        $this->assertSame( 0, $stats['successful_conversions'] );
+        $this->assertSame( 0, $stats['failed_conversions'] );
+        $this->assertSame( 0, $stats['av1_conversions'] );
+        $this->assertSame( 0, $stats['webm_conversions'] );
     }
 
 

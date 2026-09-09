@@ -5,6 +5,7 @@ import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
 import BrandIcon from '@flux-plugins-common/components/PageLayout/BrandIcon';
+import SupportForumLink from '@flux-media-optimizer/components/common/SupportForumLink';
 import SizeAccordionRow from './SizeAccordionRow';
 import OverflowTooltipText from './OverflowTooltipText';
 import { ATTACHMENT_PANEL_COMFORTABLE_QUERY } from './attachmentLayout';
@@ -152,7 +153,8 @@ const AttachmentDetails = ({ attachmentId }) => {
           }
           data-flux-media-attachment-load-error="1"
         >
-          {error?.message || labels.loadError || 'Unable to load optimization details.'}
+          {error?.message || labels.loadError || 'Unable to load optimization details.'}{' '}
+          <SupportForumLink label={labels.needHelp || 'Need help?'} />
         </Alert>
       </Box>
     );
@@ -181,13 +183,15 @@ const AttachmentDetails = ({ attachmentId }) => {
       {payload?.error ? (
         <Alert severity="error" sx={{ mb: 2 }} data-flux-media-attachment-error="1">
           {payload.error}
-          {payload.retryText ? ` (${payload.retryText})` : ''}
+          {payload.retryText ? ` (${payload.retryText})` : ''}{' '}
+          <SupportForumLink label={labels.needHelp || 'Need help?'} />
         </Alert>
       ) : null}
 
       {actionsApi.error ? (
         <Alert severity="error" sx={{ mb: 2 }} data-flux-media-attachment-action-error="1">
-          {actionsApi.error}
+          {actionsApi.error}{' '}
+          <SupportForumLink label={labels.needHelp || 'Need help?'} />
         </Alert>
       ) : null}
 

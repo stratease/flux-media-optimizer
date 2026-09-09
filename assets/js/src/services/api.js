@@ -68,6 +68,30 @@ class ApiService {
     return this.request('/status');
   }
 
+  /**
+   * Mark the first-activation welcome modal as viewed.
+   *
+   * @since 4.3.1
+   * @return {Promise} API response data.
+   */
+  async markWelcomeViewed() {
+    return this.request('/welcome/viewed', {
+      method: 'POST',
+    });
+  }
+
+  /**
+   * Mark the once-ever review prompt as viewed/consumed.
+   *
+   * @since 4.3.1
+   * @return {Promise} API response data.
+   */
+  async markReviewPromptViewed() {
+    return this.request('/review-prompt/viewed', {
+      method: 'POST',
+    });
+  }
+
   // Conversion endpoints
   async getConversionStats(filters = {}) {
     const params = new URLSearchParams();

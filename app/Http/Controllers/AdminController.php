@@ -10,6 +10,13 @@ namespace FluxMedia\App\Http\Controllers;
 
 use FluxMedia\App\Services\Settings;
 use FluxMedia\App\Services\AdminScriptUrl;
+use FluxMedia\App\Services\AttachmentMetaHandler;
+use FluxMedia\App\Services\ConversionTracker;
+use FluxMedia\App\Services\PluginSupportUrls;
+use FluxMedia\App\Services\ReviewPromptService;
+use FluxMedia\App\Services\WelcomeService;
+use FluxMedia\FluxPlugins\Common\License\LicenseService;
+use FluxMedia\FluxPlugins\Common\Logger\Logger;
 use FluxMedia\FluxPlugins\Common\Services\MenuService;
 
 /**
@@ -82,6 +89,7 @@ class AdminController {
 	 * Enqueue admin scripts and styles.
 	 *
 	 * @since 0.1.0
+	 * @since 4.3.1 Localizes welcome and review modal bootstrap flags.
 	 * @param string $hook Current admin page hook.
 	 */
 	public function enqueue_admin_scripts( $hook ) {
@@ -106,6 +114,29 @@ class AdminController {
 		$current_user = wp_get_current_user();
 		$user_email = $current_user->ID ? $current_user->user_email : '';
 
+		$force_welcome = isset( $_GET['flux_show_welcome'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin UI flag.
+			&& '1' === (string) wp_unslash( $_GET['flux_show_welcome'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			&& current_user_can( 'manage_options' );
+
+		$force_review = isset( $_GET['flux_show_review'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin UI flag.
+			&& '1' === (string) wp_unslash( $_GET['flux_show_review'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			&& current_user_can( 'manage_options' );
+
+		$show_welcome = $force_welcome || WelcomeService::should_show_from_option();
+		$license_valid = LicenseService::get_instance()->is_license_valid( false );
+
+		$conversion_tracker = new ConversionTracker( Logger::get_instance() );
+		$savings_stats      = $conversion_tracker->get_savings_stats();
+		$distinct_count     = $conversion_tracker->count_distinct_optimized_attachments();
+		$savings_bytes      = (int) ( $savings_stats['total_savings_bytes'] ?? 0 );
+		$failed_conversions = AttachmentMetaHandler::count_attachments_by_external_job_state( 'failed' );
+
+		// Welcome wins this load; force review still respects that priority.
+		$show_review = ! $show_welcome && (
+			$force_review
+			|| ReviewPromptService::should_show( false, $distinct_count, $savings_bytes, $failed_conversions )
+		);
+
 		// Localize script with WordPress data
 		wp_localize_script( 'flux-media-optimizer-admin', 'fluxMediaAdmin', [
 			'apiUrl' => rest_url( 'flux-media-optimizer/v1/' ),
@@ -113,6 +144,13 @@ class AdminController {
 			'adminUrl' => admin_url(),
 			'pluginUrl' => FLUX_MEDIA_OPTIMIZER_PLUGIN_URL,
 			'userEmail' => $user_email,
+			'showWelcome' => $show_welcome,
+			'showWelcomeUpsell' => ! $license_valid,
+			'welcomeUpsellUrl' => WelcomeService::WELCOME_UPSELL_URL,
+			'showReview' => $show_review,
+			'reviewUrl' => ReviewPromptService::REVIEW_URL,
+			'supportUrl' => PluginSupportUrls::SUPPORT_FORUM_URL,
+			'reviewSavingsBytes' => $savings_bytes,
 		] );
 
 		// Enqueue WordPress admin styles

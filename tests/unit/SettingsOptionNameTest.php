@@ -32,6 +32,7 @@ class SettingsOptionNameTest extends TestCase {
 	 * Uninstall removes plugin options but not shared suite account ID.
 	 *
 	 * @since 4.2.1
+	 * @since 4.3.1 Includes welcome modal and review-prompt consumed flags.
 	 * @return void
 	 */
 	public function testGetUninstallOptionNames() {
@@ -39,6 +40,8 @@ class SettingsOptionNameTest extends TestCase {
 
 		$this->assertContains( 'flux_media_optimizer_options', $options );
 		$this->assertContains( 'flux_media_optimizer_db_version', $options );
+		$this->assertContains( 'flux_media_optimizer_show_welcome', $options );
+		$this->assertContains( 'flux_media_optimizer_review_prompt_consumed', $options );
 		$this->assertNotContains( 'flux_media_optimizer_settings', $options );
 		$this->assertNotContains( 'flux-plugins_account_id', $options );
 	}

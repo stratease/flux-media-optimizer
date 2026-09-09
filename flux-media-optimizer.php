@@ -3,7 +3,7 @@
  * Plugin Name: Flux Media Optimizer – Image & Video Optimization by Flux Plugins
  * Plugin URI: https://fluxplugins.com/media-optimizer?utm_source=flux-media-optimizer&utm_medium=plugin&utm_campaign=plugin-uri&utm_content=plugins-list
  * Description: One-click image (AVIF & WebP) and video optimization for WordPress.
- * Version: 4.3.0
+ * Version: 4.3.1
  * Author: Flux Plugins
  * Author URI: https://fluxplugins.com?utm_source=flux-media-optimizer&utm_medium=plugin&utm_campaign=author-uri&utm_content=plugins-list
  * License: GPL-2.0+
@@ -11,7 +11,7 @@
  * Text Domain: flux-media-optimizer
  * Domain Path: /languages
  * Requires at least: 5.8
- * Tested up to: 7.0
+ * Tested up to: 7.1
  * Requires PHP: 8.1
  *
  * Copyright 2025 Flux Plugins
@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'FLUX_MEDIA_OPTIMIZER_VERSION', '4.3.0' );
+define( 'FLUX_MEDIA_OPTIMIZER_VERSION', '4.3.1' );
 define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_FILE', __FILE__ );
 define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -367,6 +367,7 @@ register_uninstall_hook( __FILE__, 'flux_media_optimizer_uninstall' );
  * @since 0.1.0
  * @since 3.0.0 Added requirements check before activation and multisite support for activation redirect.
  * @since 4.1.5 Updated PHP version requirement check from 8.0 to 8.1.
+ * @since 4.3.1 Arms once-ever welcome modal option.
  */
 function flux_media_optimizer_activate() {
 	global $wp_version;
@@ -398,6 +399,9 @@ function flux_media_optimizer_activate() {
 	if ( ! wp_next_scheduled( 'flux_media_optimizer_cleanup' ) ) {
 		wp_schedule_event( time(), 'daily', 'flux_media_optimizer_cleanup' );
 	}
+
+	// Arm once-ever welcome modal for the next Overview visit.
+	FluxMedia\App\Services\WelcomeService::arm_for_activation();
 	
 	// Set transient to redirect to admin page after activation
 	if ( flux_media_optimizer_is_active_for_network() ) {

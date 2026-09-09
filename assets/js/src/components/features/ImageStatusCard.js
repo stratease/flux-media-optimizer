@@ -2,24 +2,22 @@ import React from 'react';
 import {
   Typography,
   Box,
-  Chip,
   Grid,
   Alert,
   AlertTitle,
   Divider,
   Skeleton,
-  Tooltip,
 } from '@mui/material';
-import {
-  CheckCircle,
-  Error,
-} from '@mui/icons-material';
-import { __, _x } from '@wordpress/i18n';
+import { __ } from '@wordpress/i18n';
+import ProcessingAvailabilityChip from '../common/ProcessingAvailabilityChip';
+import CapabilityChip from '../common/CapabilityChip';
+import { getImageCapabilityDescriptors } from '../common/capabilityDescriptors';
 
 /**
  * Dumb component for displaying image processing status
  *
  * @since TBD
+ * @since 4.3.1 Uses shared ProcessingAvailabilityChip and CapabilityChip.
  */
 const ImageStatusCard = ({ status, loading, error }) => {
   // Handle loading state
@@ -87,90 +85,8 @@ const ImageStatusCard = ({ status, loading, error }) => {
     );
   }
 
-  const getStatusIcon = (available) => {
-    return available ? (
-      <CheckCircle color="success" />
-    ) : (
-      <Error color="error" />
-    );
-  };
-
   const getStatusChip = (available, type) => {
-    return (
-      <Chip
-        icon={getStatusIcon(available)}
-        label={available ? `${type} ${__('Available', 'flux-media-optimizer')}` : `${type} ${__('Not Available', 'flux-media-optimizer')}`}
-        color={available ? 'success' : 'error'}
-        size="small"
-      />
-    );
-  };
-
-  const getHeicTooltip = (supported) => {
-    return supported
-      ? __(
-          'Imagick can decode static HEIC/HEIF (libheif 1.18.2+ recommended for iOS gain-map photos) and convert them to WebP/AVIF per your format settings. Typical iPhone stills use this path. Live Photos (HEIC + MOV) are not supported.',
-          'flux-media-optimizer'
-        )
-      : __(
-          'HEIC/HEIF decode requires Imagick with libheif 1.18.2+. GD cannot read HEIC files. WebP/AVIF chips above only cover output formats, not HEIC input.',
-          'flux-media-optimizer'
-        );
-  };
-
-  const getAnimatedHeicTooltip = (supported) => {
-    return supported
-      ? __(
-          'Animated HEIF sequences (msf1) convert to animated WebP via FFmpeg (libwebp_anim) when WebP output is enabled. Not video or GIF. If WebP is disabled or FFmpeg is missing, sequences become static first-frame WebP/AVIF. AVIF is never animated for these sources.',
-          'flux-media-optimizer'
-        )
-      : __(
-          'Animated HEIF sequences need FFmpeg with libwebp_anim. Without it, sequences fall back to static first-frame conversion when WebP/AVIF are enabled. Static HEIC may still work when Imagick+libheif is available.',
-          'flux-media-optimizer'
-        );
-  };
-
-  const renderHeicChips = (processor) => {
-    const heicSupport = processor.heic_support === true;
-    const animatedHeicSupport = processor.animated_heic_support === true;
-    const heicCoupled = heicSupport === animatedHeicSupport;
-
-    if (heicCoupled) {
-      return (
-        <Grid item>
-          <Tooltip title={getHeicTooltip(heicSupport)} arrow>
-            <Chip
-              label="HEIC"
-              color={heicSupport ? 'success' : 'error'}
-              size="small"
-            />
-          </Tooltip>
-        </Grid>
-      );
-    }
-
-    return (
-      <>
-        <Grid item>
-          <Tooltip title={getHeicTooltip(heicSupport)} arrow>
-            <Chip
-              label="HEIC"
-              color={heicSupport ? 'success' : 'error'}
-              size="small"
-            />
-          </Tooltip>
-        </Grid>
-        <Grid item>
-          <Tooltip title={getAnimatedHeicTooltip(animatedHeicSupport)} arrow>
-            <Chip
-              label="Animated HEIC"
-              color={animatedHeicSupport ? 'success' : 'error'}
-              size="small"
-            />
-          </Tooltip>
-        </Grid>
-      </>
-    );
+    return <ProcessingAvailabilityChip available={available} type={type} />;
   };
 
   // Safely access nested properties with fallbacks
@@ -216,43 +132,16 @@ const ImageStatusCard = ({ status, loading, error }) => {
                       {__('Version:', 'flux-media-optimizer')} {processor.version || __('Unknown', 'flux-media-optimizer')}
                     </Typography>
                     <Grid container spacing={1}>
-                      <Grid item>
-                        <Chip
-                          label="WebP"
-                          color={processor.webp_support ? 'success' : 'error'}
-                          size="small"
-                        />
-                      </Grid>
-                      <Grid item>
-                        <Chip
-                          label="AVIF"
-                          color={processor.avif_support ? 'success' : 'error'}
-                          size="small"
-                        />
-                      </Grid>
-                      <Grid item>
-                        <Tooltip
-                          title={
-                            processor.animated_gif_support
-                              ? __(
-                                  'Imagick can preserve animation when converting animated GIFs to WebP/AVIF.',
-                                  'flux-media-optimizer'
-                                )
-                              : __(
-                                  'GD cannot preserve animation. Animated GIFs will lose animation when converted. Imagick is required for animated GIF support.',
-                                  'flux-media-optimizer'
-                                )
-                          }
-                          arrow
-                        >
-                          <Chip
-                            label="Animated GIF"
-                            color={processor.animated_gif_support ? 'success' : 'error'}
-                            size="small"
+                      {getImageCapabilityDescriptors(processor).map((descriptor) => (
+                        <Grid item key={descriptor.capabilityKey}>
+                          <CapabilityChip
+                            label={descriptor.label}
+                            supported={descriptor.supported}
+                            tooltip={descriptor.tooltip}
+                            capabilityKey={descriptor.capabilityKey}
                           />
-                        </Tooltip>
-                      </Grid>
-                      {renderHeicChips(processor)}
+                        </Grid>
+                      ))}
                     </Grid>
                   </Box>
                 ))}

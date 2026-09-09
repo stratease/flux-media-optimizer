@@ -154,6 +154,7 @@ class AttachmentDetailsPresenter {
 				'pendingRefresh' => \__( 'Checking for updates…', 'flux-media-optimizer' ),
 				'loadError'      => \__( 'Unable to load optimization details.', 'flux-media-optimizer' ),
 				'retry'          => \__( 'Retry', 'flux-media-optimizer' ),
+				'needHelp'       => \__( 'Need help?', 'flux-media-optimizer' ),
 				'empty'          => \__( 'No conversions yet', 'flux-media-optimizer' ),
 				'url'            => \__( 'URL', 'flux-media-optimizer' ),
 				'copied'         => \__( 'Copied', 'flux-media-optimizer' ),

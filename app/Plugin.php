@@ -22,6 +22,8 @@ use FluxMedia\App\Http\Controllers\OptionsController;
 use FluxMedia\App\Http\Controllers\StatusController;
 use FluxMedia\App\Http\Controllers\ConversionsController;
 use FluxMedia\App\Http\Controllers\WebhookController;
+use FluxMedia\App\Http\Controllers\WelcomeController;
+use FluxMedia\App\Http\Controllers\ReviewPromptController;
 use FluxMedia\App\Services\AttachmentDetailsPresenter;
 use FluxMedia\App\Services\ExternalOptimizationProvider;
 use FluxMedia\App\Services\ConversionTracker;
@@ -36,6 +38,7 @@ use FluxMedia\App\Services\ConversionRetryService;
 use FluxMedia\App\Services\ConversionOrchestrator;
 use FluxMedia\App\Services\MediaAwareRetryDelayPolicy;
 use FluxMedia\App\Services\AdminScriptUrl;
+use FluxMedia\App\Services\PluginSupportUrls;
 
 /**
  * Main plugin class that initializes all components.
@@ -244,10 +247,14 @@ class Plugin {
         $conversions_controller = new ConversionsController( $conversion_tracker );
         $attachment_details_presenter = new AttachmentDetailsPresenter( $format_detector );
         $attachment_details_controller = new AttachmentDetailsController( $attachment_details_presenter );
+        $welcome_controller = new WelcomeController();
+        $review_prompt_controller = new ReviewPromptController();
         $options_controller->register_routes();
         $status_controller->register_routes();
         $conversions_controller->register_routes();
         $attachment_details_controller->register_routes();
+        $welcome_controller->register_routes();
+        $review_prompt_controller->register_routes();
         
         // Register webhook controller only when external SaaS is active with a valid license.
         if ( Settings::should_register_webhook_route() ) {
@@ -376,6 +383,7 @@ class Plugin {
                 'convertNonce' => wp_create_nonce( 'flux_media_optimizer_convert_attachment' ),
                 'disableNonce' => wp_create_nonce( 'flux_media_optimizer_disable_conversion' ),
                 'enableNonce'  => wp_create_nonce( 'flux_media_optimizer_enable_conversion' ),
+                'supportUrl'   => PluginSupportUrls::SUPPORT_FORUM_URL,
             ]
         );
 

@@ -356,10 +356,11 @@ class VideoConverter implements Converter {
      * Get conversion statistics.
      *
      * @since 0.1.0
+     * @deprecated 4.3.1 Stub always returns zeros. Use ConversionTracker::get_conversion_stats() for live stats.
      * @return array Conversion statistics.
      */
     public function get_conversion_stats() {
-        // TODO: Implement conversion statistics tracking.
+        // Deprecated stub — ConversionTracker owns live conversion statistics.
         return [
             'total_conversions' => 0,
             'successful_conversions' => 0,

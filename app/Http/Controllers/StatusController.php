@@ -10,6 +10,7 @@ namespace FluxMedia\App\Http\Controllers;
 
 use FluxMedia\FluxPlugins\Common\Logger\Logger;
 use FluxMedia\App\Services\FormatSupportDetector;
+use FluxMedia\App\Services\ProcessorCapabilityAggregator;
 use FluxMedia\App\Services\ProcessorDetector;
 use FluxMedia\App\Services\ProcessorTypes;
 
@@ -102,6 +103,7 @@ class StatusController extends BaseController {
 	 * Get image processor status.
 	 *
 	 * @since 0.1.0
+	 * @since 4.3.1 Site-level GIF/HEIC flags via ProcessorCapabilityAggregator.
 	 * @return array Image processor status.
 	 */
 	private function get_image_processor_status() {
@@ -135,10 +137,15 @@ class StatusController extends BaseController {
 			Converter::FORMAT_AVIF => $format_support_info[ Converter::FORMAT_AVIF ] ?? [],
 		];
 		
+		$site_capabilities = ProcessorCapabilityAggregator::aggregate_image( $processors );
+
 		return [
 			'available' => ! empty( $available_processors ),
-			'webp_support' => $format_support_info[ Converter::FORMAT_WEBP ]['supported'] ?? false,
-			'avif_support' => $format_support_info[ Converter::FORMAT_AVIF ]['supported'] ?? false,
+			'webp_support' => $site_capabilities['webp_support'],
+			'avif_support' => $site_capabilities['avif_support'],
+			'animated_gif_support' => $site_capabilities['animated_gif_support'],
+			'heic_support' => $site_capabilities['heic_support'],
+			'animated_heic_support' => $site_capabilities['animated_heic_support'],
 			'processors' => $processors,
 			'format_processors' => $format_processors,
 			'format_support_details' => $image_format_details,
@@ -149,6 +156,7 @@ class StatusController extends BaseController {
 	 * Get video processor status.
 	 *
 	 * @since 0.1.0
+	 * @since 4.3.1 Video site-level flags via ProcessorCapabilityAggregator.
 	 * @return array Video processor status.
 	 */
 	private function get_video_processor_status() {
@@ -179,10 +187,12 @@ class StatusController extends BaseController {
 			Converter::FORMAT_WEBM => $format_support_info[ Converter::FORMAT_WEBM ] ?? [],
 		];
 		
+		$site_capabilities = ProcessorCapabilityAggregator::aggregate_video( $processors );
+
 		return [
 			'available' => ! empty( $available_processors ),
-			'av1_support' => $format_support_info[ Converter::FORMAT_AV1 ]['supported'] ?? false,
-			'webm_support' => $format_support_info[ Converter::FORMAT_WEBM ]['supported'] ?? false,
+			'av1_support' => $site_capabilities['av1_support'],
+			'webm_support' => $site_capabilities['webm_support'],
 			'processors' => $processors,
 			'format_processors' => $format_processors,
 			'format_support_details' => $video_format_details,

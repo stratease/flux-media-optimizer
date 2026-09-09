@@ -195,6 +195,19 @@ if ( ! function_exists( 'update_option' ) ) {
 	}
 }
 
+if ( ! function_exists( 'delete_option' ) ) {
+	/**
+	 * Stub delete_option.
+	 *
+	 * @param string $option Option name.
+	 * @return bool
+	 */
+	function delete_option( $option ) {
+		unset( $GLOBALS['fmo_test_options'][ $option ] );
+		return true;
+	}
+}
+
 if ( ! function_exists( 'get_site_option' ) ) {
 	/**
 	 * Stub get_site_option.

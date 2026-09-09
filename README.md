@@ -26,7 +26,7 @@ One-click AVIF/WebP image optimization and video compression for WordPress. Auto
 | Older / incomplete HEIC decode | Per-file decode fails | Attachment marked **Failed** with a decode error (not left Unprocessed) |
 | Apple Live Photos (HEIC + MOV) | — | **Unsupported** (still HEIC may convert; MOV is not merged) |
 
-Overview status chips expose **HEIC** (static decode) and **Animated HEIC** (FFmpeg sequence → animated WebP) separately from WebP/AVIF output badges.
+Overview status chips expose **HEIC** (static decode) and **Animated HEIC** (FFmpeg sequence → animated WebP) separately from WebP/AVIF output badges. The first-activation welcome Dialog shows the same chip component for **site-level gaps only** (capability no local processor can provide) after Image/Video availability chips.
 
 Test fixtures for PHPUnit live under `tests/_support/files/` (`sample_static.heic`, `sample_animated.heif`). Runtime HEIF sequence probe ships under `assets/fixtures/heif-sequence-probe.heif` (not a test suite). Ephemeral smoke docs: [`tests/ephemeral/README.md`](tests/ephemeral/README.md). Suite layout standards: [flux-plugins-common — Plugin test surfaces and runtime fixtures](https://github.com/stratease/flux-plugins-common/blob/master/README.md#plugin-test-surfaces-and-runtime-fixtures).
 
@@ -108,9 +108,13 @@ External API base URL/timeout: bootstrap aligns `FLUX_MEDIA_OPTIMIZER_EXTERNAL_S
 
 ## Design guidelines
 
+### Marketing voice
+
+Admin prompts and in-product asks (welcome, review, upsells) use a friendly **solopreneur** voice: first-person, grateful, and concise. Prefer personal thanks (“helps solopreneurs like me”) over corporate we/our. Do not add pressure, countdowns, or dark-pattern dismissals.
+
 ### Brand header (settings + attachment surfaces)
 
-Use the shared Flux rounded-square `BrandIcon` (from `flux-plugins-common`) at **28 × 28 px**, placed to the left of the product title. Do not introduce plugin-specific alternate logo treatments for admin headers. Attachment Media Library panels and the settings `PageLayout` header must share this size and layout.
+Use the shared Flux rounded-square `BrandIcon` (from `flux-plugins-common`) at **28 × 28 px**, placed to the left of the product title. Do not introduce plugin-specific alternate logo treatments for admin headers. Attachment Media Library panels and the settings `PageLayout` header must share this size and layout. The review prompt Dialog uses the same `BrandIcon` treatment.
 
 ### Attachment details panel
 
@@ -133,10 +137,12 @@ Clickable marketing/support links to `fluxplugins.com` include UTM query args fo
 | Surface | `utm_source` | `utm_medium` | `utm_campaign` | `utm_content` |
 |---------|--------------|--------------|----------------|---------------|
 | Attachment CDN upsell | `flux-media-optimizer` | `plugin` | `cdn-upsell` | `attachment-details` |
+| Welcome modal CDN upsell | `flux-media-optimizer` | `plugin` | `cdn-upsell` | `welcome-modal` |
 | Newsletter privacy policy | `flux-media-optimizer` | `plugin` | `newsletter` | `privacy-policy` |
 | Plugin URI (Plugins screen) | `flux-media-optimizer` | `plugin` | `plugin-uri` | `plugins-list` |
 | Author URI (Plugins screen) | `flux-media-optimizer` | `plugin` | `author-uri` | `plugins-list` |
 | `readme.txt` purchase link | `flux-media-optimizer` | `wporg` | `product-page` | `readme-purchase` |
+| `readme.txt` Flux Suite upsell | `flux-media-optimizer` | `wporg` | `product-page` | `readme-suite-upsell` |
 
 Suite License page and Flux Suite cross-sell links are defined in `flux-plugins-common` (`utm_source=flux-suite`). See that library’s README for the suite table.
 
@@ -251,6 +257,7 @@ This plugin uses a modern, decoupled architecture that separates business logic 
 - **Conversion retries**: `ConversionRetryService` owns bounded Action Scheduler retries (group `ActionSchedulerGroups::MEDIA_OPTIMIZER`) with `MediaAwareRetryDelayPolicy`
 - **Atomic artifacts**: `ConversionArtifactTransaction` stages image outputs until all sizes/formats succeed
 - **Attachment details**: `AttachmentDetailsPresenter` is the SSOT payload for the Media Library React island; `AttachmentDetailsMountRenderer` emits the skeleton mount via AttachmentCompat (`build_compat_tr`); `GET /attachments/{id}/details` serves async loads; `AdminScriptUrl` resolves admin/attachment bundle URLs
+- **Once-ever admin prompts**: `OnceEverPromptFlag` backs welcome (`WelcomeService`) and review (`ReviewPromptService`) Dialogs. Welcome arms on activation; review unlocks after ≥3 distinct optimized attachments and ≥50MB savings, suppressed when welcome is showing or `failed_conversions > 0`, and consumed forever on Overview open (`POST /review-prompt/viewed`). Force queries: `flux_show_welcome=1`, `flux_show_review=1`. Support/review URLs: `PluginSupportUrls`. Frontend: page-agnostic `useOnceEverModal`. Welcome also shows site-level missing capability chips (`ProcessorCapabilityAggregator` ORs per-processor flags; shared `CapabilityChip` with Overview, HEIC coupling unchanged). Overview per-processor chips stay as-is. Review Dialog (`ReviewPromptModal`) uses `BrandIcon`, an inline success `Chip` for savings, and solopreneur supporting copy.
 - **Media Library Status**: `MediaLibraryStatusService` adds optimization status column and filters in the Media Library
 - **Shared Library**: Uses `flux-plugins-common` for shared services (menu system, account ID, logging, API client) - See [flux-plugins-common repository](https://github.com/stratease/flux-plugins-common) for details
 
@@ -284,6 +291,8 @@ Plugin REST endpoints are prefixed with `/wp-json/flux-media-optimizer/v1/`:
 - `POST /options` - Update plugin options
 - `GET /conversions/stats` - Conversion statistics
 - `GET /attachments/{id}/details` - Attachment optimization panel payload (requires `edit_post` on the attachment)
+- `POST /welcome/viewed` - Clear once-ever welcome modal flag (`manage_options`)
+- `POST /review-prompt/viewed` - Mark once-ever review prompt consumed (`manage_options`)
 - `POST /webhook` - Callback endpoint for external processing service (SaaS + valid license only)
 
 Suite logs (admin Logs screen): `GET /wp-json/flux-plugins-common/v1/logs?plugin_slug=flux-media-optimizer`

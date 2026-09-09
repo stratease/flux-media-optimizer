@@ -2,23 +2,22 @@ import React from 'react';
 import {
   Typography,
   Box,
-  Chip,
   Grid,
   Alert,
   AlertTitle,
   Divider,
   Skeleton,
 } from '@mui/material';
-import {
-  CheckCircle,
-  Error,
-} from '@mui/icons-material';
-import { __, _x } from '@wordpress/i18n';
+import { __ } from '@wordpress/i18n';
+import ProcessingAvailabilityChip from '../common/ProcessingAvailabilityChip';
+import CapabilityChip from '../common/CapabilityChip';
+import { getVideoCapabilityDescriptors } from '../common/capabilityDescriptors';
 
 /**
  * Dumb component for displaying video processing status
  *
  * @since TBD
+ * @since 4.3.1 Uses shared ProcessingAvailabilityChip and CapabilityChip.
  */
 const VideoStatusCard = ({ status, loading, error }) => {
   // Handle loading state
@@ -76,23 +75,8 @@ const VideoStatusCard = ({ status, loading, error }) => {
     );
   }
 
-  const getStatusIcon = (available) => {
-    return available ? (
-      <CheckCircle color="success" />
-    ) : (
-      <Error color="error" />
-    );
-  };
-
   const getStatusChip = (available, type) => {
-    return (
-      <Chip
-        icon={getStatusIcon(available)}
-        label={available ? `${type} ${__('Available', 'flux-media-optimizer')}` : `${type} ${__('Not Available', 'flux-media-optimizer')}`}
-        color={available ? 'success' : 'error'}
-        size="small"
-      />
-    );
+    return <ProcessingAvailabilityChip available={available} type={type} />;
   };
 
   // Safely access nested properties with fallbacks
@@ -136,20 +120,15 @@ const VideoStatusCard = ({ status, loading, error }) => {
                       {__('Version:', 'flux-media-optimizer')} {processor.version || __('Unknown', 'flux-media-optimizer')}
                     </Typography>
                     <Grid container spacing={1}>
-                      <Grid item>
-                        <Chip
-                          label="AV1"
-                          color={processor.av1_support ? 'success' : 'error'}
-                          size="small"
-                        />
-                      </Grid>
-                      <Grid item>
-                        <Chip
-                          label="WebM"
-                          color={processor.webm_support ? 'success' : 'error'}
-                          size="small"
-                        />
-                      </Grid>
+                      {getVideoCapabilityDescriptors(processor).map((descriptor) => (
+                        <Grid item key={descriptor.capabilityKey}>
+                          <CapabilityChip
+                            label={descriptor.label}
+                            supported={descriptor.supported}
+                            capabilityKey={descriptor.capabilityKey}
+                          />
+                        </Grid>
+                      ))}
                     </Grid>
                   </Box>
                 ))}

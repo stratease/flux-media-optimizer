@@ -613,6 +613,7 @@ class Settings {
 	 * Does not include shared suite options such as flux-plugins_account_id.
 	 *
 	 * @since 4.2.1
+	 * @since 4.3.1 Includes first-activation welcome flag and review-prompt consumed flag.
 	 * @return string[]
 	 */
 	public static function get_uninstall_option_names() {
@@ -621,6 +622,8 @@ class Settings {
 			'flux_media_optimizer_version',
 			'flux_media_optimizer_db_version',
 			'flux_media_optimizer_activation_redirect',
+			'flux_media_optimizer_show_welcome',
+			'flux_media_optimizer_review_prompt_consumed',
 		];
 	}
 

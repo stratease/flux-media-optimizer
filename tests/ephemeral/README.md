@@ -13,6 +13,8 @@ Registry: `task-dashboard/config/flux-plugin-test.registry.json` → `plugins.fl
 | `flux-media-optimizer.admin-shell` | Settings Overview shell loads |
 | `flux-media-optimizer.heic-upload` | HEIC upload when Imagick libheif available (skips cleanly if not) |
 | `flux-media-optimizer.attachment-details-panel` | Upload PNG → Media Library modal + classic edit → AttachmentCompat island under Copy URL (`data-flux-media-attachment-*`, full-width classic) |
+| `flux-media-optimizer.welcome-modal` | Force-open welcome Dialog via `flux_show_welcome=1`; asserts chips + unlicensed upsell; missing capability chips (if any) stay in the Image/Video row |
+| `flux-media-optimizer.review-prompt` | Force-open review Dialog via `flux_show_review=1`; asserts bandwidth copy + review/support CTAs |
 
 ## Regression checks
 
@@ -22,6 +24,8 @@ Registry: `task-dashboard/config/flux-plugin-test.registry.json` → `plugins.fl
 | `flux-media-optimizer.admin-shell` | Settings Overview shell loads |
 | `flux-media-optimizer.attachment-details-panel` | Attachment details island happy path |
 | `flux-media-optimizer.attachment-details-video` | Video attachment details panel when a video fixture is available |
+| `flux-media-optimizer.welcome-modal` | Welcome Dialog capability chips, site-level missing chips when present, conditional CDN upsell |
+| `flux-media-optimizer.review-prompt` | Review Dialog bandwidth copy + Leave a review / Need help CTAs |
 
 Implemented in `ephemeral-wp-test/scripts/suite-checks.cjs`. Playwright stays user-path only (no direct REST for the panel happy path).
 

@@ -1,3 +1,10 @@
+= 4.3.1 =
+* Tested up to WordPress 7.1.
+* Feature: Welcome modal on first activation shows local image and video processing availability, site-level missing capability chips (formats no local processor can provide), and a subtle CDN/cloud upsell when unlicensed.
+* Feature: Once-ever review prompt on Overview after meaningful savings (distinct optimized attachments and bandwidth saved), with WordPress.org review and support links; suppressed while welcome is showing or optimizations have failed. Force-open with `flux_show_review=1` for testing. Dialog uses BrandIcon, inline savings Chip, solopreneur copy, and close control.
+* Feature: Need help links on Overview failed-optimizations notice and attachment details error alerts.
+* Deprecated: VideoConverter::get_conversion_stats() stub; use ConversionTracker for live conversion statistics.
+
 = 4.3.0 =
 * Feature: Local HEIC/HEIF conversion with Imagick decode (libheif 1.18.2+ recommended for modern iOS photos), optional animated HEIF-to-WebP via FFmpeg, and separate HEIC capability reporting.
 * Feature: Unified Action Scheduler retries for local and cloud failures (3 automatic attempts with progressive backoff), with processing routed by current license/settings and Flux logging on failures.

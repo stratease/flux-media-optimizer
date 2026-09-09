@@ -1,9 +1,18 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Grid, Typography, Box, Alert, AlertTitle, Link } from '@mui/material';
 import { __ } from '@wordpress/i18n';
-import { ImageStatusCard, VideoStatusCard, PHPConfigurationCard } from '@flux-media-optimizer/components';
+import {
+  ImageStatusCard,
+  VideoStatusCard,
+  PHPConfigurationCard,
+  WelcomeModal,
+  ReviewPromptModal,
+  SupportForumLink,
+} from '@flux-media-optimizer/components';
 import { useSystemStatus } from '@flux-media-optimizer/hooks/useSystemStatus';
 import { useConversions } from '@flux-media-optimizer/hooks/useConversions';
+import { useOnceEverModal } from '@flux-media-optimizer/hooks/useOnceEverModal';
+import { apiService } from '@flux-media-optimizer/services/api';
 
 /**
  * Format byte count as megabytes for display.
@@ -46,6 +55,7 @@ const normalizeConversionStats = (conversionsData) => {
  * Overview page component showing system status and conversion statistics.
  *
  * @since 0.1.0
+ * @since 4.3.1 Opens once-ever welcome and review modals; marks viewed on load.
  */
 const OverviewPage = () => {
   const { data: systemStatus, isLoading: systemLoading } = useSystemStatus();
@@ -54,8 +64,38 @@ const OverviewPage = () => {
   const hasFailedConversions = Boolean(conversionStats && conversionStats.failedConversions > 0);
   const mediaLibraryFailedUrl = `${window.fluxMediaAdmin?.adminUrl || '/wp-admin/'}upload.php?flux_optimization_status=failed`;
 
+  const markWelcomeViewed = useCallback(() => apiService.markWelcomeViewed(), []);
+  const markReviewViewed = useCallback(() => apiService.markReviewPromptViewed(), []);
+
+  const { open: welcomeOpen, setOpen: setWelcomeOpen } = useOnceEverModal({
+    initiallyOpen: Boolean(window.fluxMediaAdmin?.showWelcome),
+    onMarkViewed: markWelcomeViewed,
+  });
+
+  const { open: reviewOpen, setOpen: setReviewOpen } = useOnceEverModal({
+    initiallyOpen: Boolean(window.fluxMediaAdmin?.showReview) && !window.fluxMediaAdmin?.showWelcome,
+    onMarkViewed: markReviewViewed,
+  });
+
   return (
     <>
+      <WelcomeModal
+        open={welcomeOpen}
+        onClose={() => setWelcomeOpen(false)}
+        status={systemStatus}
+        loading={systemLoading}
+        showUpsell={Boolean(window.fluxMediaAdmin?.showWelcomeUpsell)}
+        upsellUrl={window.fluxMediaAdmin?.welcomeUpsellUrl || ''}
+      />
+
+      <ReviewPromptModal
+        open={reviewOpen}
+        onClose={() => setReviewOpen(false)}
+        savingsBytes={Number(window.fluxMediaAdmin?.reviewSavingsBytes) || conversionStats?.savings || 0}
+        reviewUrl={window.fluxMediaAdmin?.reviewUrl || ''}
+        supportUrl={window.fluxMediaAdmin?.supportUrl || ''}
+      />
+
       {!conversionsLoading && hasFailedConversions && (
         <Box sx={{ mb: 3 }}>
           <Alert severity="warning">
@@ -72,7 +112,8 @@ const OverviewPage = () => {
             {__(
               ', filter by Failed, then retry or reconvert those items.',
               'flux-media-optimizer'
-            )}
+            )}{' '}
+            <SupportForumLink label={__('Need help?', 'flux-media-optimizer')} />
           </Alert>
         </Box>
       )}

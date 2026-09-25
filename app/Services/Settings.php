@@ -327,6 +327,7 @@ class Settings {
 	 *
 	 * @since 0.1.0
 	 * @since 2.0.5 Added input sanitization.
+	 * @since 4.4.0 Fires flux_media_optimizer_bulk_conversion_setting_changed when the bulk toggle changes.
 	 * @param array $settings Settings to update.
 	 * @return bool True on success, false on failure.
 	 */
@@ -334,10 +335,11 @@ class Settings {
 		if ( ! is_array( $settings ) ) {
 			return false;
 		}
-		
+
 		$current_options = get_option( self::$option_name, [] );
+		$previous_bulk   = (bool) self::get( 'bulk_conversion_enabled', self::DEFAULT_BULK_CONVERSION_ENABLED );
 		$sanitized_settings = [];
-		
+
 		// Sanitize each setting before merging
 		foreach ( $settings as $key => $value ) {
 			// Only allow known settings keys to prevent injection
@@ -346,9 +348,25 @@ class Settings {
 				$sanitized_settings[ sanitize_key( $key ) ] = self::sanitize_setting( $key, $value );
 			}
 		}
-		
+
 		$merged_options = array_merge( $current_options, $sanitized_settings );
-		return update_option( self::$option_name, $merged_options );
+		$result         = update_option( self::$option_name, $merged_options );
+
+		if ( array_key_exists( 'bulk_conversion_enabled', $sanitized_settings ) ) {
+			$new_bulk = (bool) $sanitized_settings['bulk_conversion_enabled'];
+			if ( $new_bulk !== $previous_bulk ) {
+				/**
+				 * Fires when bulk conversion enablement changes.
+				 *
+				 * @since 4.4.0
+				 * @param bool $enabled  New enabled state.
+				 * @param bool $previous Previous enabled state.
+				 */
+				do_action( 'flux_media_optimizer_bulk_conversion_setting_changed', $new_bulk, $previous_bulk );
+			}
+		}
+
+		return $result;
 	}
 
 	/**

@@ -5,10 +5,14 @@ import { __, _x } from '@wordpress/i18n';
 import { useAutoSaveForm } from '@flux-media-optimizer/hooks/useAutoSaveForm';
 import { useOptions, useUpdateOptions } from '@flux-media-optimizer/hooks/useOptions';
 import { useSystemStatus } from '@flux-media-optimizer/hooks/useSystemStatus';
-import { SubscribeForm, SettingsSkeleton } from '@flux-media-optimizer/components';
+import { SubscribeForm, SettingsSkeleton, BulkStatusAlert } from '@flux-media-optimizer/components';
+import { useBulkStats } from '@flux-media-optimizer/hooks/useConversions';
 
 /**
- * Settings page component with auto-save functionality
+ * Settings page component with auto-save functionality.
+ *
+ * @since 0.1.0
+ * @since 4.4.0 Renders shared BulkStatusAlert under the bulk conversion toggle.
  */
 const SettingsPage = () => {
   // Local state for immediate UI updates - completely decoupled from server state
@@ -34,6 +38,8 @@ const SettingsPage = () => {
 
   // Use local settings for display (immediate updates)
   const settings = localSettings;
+  const bulkEnabled = !!settings?.bulk_conversion_enabled;
+  const { data: bulkStats, isLoading: bulkStatsLoading } = useBulkStats(bulkEnabled);
 
   // Helper functions to check format support
   const isWebPSupported = () => {
@@ -101,11 +107,12 @@ const SettingsPage = () => {
   const hasError = optionsError || systemError;
   const errorMessage = optionsError?.message || systemError?.message || __('Failed to load settings', 'flux-media-optimizer');
   
-  // Check if data is still loading (only for initial load)
-  const isLoading = !isInitialized && (optionsLoading || systemLoading);
+  // Wait for options + system status so capability alerts/toggles do not flash false negatives.
+  const isLoading = optionsLoading || systemLoading || !isInitialized;
   // Note: License check removed - license is now handled in the standalone License page
   // External service should check license via common library API
   const shouldEnableQualitySettings = !settings?.external_service_enabled;
+  const systemStatusReady = Boolean(systemStatus) && !systemLoading;
 
   return (
     <>
@@ -121,8 +128,8 @@ const SettingsPage = () => {
         <SettingsSkeleton />
       ) : (
         <>
-          {/* Format Support Alert */}
-          {(!isWebPSupported() || !isAVIFSupported()) && (
+          {/* Format Support Alert — only after /status confirms capability gaps */}
+          {systemStatusReady && (!isWebPSupported() || !isAVIFSupported()) && (
             <Alert severity="warning" sx={{ mb: 3 }}>
               <Typography variant="body2">
                 {!isWebPSupported() && !isAVIFSupported() 
@@ -149,13 +156,17 @@ const SettingsPage = () => {
                     checked={!!settings?.bulk_conversion_enabled}
                     disabled={isLoading}
                     onChange={handleSettingChange('bulk_conversion_enabled')}
+                    inputProps={{ 'data-flux-bulk-toggle': '1' }}
                   />
                 }
                 label={__('Enable bulk conversion', 'flux-media-optimizer')}
-              /> 
+              />
               <FormHelperText>
-                {__('Automatically convert existing media files in the background using WordPress cron.', 'flux-media-optimizer')}
+                {__('Automatically convert existing media files in the background using Action Scheduler.', 'flux-media-optimizer')}
               </FormHelperText>
+              {bulkEnabled && (
+                <BulkStatusAlert stats={bulkStats} loading={bulkStatsLoading} />
+              )}
             </Stack>
           </Box>
         </Grid>

@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { apiService } from '@flux-media-optimizer/services/api';
 
 /**
@@ -14,74 +14,18 @@ export const useConversions = () => {
 };
 
 /**
- * React Query hook for getting recent conversions
+ * React Query hook for bulk conversion queue statistics.
+ *
+ * @since 4.4.0
+ * @param {boolean} enabled Whether bulk conversion is enabled in settings.
+ * @return {Object} TanStack Query result.
  */
-export const useRecentConversions = (limit = 10) => {
+export const useBulkStats = (enabled = false) => {
   return useQuery({
-    queryKey: ['conversions', 'recent', limit],
-    queryFn: () => apiService.getRecentConversions(limit),
-    staleTime: 2 * 60 * 1000, // 2 minutes
-  });
-};
-
-/**
- * React Query hook for starting a conversion
- */
-export const useStartConversion = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ attachmentId, format }) => 
-      apiService.startConversion(attachmentId, format),
-    onSuccess: () => {
-      // Invalidate conversion-related queries
-      queryClient.invalidateQueries({ queryKey: ['conversions'] });
-    },
-  });
-};
-
-/**
- * React Query hook for canceling a conversion
- */
-export const useCancelConversion = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: (jobId) => apiService.cancelConversion(jobId),
-    onSuccess: () => {
-      // Invalidate conversion-related queries
-      queryClient.invalidateQueries({ queryKey: ['conversions'] });
-    },
-  });
-};
-
-/**
- * React Query hook for bulk conversion
- */
-export const useBulkConvert = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: (formats) => apiService.bulkConvert(formats),
-    onSuccess: () => {
-      // Invalidate conversion-related queries
-      queryClient.invalidateQueries({ queryKey: ['conversions'] });
-    },
-  });
-};
-
-/**
- * React Query hook for deleting converted files
- */
-export const useDeleteConvertedFile = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ attachmentId, format }) => 
-      apiService.deleteConvertedFile(attachmentId, format),
-    onSuccess: () => {
-      // Invalidate conversion-related queries
-      queryClient.invalidateQueries({ queryKey: ['conversions'] });
-    },
+    queryKey: ['bulk', 'stats'],
+    queryFn: () => apiService.getBulkStats(),
+    enabled: Boolean(enabled),
+    staleTime: 15 * 1000,
+    refetchInterval: enabled ? 30 * 1000 : false,
   });
 };

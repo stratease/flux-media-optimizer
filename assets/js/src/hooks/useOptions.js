@@ -29,6 +29,7 @@ export const useUpdateOptions = () => {
     onSuccess: (responseData) => {
       // Invalidate and refetch options to get updated data including license_activation
       queryClient.invalidateQueries({ queryKey: ['options'] });
+      queryClient.invalidateQueries({ queryKey: ['bulk', 'stats'] });
       
       // Return the response data so callers can access license_activation
       return responseData;

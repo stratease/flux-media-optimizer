@@ -64,6 +64,7 @@ class WebhookController extends BaseController {
 	 *
 	 * @since 3.0.0
 	 * @since 4.1.6 Security checks run in verify_webhook before this callback executes.
+	 * @since 4.3.2 Idempotent no-op when job already matches incoming terminal status.
 	 * @param WP_REST_Request $request Request object.
 	 * @return WP_REST_Response Response object.
 	 */
@@ -77,6 +78,22 @@ class WebhookController extends BaseController {
 
 		// Determine status: if cdn_urls provided, status is 'completed', otherwise 'failed'.
 		$status = WebhookAuthService::resolve_incoming_status( $cdn_urls );
+
+		// Duplicate redelivery: already at this terminal state — acknowledge without re-writing meta.
+		$current_state = AttachmentMetaHandler::get_external_job_state( $attachment_id );
+		if ( is_string( $current_state ) && $current_state === $status ) {
+			$this->logger->debug(
+				"Duplicate webhook ignored for attachment {$attachment_id} (already {$status})."
+			);
+
+			return new WP_REST_Response(
+				[
+					'success' => true,
+					'message' => 'Webhook already processed.',
+				],
+				200
+			);
+		}
 
 		if ( 'failed' === $status ) {
 			AttachmentMetaHandler::mark_conversion_failed(

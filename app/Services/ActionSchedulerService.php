@@ -71,6 +71,7 @@ class ActionSchedulerService {
 	 * @since 3.0.3 Action Scheduler service initialization moved to 'init' hook.
 	 * @since 3.0.4 Removed redundant Action Scheduler initialization check since service
 	 *              is registered after Action Scheduler initializes.
+	 * @since 4.4.0 Listens for bulk toggle changes to schedule or unschedule discovery.
 	 * @return void
 	 */
 	public function init() {
@@ -83,6 +84,7 @@ class ActionSchedulerService {
 		// Register action hooks
 		// Action Scheduler is already initialized by this point (init priority 1 vs our priority 10)
 		$this->register_action_hooks();
+		add_action( 'flux_media_optimizer_bulk_conversion_setting_changed', [ $this, 'on_bulk_conversion_setting_changed' ], 10, 2 );
 	}
 
 	/**
@@ -93,11 +95,26 @@ class ActionSchedulerService {
 	 * @return void
 	 */
 	private function register_action_hooks() {
-		// Register bulk discovery action (handler checks if bulk conversion is enabled)
 		add_action( 'flux_media_optimizer_bulk_discovery', [ $this, 'handle_bulk_discovery_action' ], 10, 1 );
-
-		// Register single attachment conversion action
 		add_action( 'flux_media_optimizer_convert_attachment', [ $this, 'handle_convert_attachment_action' ], 10, 1 );
+	}
+
+	/**
+	 * React to Settings bulk toggle changes.
+	 *
+	 * @since 4.4.0
+	 * @param bool $enabled  New enabled value.
+	 * @param bool $previous Previous enabled value.
+	 * @return void
+	 */
+	public function on_bulk_conversion_setting_changed( $enabled, $previous ) {
+		if ( $enabled ) {
+			$this->ensure_bulk_discovery_scheduled();
+			$this->kick_bulk_discovery_if_idle();
+			return;
+		}
+
+		$this->unschedule_bulk_discovery();
 	}
 
 	/**
@@ -142,6 +159,53 @@ class ActionSchedulerService {
 		}
 
 		return $action_id;
+	}
+
+	/**
+	 * Unschedule the recurring bulk discovery action.
+	 *
+	 * Does not cancel pending per-attachment convert actions.
+	 *
+	 * @since 4.4.0
+	 * @return void
+	 */
+	public function unschedule_bulk_discovery() {
+		if ( ! function_exists( 'as_unschedule_all_actions' ) ) {
+			return;
+		}
+
+		as_unschedule_all_actions( 'flux_media_optimizer_bulk_discovery', [], ActionSchedulerGroups::MEDIA_OPTIMIZER );
+		$this->logger->debug( 'Unscheduled bulk conversion discovery action' );
+	}
+
+	/**
+	 * Run discovery immediately when no convert actions are already pending.
+	 *
+	 * @since 4.4.0
+	 * @return void
+	 */
+	public function kick_bulk_discovery_if_idle() {
+		if ( ! Settings::is_bulk_conversion_enabled() ) {
+			return;
+		}
+
+		$pending_actions = [];
+		if ( function_exists( 'as_get_scheduled_actions' ) && class_exists( 'ActionScheduler_Store' ) ) {
+			$pending_actions = as_get_scheduled_actions(
+				[
+					'hook'   => 'flux_media_optimizer_convert_attachment',
+					'status' => \ActionScheduler_Store::STATUS_PENDING,
+				],
+				'ids'
+			);
+		}
+
+		if ( ! empty( $pending_actions ) ) {
+			$this->logger->debug( 'Bulk discovery kick skipped: convert actions already pending' );
+			return;
+		}
+
+		$this->handle_bulk_discovery_action();
 	}
 
 	/**

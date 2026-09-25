@@ -10,6 +10,7 @@ export { default as VideoStatusCard } from './features/VideoStatusCard';
 export { default as PHPConfigurationCard } from './features/PHPConfigurationCard';
 export { default as WelcomeModal } from './features/WelcomeModal';
 export { default as ReviewPromptModal } from './features/ReviewPromptModal';
+export { default as BulkStatusAlert } from './features/BulkStatusAlert';
 export { default as ProcessingAvailabilityChip } from './common/ProcessingAvailabilityChip';
 export { default as CapabilityChip } from './common/CapabilityChip';
 export { default as SupportForumLink } from './common/SupportForumLink';

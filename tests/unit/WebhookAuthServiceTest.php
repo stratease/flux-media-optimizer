@@ -94,14 +94,17 @@ class WebhookAuthServiceTest extends TestCase {
 	 * Test job state transition rules.
 	 *
 	 * @since 4.1.6
+	 * @since 4.3.2 Same-terminal duplicates are allowed (idempotent redelivery).
 	 * @return void
 	 */
 	public function testValidateJobStateTransition() {
 		$this->assertTrue( WebhookAuthService::validate_job_state_transition( 'queued', 'completed' ) );
 		$this->assertTrue( WebhookAuthService::validate_job_state_transition( 'processing', 'failed' ) );
+		$this->assertTrue( WebhookAuthService::validate_job_state_transition( 'completed', 'completed' ) );
+		$this->assertTrue( WebhookAuthService::validate_job_state_transition( 'failed', 'failed' ) );
 		$this->assertFalse( WebhookAuthService::validate_job_state_transition( null, 'completed' ) );
-		$this->assertFalse( WebhookAuthService::validate_job_state_transition( 'completed', 'completed' ) );
-		$this->assertFalse( WebhookAuthService::validate_job_state_transition( 'failed', 'failed' ) );
+		$this->assertFalse( WebhookAuthService::validate_job_state_transition( 'completed', 'failed' ) );
+		$this->assertFalse( WebhookAuthService::validate_job_state_transition( 'failed', 'completed' ) );
 		$this->assertFalse( WebhookAuthService::validate_job_state_transition( 'queued', 'unknown' ) );
 	}
 

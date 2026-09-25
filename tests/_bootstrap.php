@@ -13,6 +13,10 @@ if ( ! defined( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR' ) ) {
 	define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
 }
 
+if ( ! defined( 'FLUX_MEDIA_OPTIMIZER_STALE_JOB_THRESHOLD' ) ) {
+	define( 'FLUX_MEDIA_OPTIMIZER_STALE_JOB_THRESHOLD', 6 * HOUR_IN_SECONDS );
+}
+
 // Strauss leaves php-ffmpeg PSR-0 paths misaligned; register the same autoloader as production.
 \FluxMedia\App\Services\FFmpegAutoloader::init();
 

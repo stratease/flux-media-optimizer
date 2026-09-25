@@ -130,6 +130,7 @@ final class ConversionOrchestrator {
 	 * Map processor boolean + job meta into an explicit dispatch result.
 	 *
 	 * @since 4.3.0
+	 * @since 4.4.0 Soft processor failures without failure meta map to skipped.
 	 * @param int               $attachment_id Attachment ID.
 	 * @param bool              $success       Processor return.
 	 * @param ConversionRequest $request       Request.
@@ -152,6 +153,14 @@ final class ConversionOrchestrator {
 		if ( get_post_meta( $attachment_id, self::META_VIDEO_DEFERRED, true ) ) {
 			return ConversionDispatchResult::deferred(
 				'Video conversion deferred to async worker.',
+				[ 'trigger' => $request->get_trigger() ]
+			);
+		}
+
+		// Soft skips (unsupported MIME, disabled mid-flight) return false without failure meta.
+		if ( ! $success && 'failed' !== $job_state && '' === (string) $error ) {
+			return ConversionDispatchResult::skipped(
+				'Conversion skipped.',
 				[ 'trigger' => $request->get_trigger() ]
 			);
 		}

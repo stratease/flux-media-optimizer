@@ -4,82 +4,41 @@ Thank you for your interest in contributing to Flux Media Optimizer – Image & 
 
 ## 📋 Source Code
 
-This plugin includes minified JavaScript and CSS assets built from source code. The original, human-readable source code is available in the GitHub repository:
+This plugin ships production webpack bundles. Build details and product architecture live in [README.md](README.md) (Build Process, Architecture, API Endpoints). Contributor workflow, coding standards, and service deep-dives live in this file.
 
 * **Repository**: https://github.com/stratease/flux-media-optimizer
-* **JavaScript Source**: `assets/js/src/` - React components and application code
-* **Build Output**: `assets/js/dist/` - Compiled and minified production bundles
-* **Build Tool**: webpack (configured in `package.json`)
+* **JavaScript Source**: `assets/js/src/`
+* **Build Output**: `assets/js/dist/`
 
-To build from source:
 ```bash
 npm install
 npm run build
-```
-
-For development with hot reload:
-```bash
-npm run dev
+# or: npm run dev
 ```
 
 ## 🏗️ Architecture Overview
 
-This plugin has been completely refactored with a modern, decoupled architecture that separates business logic from WordPress dependencies, making it highly maintainable and testable. Optional Flux cloud processing and CDN are available when licensed; local optimization remains the default.
+Product and high-level architecture SSOT: [README.md — Architecture](README.md#architecture).
 
-### Key Architectural Changes
+This section covers **contributor** conventions only.
 
-#### 1. **Decoupled Service Architecture**
-- **Pure Business Logic**: `ImageConverter` and `VideoConverter` are now completely WordPress-independent
-- **Provider Pattern**: `WordPressProvider` handles all WordPress integration while services remain pure
-- **Dependency Inversion**: Uses interfaces and dependency injection for testable, decoupled components
-- **Single Responsibility**: Each service has one clear purpose and well-defined boundaries
+### Shared library and hooks
 
-#### 2. **Unified Converter Interface**
-- **Fluent API**: Chainable method calls for clean, readable code
-- **Format Constants**: Centralized constants for all supported formats
-- **Error Tracking**: Comprehensive error collection and reporting
-- **WordPress Integration**: Maintains WordPress-specific functionality while being framework-agnostic
+- Shared suite services come from `flux-plugins-common` (menu, account ID, logging, API client; Strauss-prefixed). See [flux-plugins-common](https://github.com/stratease/flux-plugins-common).
+- Test / fixture layout: [Plugin test surfaces and runtime fixtures](https://github.com/stratease/flux-plugins-common/blob/master/README.md#plugin-test-surfaces-and-runtime-fixtures).
 
-#### 3. **Modern React Frontend**
-- **React 18**: Functional components with hooks
-- **React Router**: Hash-based client-side routing
-- **Material-UI**: Professional design system with Grid layout
-- **TanStack Query**: Server state management with caching
-- **WordPress i18n**: Full internationalization support
-- **Skeleton Loading**: Professional loading states
+#### Hook Naming Convention
 
-#### 4. **Optional Flux cloud processing**
-- **License**: Suite license via flux-plugins-common gates **optional** outbound cloud processing / CDN only — not local optimization, settings, Media Library status, or logs
-- **Privacy Compliant**: Full compliance with WordPress.org SaaS guidelines
-- **Local-First**: All core functionality works locally without any external service
+**All hooks MUST follow the standard WordPress hook naming convention.** See the [Flux Plugins Common README](https://github.com/stratease/flux-plugins-common/blob/master/README.md#hook-naming-convention).
 
-#### 5. **Shared Library Architecture**
-- **Flux Plugins Common**: This plugin uses `flux-plugins-common` for shared services across the Flux Plugins suite
-- **Shared Services**: Menu system, account ID management, logging, and API client are provided by the shared library
-- **Namespace Prefixing**: The shared library is namespace-prefixed using Strauss to avoid conflicts
-- **Test / fixture layout**: See [Plugin test surfaces and runtime fixtures](https://github.com/stratease/flux-plugins-common/blob/master/README.md#plugin-test-surfaces-and-runtime-fixtures) in the common README (PHPUnit + ephemeral only; `assets/fixtures/` is runtime)
-- **Repository**: See [flux-plugins-common repository](https://github.com/stratease/flux-plugins-common) for detailed documentation
-
-##### Hook Naming Convention
-
-**All hooks MUST follow the standard WordPress hook naming convention.** See the [Flux Plugins Common README](https://github.com/stratease/flux-plugins-common/blob/master/README.md#hook-naming-convention) for complete documentation on hook naming standards.
-
-The pattern is: `{plugin_namespace}/{class_name}/{method_name}` with an optional `/{operation}` suffix.
-
-- **Plugin Namespace**: The plugin's slug in snake_case (e.g., `flux_suite` for common library, `flux_media_optimizer` for this plugin)
-- **Class Name**: The class name in snake_case (e.g., `MenuService` → `menu_service`)
-- **Method Name**: The method name in snake_case (e.g., `register_top_level_menu`)
-- **Operation (Optional)**: A specific operation within the method (e.g., `before`, `after`)
+Pattern: `{plugin_namespace}/{class_name}/{method_name}` with optional `/{operation}`.
 
 **Examples:**
-- `flux_suite/menu_service/register_top_level_menu` - Fired when top-level menu is registered
-- `flux_media_optimizer/image_converter/convert/before` - Fired before image conversion
-- `flux_media_optimizer/wordpress_provider/register_hooks` - Fired when WordPress hooks are registered
+- `flux_suite/menu_service/register_top_level_menu`
+- `flux_media_optimizer/image_converter/convert/before`
+- `flux_media_optimizer/wordpress_provider/register_hooks`
 
-**Important:** Always convert class names from PascalCase to snake_case when creating hook names. All parts of the hook name must use snake_case.
-
-For complete hook naming guidelines, see: https://github.com/stratease/flux-plugins-common/blob/master/README.md#hook-naming-convention
-
+Always convert PascalCase class names to snake_case in hook names.
 ## 📁 Project Structure
 
 ```
@@ -307,16 +266,16 @@ The plugin includes a sophisticated GIF animation detector:
 ## 🧪 Testing
 
 ### Backend Testing
-- Write **PHPUnit tests** for new functionality
+- Write **PHPUnit tests** for new functionality (`composer test`)
 - Test **service layer** in isolation
 - Mock **WordPress dependencies**
 - Test **error conditions**
 
-### Frontend Testing
-- Test **React components** with React Testing Library
-- Test **custom hooks** in isolation
-- Test **API interactions**
-- Ensure **accessibility compliance**
+### Frontend / E2E Testing
+- User-facing admin flows are covered by the **ephemeral Playwright** harness (`npm run test:ephemeral:smoke` / `test:ephemeral:regression`)
+- Extend existing suite checks in `ephemeral-wp-test/scripts/suite-checks.cjs` when touching Settings/Overview/bulk UI (see [`tests/ephemeral/README.md`](tests/ephemeral/README.md))
+- Playwright must interact from the user perspective (no direct REST for happy-path UI unless a check already documents otherwise)
+- There is **no** wired React Testing Library / Jest unit harness in this repo; do not assume RTL is available
 
 ## 📊 Database Schema
 
@@ -341,15 +300,10 @@ The plugin includes a sophisticated GIF animation detector:
 - **Error Handling**: Consistent error response format
 
 ### API Endpoints
-Plugin endpoints are prefixed with `/wp-json/flux-media-optimizer/v1/`:
 
-- `GET /status` - System status and capabilities
-- `GET /options` - Plugin options
-- `POST /options` - Update plugin options
-- `GET /conversions/stats` - Conversion statistics
-- `GET /attachments/{id}/details` - Attachment optimization panel payload
+Endpoint catalog SSOT: [README.md — API Endpoints](README.md#api-endpoints) (includes `GET /bulk/stats`, welcome/review, webhook).
 
-Logs: `GET /wp-json/flux-plugins-common/v1/logs` (see flux-plugins-common `RestApiService`)
+Do not duplicate the list here; update the README when adding or changing routes.
 
 ## 🔧 Configuration
 
@@ -484,12 +438,16 @@ Any other context or screenshots about the feature request.
 
 ## 📚 Documentation
 
+### Separation of concerns
+- **README.md** — product SSOT: features, privacy, architecture overview, API catalog, quick start
+- **CONTRIBUTING.md** — contributor SSOT: fork/PR workflow, coding standards, service deep-dives, testing how-to
+- Avoid duplicating architecture/API lists; link the README instead and update that file when contracts change
+
 ### Code Documentation
 - **PHPDoc comments** for all classes and methods
 - **Inline comments** for complex logic
-- **README updates** for new features
-- **API documentation** for new endpoints
-- **Version Tagging**: Update `@since` tags to current version (e.g., `2.0.1`) when modifying code
+- **README updates** for new product/API behavior
+- **Version Tagging**: Update `@since` tags to the release in progress (currently **4.4.0**) when modifying code
 
 ### User Documentation
 - **Clear installation** instructions

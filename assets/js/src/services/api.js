@@ -105,10 +105,15 @@ class ApiService {
     return this.request(endpoint);
   }
 
-  async getRecentConversions(limit = 10) {
-    return this.request(`/conversions/recent?limit=${limit}`);
+  /**
+   * Fetch bulk conversion queue statistics.
+   *
+   * @since 4.4.0
+   * @return {Promise<Object>} Bulk stats payload.
+   */
+  async getBulkStats() {
+    return this.request('/bulk/stats');
   }
-
 
   // Options endpoints
   async getOptions() {
@@ -119,49 +124,6 @@ class ApiService {
     return this.request('/options', {
       method: 'POST',
       body: JSON.stringify({ options }),
-    });
-  }
-
-
-  // Conversion operations
-  async startConversion(attachmentId, format) {
-    return this.request('/conversions/start', {
-      method: 'POST',
-      body: JSON.stringify({ attachmentId, format }),
-    });
-  }
-
-  async cancelConversion(jobId) {
-    return this.request(`/conversions/cancel/${jobId}`, {
-      method: 'POST',
-    });
-  }
-
-  async bulkConvert(formats) {
-    return this.request('/conversions/bulk', {
-      method: 'POST',
-      body: JSON.stringify({ formats }),
-    });
-  }
-
-  // File operations
-  async deleteConvertedFile(attachmentId, format) {
-    return this.request(`/files/delete/${attachmentId}/${format}`, {
-      method: 'DELETE',
-    });
-  }
-
-  // Cleanup operations
-  async cleanupTempFiles() {
-    return this.request('/cleanup/temp-files', {
-      method: 'POST',
-    });
-  }
-
-  async cleanupOldRecords(days = 30) {
-    return this.request('/cleanup/old-records', {
-      method: 'POST',
-      body: JSON.stringify({ days }),
     });
   }
 }

@@ -158,12 +158,13 @@ class ConversionOrchestratorTest extends TestCase {
 	}
 
 	/**
-	 * Processor false maps to failed outcome.
+	 * Soft processor false (no failure meta) maps to skipped, not failed.
 	 *
 	 * @since 4.3.0
+	 * @since 4.4.0 Unsupported/soft skips no longer mark the attachment failed.
 	 * @return void
 	 */
-	public function testDispatchFailedWhenProcessorReturnsFalse() {
+	public function testDispatchSkippedWhenProcessorReturnsFalseWithoutFailure() {
 		$processor = $this->createMock( ProcessingServiceInterface::class );
 		$processor->method( 'process' )->willReturn( false );
 
@@ -171,10 +172,35 @@ class ConversionOrchestratorTest extends TestCase {
 		$locator->method( 'get_processor' )->willReturn( $processor );
 
 		$orch   = new ConversionOrchestrator( $this->createMock( Logger::class ), $locator );
-		$result = $orch->dispatch( new ConversionRequest( 506, ConversionRequest::TRIGGER_RETRY ) );
+		$result = $orch->dispatch( new ConversionRequest( 506, ConversionRequest::TRIGGER_BULK ) );
+
+		$this->assertTrue( $result->is_skipped() );
+		$this->assertNull( AttachmentMetaHandler::get_external_job_state( 506 ) );
+	}
+
+	/**
+	 * Processor false with failure meta already set stays failed.
+	 *
+	 * @since 4.4.0
+	 * @return void
+	 */
+	public function testDispatchFailedWhenProcessorMarksFailure() {
+		$processor = $this->createMock( ProcessingServiceInterface::class );
+		$processor->method( 'process' )->willReturnCallback(
+			static function ( $id ) {
+				AttachmentMetaHandler::mark_conversion_failed( $id, 'encode failed' );
+				return false;
+			}
+		);
+
+		$locator = $this->createMock( MediaProcessingServiceLocator::class );
+		$locator->method( 'get_processor' )->willReturn( $processor );
+
+		$orch   = new ConversionOrchestrator( $this->createMock( Logger::class ), $locator );
+		$result = $orch->dispatch( new ConversionRequest( 507, ConversionRequest::TRIGGER_RETRY ) );
 
 		$this->assertTrue( $result->is_failed() );
-		$this->assertSame( 'failed', AttachmentMetaHandler::get_external_job_state( 506 ) );
+		$this->assertSame( 'failed', AttachmentMetaHandler::get_external_job_state( 507 ) );
 	}
 
 	/**

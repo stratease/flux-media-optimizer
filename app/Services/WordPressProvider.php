@@ -610,6 +610,7 @@ class WordPressProvider {
      * before WordPress processes them. URLs are retrieved from AttachmentMetaHandler meta data (single source of truth).
      *
      * @since 3.0.0
+     * @since 4.3.2 Skip non-image attachments so video URLs never enter <img> src.
      * @param bool|array $default      Default return value (false or array with [url, width, height]).
      * @param int        $attachment_id Attachment ID.
      * @param string|int[] $size      Requested image size (string name or array of dimensions).
@@ -617,6 +618,11 @@ class WordPressProvider {
      */
     public function handle_image_downsize_filter( $default, $attachment_id, $size ) {
         if ( ! $attachment_id ) {
+            return $default;
+        }
+
+        // Videos/non-images must not supply URLs for <img> thumbnails (Media Library list icons).
+        if ( ! wp_attachment_is_image( $attachment_id ) ) {
             return $default;
         }
 
@@ -747,6 +753,7 @@ class WordPressProvider {
      *
      * @since 1.0.2
      * @since 3.0.0 Updated to use AttachmentMetaHandler for size-specific file URL lookup and removed bypass for upload.php pages.
+     * @since 4.3.2 Skip non-image attachments so video URLs never enter <img> src.
      * @param array|false  $image         Array of image data (url, width, height) or false if no image.
      * @param int          $attachment_id Image attachment ID.
      * @param string|int[] $size          Requested image size.
@@ -755,6 +762,10 @@ class WordPressProvider {
      */
     public function handle_attachment_image_src_filter( $image, $attachment_id, $size, $icon ) {
         if ( ! $image || ! is_array( $image ) || ! $attachment_id || $icon ) {
+            return $image;
+        }
+
+        if ( ! wp_attachment_is_image( $attachment_id ) ) {
             return $image;
         }
 
@@ -816,6 +827,7 @@ class WordPressProvider {
      *
      * @since 1.0.0
      * @since 3.0.0 Refactored to generate srcset directly from file URLs meta instead of modifying existing sources.
+     * @since 4.3.2 Skip non-image attachments so video URLs never enter srcset.
      * @param array  $sources       Array of image sources (ignored, we generate from file URLs meta).
      * @param array  $size_array    Array of width and height values.
      * @param string $image_src     The 'src' of the image.
@@ -825,6 +837,10 @@ class WordPressProvider {
      */
     public function handle_image_srcset_filter( $sources, $size_array, $image_src, $image_meta, $attachment_id ) {
         if ( ! $attachment_id ) {
+            return $sources;
+        }
+
+        if ( ! wp_attachment_is_image( $attachment_id ) ) {
             return $sources;
         }
 

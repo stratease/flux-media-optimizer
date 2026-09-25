@@ -1,3 +1,17 @@
+= 4.4.0 =
+* Feature: Bulk conversion status on Settings and Overview (remaining eligible, queued actions, next discovery, state) via GET /bulk/stats.
+* Feature: Enabling bulk conversion schedules Action Scheduler discovery immediately; disabling unschedules discovery (queued converts still finish).
+* Fix: Bulk discovery only queues image/video MIME types; unsupported types are skipped instead of marked Failed.
+* Fix: Overview failed Media Library link opens list view (`mode=list`).
+* Update: Settings helper text correctly describes Action Scheduler (not WordPress cron).
+* Update: Removed unused conversion/cleanup REST client stubs from the admin JS bundle.
+
+= 4.3.2 =
+* Fix: Optimized videos no longer break Media Library list thumbnails (video URLs were incorrectly used as image sources).
+* Fix: Duplicate completed/failed cloud webhooks are acknowledged idempotently (HTTP 200) to stop retry noise and warning spam.
+* Update: WordPress.org zip includes JS source (`assets/js/src`, `src/assets/common/js/src`) per Guideline 4; maps/tests/node remain excluded.
+* Update: Flux Suite Logs Level filter is All / Debug / Warning / Error (grouped severities).
+
 = 4.3.1 =
 * Tested up to WordPress 7.1.
 * Feature: Welcome modal on first activation shows local image and video processing availability, site-level missing capability chips (formats no local processor can provide), and a subtle CDN/cloud upsell when unlicensed.

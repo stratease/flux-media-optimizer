@@ -111,6 +111,46 @@ class SettingsOptionNameTest extends TestCase {
 	}
 
 	/**
+	 * Bulk conversion toggle must persist WordPress-compatible boolean values.
+	 *
+	 * @since 4.4.0
+	 * @dataProvider booleanSanitizationProvider
+	 * @param mixed $input    Raw value as received from REST/options payload.
+	 * @param bool  $expected Expected stored boolean.
+	 * @return void
+	 */
+	public function testBulkConversionEnabledBooleanSanitization( $input, $expected ) {
+		$this->assertTrue( Settings::set( 'bulk_conversion_enabled', $input ) );
+		$this->assertSame( $expected, Settings::is_bulk_conversion_enabled() );
+	}
+
+	/**
+	 * Updating bulk toggle fires the lifecycle action with old and new values.
+	 *
+	 * @since 4.4.0
+	 * @return void
+	 */
+	public function testBulkConversionUpdateFiresSettingChangedAction() {
+		$GLOBALS['fmo_test_action_callbacks'] = [];
+		$GLOBALS['fmo_test_actions']          = [];
+		$seen                                 = [];
+
+		add_action(
+			'flux_media_optimizer_bulk_conversion_setting_changed',
+			static function ( $enabled, $previous ) use ( &$seen ) {
+				$seen[] = [ $enabled, $previous ];
+			},
+			10,
+			2
+		);
+
+		Settings::update( [ 'bulk_conversion_enabled' => true ] );
+
+		$this->assertCount( 1, $seen );
+		$this->assertSame( [ true, false ], $seen[0] );
+	}
+
+	/**
 	 * Unknown settings keys remain rejected to prevent option injection.
 	 *
 	 * @since 4.3.0

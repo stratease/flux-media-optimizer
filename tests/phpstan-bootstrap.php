@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'FLUX_MEDIA_OPTIMIZER_VERSION' ) ) {
-	define( 'FLUX_MEDIA_OPTIMIZER_VERSION', '4.3.0' );
+	define( 'FLUX_MEDIA_OPTIMIZER_VERSION', '4.4.0' );
 }
 
 if ( ! defined( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_URL' ) ) {

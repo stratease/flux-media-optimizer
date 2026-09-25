@@ -184,15 +184,50 @@ class BulkConverter {
 	}
 
 	/**
+	 * Count eligible unconverted image/video attachments for bulk processing.
+	 *
+	 * @since 4.4.0
+	 * @return int
+	 */
+	public function count_eligible_media() {
+		global $wpdb;
+
+		$failed_state = 'failed';
+		$state_key    = AttachmentMetaHandler::META_KEY_EXTERNAL_JOB_STATE;
+		$mime_like    = $this->get_eligible_mime_sql_fragments();
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- mime fragments are fixed LIKE patterns.
+		$count = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(p.ID)
+				 FROM {$wpdb->posts} p
+				 LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_flux_media_optimizer_converted_formats'
+				 LEFT JOIN {$wpdb->postmeta} pm_disabled ON p.ID = pm_disabled.post_id AND pm_disabled.meta_key = '_flux_media_optimizer_conversion_disabled'
+				 LEFT JOIN {$wpdb->postmeta} pm_failed ON p.ID = pm_failed.post_id AND pm_failed.meta_key = %s
+				 WHERE p.post_type = 'attachment'
+				 AND (pm.meta_value IS NULL OR pm.meta_value = '')
+				 AND (pm_disabled.meta_value IS NULL OR pm_disabled.meta_value = '')
+				 AND (pm_failed.meta_value IS NULL OR pm_failed.meta_value != %s)
+				 AND ( {$mime_like} )",
+				$state_key,
+				$failed_state
+			)
+		);
+
+		return (int) $count;
+	}
+
+	/**
 	 * Get unconverted media files.
 	 *
-	 * Retrieves attachments that haven't been converted and aren't disabled.
+	 * Retrieves image/video attachments that haven't been converted and aren't disabled.
 	 * Failed attachments are excluded — they use ConversionRetryService instead.
 	 *
 	 * @since 0.1.0
 	 * @since 3.0.0 Made public for use by Action Scheduler service.
 	 * @since 4.0.0 Updated to handle all media types, not just images and videos.
 	 * @since 4.3.0 Excludes failed job state so permanent failures cannot bypass retry limits.
+	 * @since 4.4.0 Restricts to image/ and video/ MIME types so non-media attachments are not queued.
 	 * @param int $limit Maximum number of files to return.
 	 * @return array Array of attachment IDs.
 	 */
@@ -201,26 +236,40 @@ class BulkConverter {
 
 		$failed_state = 'failed';
 		$state_key    = AttachmentMetaHandler::META_KEY_EXTERNAL_JOB_STATE;
+		$mime_like    = $this->get_eligible_mime_sql_fragments();
 
-		// Get attachments that haven't been converted, aren't disabled, and aren't failed.
-		$attachments = $wpdb->get_col( $wpdb->prepare(
-			"SELECT p.ID 
-			 FROM {$wpdb->posts} p 
-			 LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_flux_media_optimizer_converted_formats'
-			 LEFT JOIN {$wpdb->postmeta} pm_disabled ON p.ID = pm_disabled.post_id AND pm_disabled.meta_key = '_flux_media_optimizer_conversion_disabled'
-			 LEFT JOIN {$wpdb->postmeta} pm_failed ON p.ID = pm_failed.post_id AND pm_failed.meta_key = %s
-			 WHERE p.post_type = 'attachment' 
-			 AND (pm.meta_value IS NULL OR pm.meta_value = '')
-			 AND (pm_disabled.meta_value IS NULL OR pm_disabled.meta_value = '')
-			 AND (pm_failed.meta_value IS NULL OR pm_failed.meta_value != %s)
-			 ORDER BY p.post_date DESC
-			 LIMIT %d",
-			$state_key,
-			$failed_state,
-			$limit
-		) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- mime fragments are fixed LIKE patterns.
+		$attachments = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT p.ID
+				 FROM {$wpdb->posts} p
+				 LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_flux_media_optimizer_converted_formats'
+				 LEFT JOIN {$wpdb->postmeta} pm_disabled ON p.ID = pm_disabled.post_id AND pm_disabled.meta_key = '_flux_media_optimizer_conversion_disabled'
+				 LEFT JOIN {$wpdb->postmeta} pm_failed ON p.ID = pm_failed.post_id AND pm_failed.meta_key = %s
+				 WHERE p.post_type = 'attachment'
+				 AND (pm.meta_value IS NULL OR pm.meta_value = '')
+				 AND (pm_disabled.meta_value IS NULL OR pm_disabled.meta_value = '')
+				 AND (pm_failed.meta_value IS NULL OR pm_failed.meta_value != %s)
+				 AND ( {$mime_like} )
+				 ORDER BY p.post_date DESC
+				 LIMIT %d",
+				$state_key,
+				$failed_state,
+				$limit
+			)
+		);
 
 		return $attachments;
+	}
+
+	/**
+	 * SQL OR fragments matching convertible image and video MIME types.
+	 *
+	 * @since 4.4.0
+	 * @return string
+	 */
+	private function get_eligible_mime_sql_fragments() {
+		return "p.post_mime_type LIKE 'image/%' OR p.post_mime_type LIKE 'video/%'";
 	}
 
 	/**

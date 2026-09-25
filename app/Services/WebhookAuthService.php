@@ -72,7 +72,7 @@ class WebhookAuthService {
 			return false;
 		}
 
-		// Job must be in-flight (queued/processing) before completed or failed webhook.
+		// Job must be in-flight (queued/processing), or an idempotent duplicate terminal state.
 		$cdn_urls = $request->get_param( 'cdn_urls' );
 		$incoming_status = self::resolve_incoming_status( $cdn_urls );
 
@@ -156,7 +156,11 @@ class WebhookAuthService {
 	/**
 	 * Validate job state transition for webhook processing.
 	 *
+	 * Allows in-flight → terminal, and idempotent duplicate terminal callbacks
+	 * (completed→completed, failed→failed) so cloud redeliveries get past auth.
+	 *
 	 * @since 4.1.6
+	 * @since 4.3.2 Allow same-terminal duplicates for idempotent webhook redelivery.
 	 * @param string|null $current_state Current external job state.
 	 * @param string      $incoming_status Incoming status ('completed' or 'failed').
 	 * @return bool True if transition is allowed.
@@ -166,7 +170,12 @@ class WebhookAuthService {
 			return false;
 		}
 
-		return AttachmentMetaHandler::is_in_flight_job_state( $current_state );
+		if ( AttachmentMetaHandler::is_in_flight_job_state( $current_state ) ) {
+			return true;
+		}
+
+		// Duplicate success/failure callbacks: same terminal state is idempotent.
+		return is_string( $current_state ) && $current_state === $incoming_status;
 	}
 
 	/**

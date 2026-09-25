@@ -8,9 +8,11 @@ import {
   WelcomeModal,
   ReviewPromptModal,
   SupportForumLink,
+  BulkStatusAlert,
 } from '@flux-media-optimizer/components';
 import { useSystemStatus } from '@flux-media-optimizer/hooks/useSystemStatus';
-import { useConversions } from '@flux-media-optimizer/hooks/useConversions';
+import { useConversions, useBulkStats } from '@flux-media-optimizer/hooks/useConversions';
+import { useOptions } from '@flux-media-optimizer/hooks/useOptions';
 import { useOnceEverModal } from '@flux-media-optimizer/hooks/useOnceEverModal';
 import { apiService } from '@flux-media-optimizer/services/api';
 
@@ -56,13 +58,17 @@ const normalizeConversionStats = (conversionsData) => {
  *
  * @since 0.1.0
  * @since 4.3.1 Opens once-ever welcome and review modals; marks viewed on load.
+ * @since 4.4.0 Shows shared BulkStatusAlert only when eligible or queued work remains.
  */
 const OverviewPage = () => {
   const { data: systemStatus, isLoading: systemLoading } = useSystemStatus();
   const { data: conversionsData, isLoading: conversionsLoading } = useConversions();
+  const { data: optionsData } = useOptions();
+  const bulkEnabled = Boolean(optionsData?.bulk_conversion_enabled);
+  const { data: bulkStats } = useBulkStats(bulkEnabled);
   const conversionStats = normalizeConversionStats(conversionsData);
   const hasFailedConversions = Boolean(conversionStats && conversionStats.failedConversions > 0);
-  const mediaLibraryFailedUrl = `${window.fluxMediaAdmin?.adminUrl || '/wp-admin/'}upload.php?flux_optimization_status=failed`;
+  const mediaLibraryFailedUrl = `${window.fluxMediaAdmin?.adminUrl || '/wp-admin/'}upload.php?mode=list&flux_optimization_status=failed`;
 
   const markWelcomeViewed = useCallback(() => apiService.markWelcomeViewed(), []);
   const markReviewViewed = useCallback(() => apiService.markReviewPromptViewed(), []);
@@ -115,6 +121,15 @@ const OverviewPage = () => {
             )}{' '}
             <SupportForumLink label={__('Need help?', 'flux-media-optimizer')} />
           </Alert>
+        </Box>
+      )}
+
+      {bulkEnabled &&
+        bulkStats &&
+        (Number(bulkStats.eligible_remaining ?? 0) > 0 ||
+          Number(bulkStats.pending_actions ?? 0) > 0) && (
+        <Box sx={{ mb: 3 }} data-flux-bulk-overview="1">
+          <BulkStatusAlert stats={bulkStats} loading={false} />
         </Box>
       )}
 

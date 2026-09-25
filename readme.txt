@@ -4,7 +4,7 @@ Tags: media optimizer, video compression, webp, avif, cdn
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 4.3.1
+Stable tag: 4.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -198,6 +198,20 @@ Locally (with FFmpeg): convert to AV1 in an MP4 container and/or WebM, with bitr
 
 == Changelog ==
 
+= 4.4.0 =
+* Feature: Bulk conversion status on Settings and Overview (remaining eligible, queued actions, next discovery, state) via GET /bulk/stats.
+* Feature: Enabling bulk conversion schedules Action Scheduler discovery immediately; disabling unschedules discovery (queued converts still finish).
+* Fix: Bulk discovery only queues image/video MIME types; unsupported types are skipped instead of marked Failed.
+* Fix: Overview failed Media Library link opens list view (`mode=list`).
+* Update: Settings helper text correctly describes Action Scheduler (not WordPress cron).
+* Update: Removed unused conversion/cleanup REST client stubs from the admin JS bundle.
+
+= 4.3.2 =
+* Fix: Optimized videos no longer break Media Library list thumbnails (video URLs were incorrectly used as image sources).
+* Fix: Duplicate completed/failed cloud webhooks are acknowledged idempotently (HTTP 200) to stop retry noise and warning spam.
+* Update: WordPress.org zip includes JS source (`assets/js/src`, `src/assets/common/js/src`) per Guideline 4; maps/tests/node remain excluded.
+* Update: Flux Suite Logs Level filter is All / Debug / Warning / Error (grouped severities).
+
 = 4.3.1 =
 * Tested up to WordPress 7.1.
 * Feature: Welcome modal on first activation shows local image and video processing availability, site-level missing capability chips (formats no local processor can provide), and a subtle CDN/cloud upsell when unlicensed.
@@ -239,6 +253,12 @@ Locally (with FFmpeg): convert to AV1 in an MP4 container and/or WebM, with bitr
 
 
 == Upgrade Notice ==
+
+= 4.4.0 =
+Bulk conversion now shows live queue status on Settings and Overview. Discovery starts immediately when enabled.
+
+= 4.3.2 =
+Fixes broken video thumbnails in the Media Library list view and quiet duplicate cloud webhook warnings. Ships JS source in the plugin zip for WordPress.org Guideline 4.
 
 = 4.3.1 =
 Tested with WordPress 7.1. Adds a one-time welcome modal after activation and a once-ever review prompt after meaningful savings, plus Need help links on failure notices.
@@ -292,6 +312,15 @@ The external service is provided by Flux Plugins:
 * External service requires explicit user consent and license activation
 * You can disable external service at any time to return to local-only processing
 * By default, the plugin uses local processing only
+
+== Source Code ==
+
+Non-minified JavaScript for this plugin and the bundled Flux Plugins Common UI lives in the plugin directory:
+
+* Plugin admin UI: `assets/js/src/`
+* Shared Flux Suite UI (License, Logs, compatibility): `src/assets/common/js/src/`
+
+Compiled bundles ship under `assets/js/dist/` and `src/assets/common/js/dist/`. Build with `npm install` and `npm run build` from the plugin root (and from `flux-plugins-common` when developing shared UI). Source repository: https://github.com/stratease/flux-media-optimizer
 
 == Privacy Policy ==
 

@@ -10,7 +10,7 @@ Registry: `task-dashboard/config/flux-plugin-test.registry.json` → `plugins.fl
 
 | Check ID | Purpose |
 |----------|---------|
-| `flux-media-optimizer.admin-shell` | Settings Overview shell loads |
+| `flux-media-optimizer.admin-shell` | Settings/Overview shell; seeds unfinished PNG; asserts bulk status alert + Next batch |
 | `flux-media-optimizer.heic-upload` | HEIC upload when Imagick libheif available (skips cleanly if not) |
 | `flux-media-optimizer.attachment-details-panel` | Upload PNG → Media Library modal + classic edit → AttachmentCompat island under Copy URL (`data-flux-media-attachment-*`, full-width classic) |
 | `flux-media-optimizer.welcome-modal` | Force-open welcome Dialog via `flux_show_welcome=1`; asserts chips + unlicensed upsell; missing capability chips (if any) stay in the Image/Video row |
@@ -21,7 +21,7 @@ Registry: `task-dashboard/config/flux-plugin-test.registry.json` → `plugins.fl
 | Check ID | Purpose |
 |----------|---------|
 | `flux-media-optimizer.plugin-active` | Plugin remains active after packaging install |
-| `flux-media-optimizer.admin-shell` | Settings Overview shell loads |
+| `flux-media-optimizer.admin-shell` | Settings/Overview shell; seeds unfinished PNG; asserts bulk status alert + Next batch |
 | `flux-media-optimizer.attachment-details-panel` | Attachment details island happy path |
 | `flux-media-optimizer.attachment-details-video` | Video attachment details panel when a video fixture is available |
 | `flux-media-optimizer.welcome-modal` | Welcome Dialog capability chips, site-level missing chips when present, conditional CDN upsell |

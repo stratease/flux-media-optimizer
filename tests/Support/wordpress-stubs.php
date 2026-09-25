@@ -133,6 +133,44 @@ if ( ! function_exists( 'get_post_mime_type' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_attachment_is_image' ) ) {
+	/**
+	 * Stub wp_attachment_is_image using fmo_test_mimetypes.
+	 *
+	 * @since 4.3.2
+	 * @param int $attachment_id Attachment ID.
+	 * @return bool
+	 */
+	function wp_attachment_is_image( $attachment_id ) {
+		$mime = get_post_mime_type( $attachment_id );
+		return is_string( $mime ) && 0 === strpos( $mime, 'image/' );
+	}
+}
+
+if ( ! function_exists( 'is_admin' ) ) {
+	/**
+	 * Stub is_admin (default false for unit tests).
+	 *
+	 * @since 4.3.2
+	 * @return bool
+	 */
+	function is_admin() {
+		return ! empty( $GLOBALS['fmo_test_is_admin'] );
+	}
+}
+
+if ( ! function_exists( 'wp_doing_ajax' ) ) {
+	/**
+	 * Stub wp_doing_ajax (default false for unit tests).
+	 *
+	 * @since 4.3.2
+	 * @return bool
+	 */
+	function wp_doing_ajax() {
+		return ! empty( $GLOBALS['fmo_test_doing_ajax'] );
+	}
+}
+
 if ( ! function_exists( 'wp_check_filetype' ) ) {
 	/**
 	 * Stub wp_check_filetype.
@@ -243,9 +281,33 @@ if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
 	define( 'MINUTE_IN_SECONDS', 60 );
 }
 
+if ( ! defined( 'OBJECT' ) ) {
+	define( 'OBJECT', 'OBJECT' );
+}
+
+if ( ! defined( 'ARRAY_A' ) ) {
+	define( 'ARRAY_A', 'ARRAY_A' );
+}
+
 $GLOBALS['fmo_test_as_scheduled_actions'] = $GLOBALS['fmo_test_as_scheduled_actions'] ?? [];
 $GLOBALS['fmo_test_as_next_action']       = $GLOBALS['fmo_test_as_next_action'] ?? [];
+$GLOBALS['fmo_test_as_recurring_actions'] = $GLOBALS['fmo_test_as_recurring_actions'] ?? [];
 $GLOBALS['fmo_test_actions']              = $GLOBALS['fmo_test_actions'] ?? [];
+
+if ( ! class_exists( 'ActionScheduler_Store', false ) ) {
+	/**
+	 * Minimal Action Scheduler store status constants for unit tests.
+	 *
+	 * @since 4.4.0
+	 */
+	class ActionScheduler_Store {
+		public const STATUS_PENDING = 'pending';
+		public const STATUS_RUNNING = 'in-progress';
+		public const STATUS_COMPLETE = 'complete';
+		public const STATUS_FAILED = 'failed';
+		public const STATUS_CANCELED = 'canceled';
+	}
+}
 
 if ( ! function_exists( 'do_action' ) ) {
 	/**
@@ -305,6 +367,7 @@ if ( ! function_exists( 'as_schedule_single_action' ) ) {
 			'hook'      => $hook,
 			'args'      => $args,
 			'group'     => $group,
+			'status'    => ActionScheduler_Store::STATUS_PENDING,
 		];
 		$GLOBALS['fmo_test_as_next_action'][ $hook . '|' . wp_json_encode( $args ) . '|' . (string) $group ] = (int) $timestamp;
 		$GLOBALS['fmo_test_as_next_action'][ $hook . '|' . wp_json_encode( $args ) ] = (int) $timestamp;
@@ -361,6 +424,141 @@ if ( ! function_exists( 'as_unschedule_action' ) ) {
 					return false;
 				}
 			)
+		);
+	}
+}
+
+if ( ! function_exists( 'as_schedule_recurring_action' ) ) {
+	/**
+	 * Stub as_schedule_recurring_action.
+	 *
+	 * @param int    $timestamp Timestamp.
+	 * @param int    $interval  Interval seconds.
+	 * @param string $hook      Hook.
+	 * @param array  $args      Args.
+	 * @param string $group     Group.
+	 * @return int
+	 */
+	function as_schedule_recurring_action( $timestamp, $interval, $hook, $args = [], $group = '' ) {
+		$action_id = count( $GLOBALS['fmo_test_as_scheduled_actions'] ) + 1;
+		$record    = [
+			'id'        => $action_id,
+			'timestamp' => (int) $timestamp,
+			'interval'  => (int) $interval,
+			'hook'      => $hook,
+			'args'      => $args,
+			'group'     => $group,
+			'recurring' => true,
+			'status'    => ActionScheduler_Store::STATUS_PENDING,
+		];
+		$GLOBALS['fmo_test_as_scheduled_actions'][] = $record;
+		$GLOBALS['fmo_test_as_recurring_actions'][] = $record;
+		$GLOBALS['fmo_test_as_next_action'][ $hook . '|' . wp_json_encode( $args ) . '|' . (string) $group ] = (int) $timestamp;
+		$GLOBALS['fmo_test_as_next_action'][ $hook . '|' . wp_json_encode( $args ) ] = (int) $timestamp;
+		return $action_id;
+	}
+}
+
+if ( ! function_exists( 'as_unschedule_all_actions' ) ) {
+	/**
+	 * Stub as_unschedule_all_actions.
+	 *
+	 * @param string     $hook  Hook.
+	 * @param array|null $args  Args.
+	 * @param string     $group Group.
+	 * @return void
+	 */
+	function as_unschedule_all_actions( $hook, $args = null, $group = '' ) {
+		$GLOBALS['fmo_test_as_scheduled_actions'] = array_values(
+			array_filter(
+				$GLOBALS['fmo_test_as_scheduled_actions'],
+				static function ( $action ) use ( $hook, $args, $group ) {
+					if ( ( $action['hook'] ?? '' ) !== $hook ) {
+						return true;
+					}
+					if ( null !== $args && ( $action['args'] ?? null ) != $args ) {
+						return true;
+					}
+					if ( '' !== $group && ( $action['group'] ?? '' ) !== $group ) {
+						return true;
+					}
+					return false;
+				}
+			)
+		);
+		$GLOBALS['fmo_test_as_recurring_actions'] = array_values(
+			array_filter(
+				$GLOBALS['fmo_test_as_recurring_actions'],
+				static function ( $action ) use ( $hook, $args, $group ) {
+					if ( ( $action['hook'] ?? '' ) !== $hook ) {
+						return true;
+					}
+					if ( null !== $args && ( $action['args'] ?? null ) != $args ) {
+						return true;
+					}
+					if ( '' !== $group && ( $action['group'] ?? '' ) !== $group ) {
+						return true;
+					}
+					return false;
+				}
+			)
+		);
+		foreach ( array_keys( $GLOBALS['fmo_test_as_next_action'] ) as $key ) {
+			if ( 0 === strpos( $key, $hook . '|' ) ) {
+				unset( $GLOBALS['fmo_test_as_next_action'][ $key ] );
+			}
+		}
+	}
+}
+
+if ( ! function_exists( 'as_get_scheduled_actions' ) ) {
+	/**
+	 * Stub as_get_scheduled_actions.
+	 *
+	 * @param array  $args     Query args.
+	 * @param string $return_format ids|OBJECT|ARRAY_A.
+	 * @return array
+	 */
+	function as_get_scheduled_actions( $args = [], $return_format = OBJECT ) {
+		$hook   = $args['hook'] ?? null;
+		$status = $args['status'] ?? null;
+		$group  = $args['group'] ?? '';
+		$matched = array_values(
+			array_filter(
+				$GLOBALS['fmo_test_as_scheduled_actions'],
+				static function ( $action ) use ( $hook, $status, $group ) {
+					if ( null !== $hook && ( $action['hook'] ?? '' ) !== $hook ) {
+						return false;
+					}
+					if ( null !== $status && ( $action['status'] ?? ActionScheduler_Store::STATUS_PENDING ) !== $status ) {
+						return false;
+					}
+					if ( '' !== $group && ( $action['group'] ?? '' ) !== $group ) {
+						return false;
+					}
+					return true;
+				}
+			)
+		);
+
+		if ( 'ids' === $return_format ) {
+			return array_map(
+				static function ( $action ) {
+					return (int) ( $action['id'] ?? 0 );
+				},
+				$matched
+			);
+		}
+
+		if ( ARRAY_A === $return_format || 'ARRAY_A' === $return_format ) {
+			return $matched;
+		}
+
+		return array_map(
+			static function ( $action ) {
+				return (object) $action;
+			},
+			$matched
 		);
 	}
 }

@@ -10,7 +10,7 @@ One-click AVIF/WebP image optimization and video compression for WordPress. Auto
 - **Modern formats**: Creates WebP and/or AVIF outputs based on Settings (both enabled by default)
 - **Smart Serving**: Direct URL replacement by default; optional experimental hybrid `<picture>` serving (`image_hybrid_approach`, off by default)
 - **Quality Control**: Configurable quality settings with version-specific AVIF optimization
-- **Automatic Processing**: Convert on upload and bulk process existing media
+- **Automatic Processing**: Convert on upload and bulk process existing media (Action Scheduler discovery; shared Settings/Overview `BulkStatusAlert` with live Next batch countdown)
 - **Media Library Status**: Optimization column and filters in the Media Library list view (Optimized, Pending, Failed, Disabled, Unprocessed)
 - **WordPress Integration**: Seamless integration with Gutenberg blocks and responsive images
 - **GIF Support**: Full support for static and animated GIFs with animation preservation (requires Imagick)
@@ -65,7 +65,7 @@ Used when external (SaaS) processing is enabled with a **valid license**. The ro
 | Signing | No HMAC/request signing today — protect `account_id` as a secret; rate limits and CDN host allowlist mitigate abuse |
 | Rate limiting | `FLUX_MEDIA_OPTIMIZER_WEBHOOK_RATE_LIMIT` requests per `FLUX_MEDIA_OPTIMIZER_WEBHOOK_RATE_WINDOW` seconds (defaults: 60 per 60s). Non-positive limit/window values fail closed (reject) |
 | Attachment | Must be an existing `attachment` post |
-| Job state | Updates only when state is `queued` or `processing` |
+| Job state | Accepts updates when state is `queued` or `processing`. Duplicate terminal callbacks (`completed→completed`, `failed→failed`) are acknowledged with HTTP 200 and do not re-write meta (idempotent redelivery). Mismatched terminals and orphan callbacks are rejected |
 | CDN URLs | Must use **HTTPS**. Host must appear on allowlist: `FLUX_MEDIA_OPTIMIZER_DEFAULT_CDN_HOSTS`, host from `FLUX_MEDIA_OPTIMIZER_EXTERNAL_SERVICE_URL`, plus `FLUX_MEDIA_OPTIMIZER_CDN_HOST_ALLOWLIST` |
 
 Override defaults in `wp-config.php` when needed (staging CDN host, stricter limits):
@@ -102,7 +102,7 @@ define( 'FLUX_MEDIA_OPTIMIZER_CLEANUP_BATCH_SIZE', 25 );
 
 Local optimization, Media Library status, settings, and logs are **not** license-gated.
 
-Most plugin REST routes (`flux-media-optimizer/v1`: options, status, conversions) require `manage_options`. `GET /attachments/{id}/details` requires `edit_post` on the attachment. Suite logs use `flux-plugins-common/v1/logs` (filter with `plugin_slug=flux-media-optimizer`).
+Most plugin REST routes (`flux-media-optimizer/v1`: options, status, conversions, bulk) require `manage_options`. `GET /attachments/{id}/details` requires `edit_post` on the attachment. Suite logs use `flux-plugins-common/v1/logs` (filter with `plugin_slug=flux-media-optimizer`).
 
 External API base URL/timeout: bootstrap aligns `FLUX_MEDIA_OPTIMIZER_EXTERNAL_SERVICE_*` with `FLUX_PLUGINS_COMMON_EXTERNAL_SERVICE_*` (common wins when both are set; otherwise plugin overrides populate common).
 
@@ -126,7 +126,7 @@ The panel shows media-neutral size accordion rows (images: registered sizes; vid
 
 Convert / Disable / Enable require `edit_post` on the attachment and use authenticated admin-ajax actions (`wp_ajax_flux_media_optimizer_*`), not REST writes. Convert / Re-convert is disabled while conversion is submitted or deferred (`processing` in the presenter payload). A CDN upsell links to `https://fluxplugins.com/buy` (with UTM params; see [Outbound UTM tracking](#outbound-utm-tracking)) only when the license is **not** valid.
 
-The attachment webpack entry (`assets/js/src/admin/attachment.js` → `assets/js/dist/attachment.bundle.js`) is **self-contained**: React, ReactDOM, MUI, Emotion, TanStack Query, theme, and attachment components are bundled. WordPress script dependencies stay an empty array because the entry imports no `@wordpress/*` packages. Production bundles are Git-tracked; source maps and `assets/js/src` are excluded from the WordPress.org zip via flux-plugins-common distribution excludes. The entry hydrates existing mount nodes with an idempotent DOM scan + `MutationObserver` (AttachmentCompat HTML swaps and classic edit); it does **not** inject markup into `.attachment-details`.
+The attachment webpack entry (`assets/js/src/admin/attachment.js` → `assets/js/dist/attachment.bundle.js`) is **self-contained**: React, ReactDOM, MUI, Emotion, TanStack Query, theme, and attachment components are bundled. WordPress script dependencies stay an empty array because the entry imports no `@wordpress/*` packages. Production bundles are Git-tracked; source maps are excluded from the WordPress.org zip. Plugin and common JS source (`assets/js/src`, `src/assets/common/js/src`) ship in the zip for WordPress.org Guideline 4. The entry hydrates existing mount nodes with an idempotent DOM scan + `MutationObserver` (AttachmentCompat HTML swaps and classic edit); it does **not** inject markup into `.attachment-details`.
 
 **Layout density** uses CSS **container queries** on `.flux-media-optimizer-attachment-root` (`container-type: inline-size`), not MUI viewport breakpoints (`sm` / `md` / `lg` / `useMediaQuery`). Compact stacked layout (per-field labels, no table column headers, single-column variant cards) applies when the **parent container** is **≤ 480px** wide (typical media modal sidebar). Comfortable horizontal summary + multi-column cards apply above that. Panel title and Core badge use ellipsis overflow with tooltip + `aria-label` for the full string. Ephemeral check `flux-media-optimizer.attachment-details-panel` asserts modal mount is inside AttachmentCompat under Copy URL, classic width matches the Description column, action controls are present, and narrow containment holds.
 
@@ -254,6 +254,7 @@ This plugin uses a modern, decoupled architecture that separates business logic 
 - **External Optimization**: `ExternalOptimizationProvider` manages communication with the SaaS processing service and CDN
 - **Cleanup**: `CleanupService` handles daily stale-job recovery, notice cleanup, and enqueueing eligible retries
 - **Conversion orchestration**: `ConversionOrchestrator` + `ConversionRequest` / `ConversionDispatchResult` unify upload, manual, bulk, and retry entry paths
+- **Bulk conversion visibility**: `BulkStatsService` + `GET /bulk/stats` power shared `BulkStatusAlert` on Settings (always when enabled) and Overview (only when eligible remaining or queued actions > 0); Next batch uses Action Scheduler Unix `next_discovery_at` with a browser-local live countdown; discovery kicks on enable and unschedules on disable
 - **Conversion retries**: `ConversionRetryService` owns bounded Action Scheduler retries (group `ActionSchedulerGroups::MEDIA_OPTIMIZER`) with `MediaAwareRetryDelayPolicy`
 - **Atomic artifacts**: `ConversionArtifactTransaction` stages image outputs until all sizes/formats succeed
 - **Attachment details**: `AttachmentDetailsPresenter` is the SSOT payload for the Media Library React island; `AttachmentDetailsMountRenderer` emits the skeleton mount via AttachmentCompat (`build_compat_tr`); `GET /attachments/{id}/details` serves async loads; `AdminScriptUrl` resolves admin/attachment bundle URLs
@@ -263,7 +264,7 @@ This plugin uses a modern, decoupled architecture that separates business logic 
 
 ### Release packaging
 
-Use shared `./vendor/bin/build-plugin.sh` (or the thin `bin/build-plugin.sh` wrapper that execs it). Optional `bin/plugin-dist-required-files.txt` lists required runtime artifacts for `verify-plugin-distribution.sh`. Commit production `assets/js/dist/*.bundle.js` and common runtime assets; exclude maps, webpack HTML, and `assets/js/src` from the WordPress.org zip.
+Use shared `./vendor/bin/build-plugin.sh` (or the thin `bin/build-plugin.sh` wrapper that execs it). Optional `bin/plugin-dist-required-files.txt` lists required runtime artifacts for `verify-plugin-distribution.sh`. Commit production `assets/js/dist/*.bundle.js` and common runtime assets; exclude maps and webpack HTML from the WordPress.org zip. Include `assets/js/src` and `src/assets/common/js/src` (Guideline 4).
 
 ## 📁 Project Structure
 
@@ -290,6 +291,7 @@ Plugin REST endpoints are prefixed with `/wp-json/flux-media-optimizer/v1/`:
 - `GET /options` - Plugin options
 - `POST /options` - Update plugin options
 - `GET /conversions/stats` - Conversion statistics
+- `GET /bulk/stats` - Bulk conversion queue statistics (`enabled`, `eligible_remaining`, `pending_actions`, `next_discovery_at`, `state`; requires `manage_options`)
 - `GET /attachments/{id}/details` - Attachment optimization panel payload (requires `edit_post` on the attachment)
 - `POST /welcome/viewed` - Clear once-ever welcome modal flag (`manage_options`)
 - `POST /review-prompt/viewed` - Mark once-ever review prompt consumed (`manage_options`)

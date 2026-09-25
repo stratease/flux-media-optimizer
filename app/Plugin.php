@@ -21,6 +21,8 @@ use FluxMedia\App\Http\Controllers\AttachmentDetailsController;
 use FluxMedia\App\Http\Controllers\OptionsController;
 use FluxMedia\App\Http\Controllers\StatusController;
 use FluxMedia\App\Http\Controllers\ConversionsController;
+use FluxMedia\App\Http\Controllers\BulkController;
+use FluxMedia\App\Services\BulkStatsService;
 use FluxMedia\App\Http\Controllers\WebhookController;
 use FluxMedia\App\Http\Controllers\WelcomeController;
 use FluxMedia\App\Http\Controllers\ReviewPromptController;
@@ -70,6 +72,14 @@ class Plugin {
      * @var Settings
      */
     private $settings;
+
+    /**
+     * Bulk converter instance (shared with REST bulk stats).
+     *
+     * @since 4.4.0
+     * @var BulkConverter
+     */
+    private $bulk_converter;
 
     /**
      * Image converter instance.
@@ -127,6 +137,7 @@ class Plugin {
             $this->wordpress_provider
         );
         $bulk_converter = new BulkConverter( $this->logger, $service_locator, $conversion_tracker );
+        $this->bulk_converter = $bulk_converter;
         $service_locator->init();
         $this->wordpress_provider->set_service_locator( $service_locator );
 
@@ -245,6 +256,8 @@ class Plugin {
         $options_controller = new OptionsController( $this->settings );
         $status_controller = new StatusController( $format_detector, $processor_detector );
         $conversions_controller = new ConversionsController( $conversion_tracker );
+        $bulk_stats_service = new BulkStatsService( $this->bulk_converter );
+        $bulk_controller = new BulkController( $bulk_stats_service );
         $attachment_details_presenter = new AttachmentDetailsPresenter( $format_detector );
         $attachment_details_controller = new AttachmentDetailsController( $attachment_details_presenter );
         $welcome_controller = new WelcomeController();
@@ -252,6 +265,7 @@ class Plugin {
         $options_controller->register_routes();
         $status_controller->register_routes();
         $conversions_controller->register_routes();
+        $bulk_controller->register_routes();
         $attachment_details_controller->register_routes();
         $welcome_controller->register_routes();
         $review_prompt_controller->register_routes();

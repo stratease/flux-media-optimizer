@@ -8,3 +8,7 @@ src/assets/common/js/dist/logs-page.bundle.js
 src/assets/common/js/dist/compatibility-dismiss.bundle.js
 src/assets/common/js/dist/images/cropped-flux-icon-rounded-square.webp
 assets/fixtures/heif-sequence-probe.heif
+assets/js/src/admin/index.js
+src/assets/common/js/src/components/Logs/LogsPage.js
+README.md
+CONTRIBUTING.md

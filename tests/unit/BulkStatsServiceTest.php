@@ -42,7 +42,7 @@ class BulkStatsServiceTest extends TestCase {
 	 */
 	public function testStateOffWhenDisabled() {
 		$service = $this->makeService( 12 );
-		$state   = $service->derive_state( false, 12, [] );
+		$state   = $service->derive_state( false, 12, 0 );
 		$this->assertSame( BulkStatsService::STATE_OFF, $state );
 	}
 
@@ -54,7 +54,7 @@ class BulkStatsServiceTest extends TestCase {
 	 */
 	public function testStateIdleWhenEnabledWithBacklog() {
 		$service = $this->makeService( 5 );
-		$this->assertSame( BulkStatsService::STATE_IDLE, $service->derive_state( true, 5, [] ) );
+		$this->assertSame( BulkStatsService::STATE_IDLE, $service->derive_state( true, 5, 0 ) );
 	}
 
 	/**
@@ -65,7 +65,7 @@ class BulkStatsServiceTest extends TestCase {
 	 */
 	public function testStateCompleteWhenNothingLeft() {
 		$service = $this->makeService( 0 );
-		$this->assertSame( BulkStatsService::STATE_COMPLETE, $service->derive_state( true, 0, [] ) );
+		$this->assertSame( BulkStatsService::STATE_COMPLETE, $service->derive_state( true, 0, 0 ) );
 	}
 
 	/**
@@ -76,10 +76,7 @@ class BulkStatsServiceTest extends TestCase {
 	 */
 	public function testStateQueuedWhenPendingInFuture() {
 		$service = $this->makeService( 3 );
-		$pending = [
-			[ 'timestamp' => time() + 120 ],
-		];
-		$this->assertSame( BulkStatsService::STATE_QUEUED, $service->derive_state( true, 3, $pending ) );
+		$this->assertSame( BulkStatsService::STATE_QUEUED, $service->derive_state( true, 3, 1, time() + 120 ) );
 	}
 
 	/**
@@ -90,10 +87,7 @@ class BulkStatsServiceTest extends TestCase {
 	 */
 	public function testStateWorkingWhenPendingDue() {
 		$service = $this->makeService( 3 );
-		$pending = [
-			[ 'timestamp' => time() - 30 ],
-		];
-		$this->assertSame( BulkStatsService::STATE_WORKING, $service->derive_state( true, 3, $pending ) );
+		$this->assertSame( BulkStatsService::STATE_WORKING, $service->derive_state( true, 3, 1, time() - 30 ) );
 	}
 
 	/**
@@ -104,10 +98,8 @@ class BulkStatsServiceTest extends TestCase {
 	 */
 	public function testStateStuckWhenPendingPastThreshold() {
 		$service = $this->makeService( 1 );
-		$pending = [
-			[ 'timestamp' => time() - (int) FLUX_MEDIA_OPTIMIZER_STALE_JOB_THRESHOLD - 10 ],
-		];
-		$this->assertSame( BulkStatsService::STATE_STUCK, $service->derive_state( true, 1, $pending ) );
+		$oldest  = time() - (int) FLUX_MEDIA_OPTIMIZER_STALE_JOB_THRESHOLD - 10;
+		$this->assertSame( BulkStatsService::STATE_STUCK, $service->derive_state( true, 1, 1, $oldest ) );
 	}
 
 	/**
@@ -142,6 +134,32 @@ class BulkStatsServiceTest extends TestCase {
 		$this->assertSame( 7, $stats['eligible_remaining'] );
 		$this->assertSame( 1, $stats['pending_actions'] );
 		$this->assertNotNull( $stats['next_discovery_at'] );
+		$this->assertSame( BulkStatsService::STATE_QUEUED, $stats['state'] );
+	}
+
+	/**
+	 * Pending count is the full queue, not Action Scheduler's default page of 5.
+	 *
+	 * @since 4.4.1
+	 * @return void
+	 */
+	public function testGetStatsPendingCountIsNotCappedAtFive() {
+		$GLOBALS['fmo_test_options'][ Settings::get_options_option_name() ] = [
+			'bulk_conversion_enabled' => true,
+		];
+
+		for ( $i = 0; $i < 6; $i++ ) {
+			as_schedule_single_action(
+				time() + 60 + $i,
+				'flux_media_optimizer_convert_attachment',
+				[ 'attachment_id' => 20 + $i ],
+				'flux-media-optimizer'
+			);
+		}
+
+		$stats = $this->makeService( 6 )->get_stats();
+
+		$this->assertSame( 6, $stats['pending_actions'] );
 		$this->assertSame( BulkStatsService::STATE_QUEUED, $stats['state'] );
 	}
 

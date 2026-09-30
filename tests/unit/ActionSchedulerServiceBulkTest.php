@@ -37,9 +37,10 @@ class ActionSchedulerServiceBulkTest extends TestCase {
 	}
 
 	/**
-	 * Enabling schedules discovery and kicks when idle.
+	 * Enabling schedules discovery and does not convert inside the settings request.
 	 *
 	 * @since 4.4.0
+	 * @since 4.4.1 Discovery is scheduled only; convert work waits for Action Scheduler.
 	 * @return void
 	 */
 	public function testOnEnableSchedulesAndKicksDiscovery() {
@@ -48,7 +49,7 @@ class ActionSchedulerServiceBulkTest extends TestCase {
 		];
 
 		$bulk = $this->createMock( BulkConverter::class );
-		$bulk->expects( $this->once() )->method( 'handle_bulk_discovery' );
+		$bulk->expects( $this->never() )->method( 'handle_bulk_discovery' );
 
 		$service = new ActionSchedulerService(
 			$this->createMock( Logger::class ),
@@ -60,6 +61,8 @@ class ActionSchedulerServiceBulkTest extends TestCase {
 
 		$this->assertNotEmpty( $GLOBALS['fmo_test_as_recurring_actions'] );
 		$this->assertSame( 'flux_media_optimizer_bulk_discovery', $GLOBALS['fmo_test_as_recurring_actions'][0]['hook'] );
+		$now = time();
+		$this->assertSame( $now + 10, BulkConverter::discovery_schedule_time( 0, $now ) );
 	}
 
 	/**

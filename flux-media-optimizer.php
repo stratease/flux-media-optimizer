@@ -3,7 +3,7 @@
  * Plugin Name: Flux Media Optimizer – Image & Video Optimization by Flux Plugins
  * Plugin URI: https://fluxplugins.com/media-optimizer?utm_source=flux-media-optimizer&utm_medium=plugin&utm_campaign=plugin-uri&utm_content=plugins-list
  * Description: One-click image (AVIF & WebP) and video optimization for WordPress.
- * Version: 4.4.0
+ * Version: 4.4.1
  * Author: Flux Plugins
  * Author URI: https://fluxplugins.com?utm_source=flux-media-optimizer&utm_medium=plugin&utm_campaign=author-uri&utm_content=plugins-list
  * License: GPL-2.0+
@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'FLUX_MEDIA_OPTIMIZER_VERSION', '4.4.0' );
+define( 'FLUX_MEDIA_OPTIMIZER_VERSION', '4.4.1' );
 define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_FILE', __FILE__ );
 define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FLUX_MEDIA_OPTIMIZER_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -359,7 +359,6 @@ function flux_media_optimizer_activation_redirect() {
 // Activation and deactivation hooks.
 register_activation_hook( __FILE__, 'flux_media_optimizer_activate' );
 register_deactivation_hook( __FILE__, 'flux_media_optimizer_deactivate' );
-register_uninstall_hook( __FILE__, 'flux_media_optimizer_uninstall' );
 
 /**
  * Plugin activation handler.
@@ -446,76 +445,3 @@ function flux_media_optimizer_abort_activation( $message ) {
 	);
 }
 
-/**
- * Plugin uninstall handler.
- *
- * @since 2.0.1
- * @since 3.0.0 Added WP_UNINSTALL_PLUGIN security check.
- * @since 4.2.1 Removes correct option keys; preserves shared flux-plugins_account_id for other suite plugins.
- */
-function flux_media_optimizer_uninstall() {
-	defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
-
-	global $wpdb;
-
-	// Initialize WordPress filesystem.
-	WP_Filesystem();
-
-	if ( file_exists( FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
-		require_once FLUX_MEDIA_OPTIMIZER_PLUGIN_DIR . 'vendor/autoload.php';
-	}
-
-	if ( class_exists( 'FluxMedia\App\Services\Database' ) ) {
-		FluxMedia\App\Services\Database::drop_tables();
-	}
-
-	$options = class_exists( 'FluxMedia\App\Services\Settings' )
-		? FluxMedia\App\Services\Settings::get_uninstall_option_names()
-		: [ 'flux_media_optimizer_options' ];
-
-	foreach ( $options as $option ) {
-		delete_option( $option );
-		delete_site_option( $option );
-	}
-
-	// Remove post meta for all attachments.
-	$wpdb->query(
-		$wpdb->prepare(
-			"DELETE FROM {$wpdb->postmeta} WHERE meta_key LIKE %s",
-			$wpdb->esc_like( '_flux_media_optimizer_' ) . '%'
-		)
-	);
-
-	// Remove converted files from uploads directory using WordPress filesystem.
-	$upload_dir = wp_upload_dir();
-	$flux_media_optimizer_dir = $upload_dir['basedir'] . '/flux-media-optimizer-converted';
-
-	if ( is_dir( $flux_media_optimizer_dir ) ) {
-		// Use WordPress filesystem to remove directory and all contents.
-		global $wp_filesystem;
-		if ( $wp_filesystem && $wp_filesystem->is_dir( $flux_media_optimizer_dir ) ) {
-			$wp_filesystem->rmdir( $flux_media_optimizer_dir, true );
-		} else {
-			// Fallback: Remove files individually using wp_delete_file().
-			$files = glob( $flux_media_optimizer_dir . '/*' );
-			foreach ( $files as $file ) {
-				if ( is_file( $file ) ) {
-					wp_delete_file( $file );
-				}
-			}
-		}
-	}
-
-	// Clear any scheduled WP Cron jobs.
-	wp_clear_scheduled_hook( 'flux_media_optimizer_cleanup' );
-	// Note: Action Scheduler actions are automatically cleaned up by Action Scheduler
-
-	// Remove any transients.
-	$wpdb->query(
-		$wpdb->prepare(
-			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
-			$wpdb->esc_like( '_transient_flux_media_optimizer_' ) . '%',
-			$wpdb->esc_like( '_transient_timeout_flux_media_optimizer_' ) . '%'
-		)
-	);
-}

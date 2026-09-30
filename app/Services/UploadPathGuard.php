@@ -11,7 +11,8 @@ namespace FluxMedia\App\Services;
 /**
  * Uploads-root containment helpers for local path and URL safety checks.
  *
- * Content read/write/delete stays on WP_Filesystem at call sites. This class uses
+ * Content reads and writes may use WP_Filesystem at call sites. Deletes of converted
+ * files use wp_delete_file() after these containment checks. This class uses
  * native file_exists()/realpath() intentionally: WP_Filesystem has no symlink-safe
  * canonicalization API, and containment checks require resolving .. and links
  * before prefix comparison. Prefer wp_normalize_path() and wp_parse_url() for

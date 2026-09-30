@@ -164,6 +164,14 @@ class AttachmentMetaHandler {
 	 */
 	const META_KEY_CONVERSION_ERROR = '_flux_media_optimizer_conversion_error';
 
+	/**
+	 * Meta key marking an attachment ineligible for local bulk optimization.
+	 *
+	 * @since 4.4.1
+	 * @var string
+	 */
+	const META_KEY_INELIGIBLE = '_flux_media_optimizer_ineligible';
+
 
 	/**
 	 * Get converted formats for an attachment.
@@ -268,7 +276,11 @@ class AttachmentMetaHandler {
 	 * @return bool|int Meta ID if the key didn't exist, true on successful update, false on failure.
 	 */
 	public static function set_conversion_disabled( $attachment_id, $disabled = true ) {
-		return update_post_meta( $attachment_id, self::META_KEY_CONVERSION_DISABLED, $disabled ? '1' : '' );
+		$updated = update_post_meta( $attachment_id, self::META_KEY_CONVERSION_DISABLED, $disabled ? '1' : '' );
+		if ( $disabled ) {
+			self::invalidate_eligible_count_cache();
+		}
+		return $updated;
 	}
 
 	/**
@@ -486,6 +498,8 @@ class AttachmentMetaHandler {
 		self::delete_file_urls( $attachment_id );
 		self::delete_converted_files_grouped_by_size( $attachment_id );
 		self::clear_conversion_failure( $attachment_id );
+		self::clear_ineligible( $attachment_id );
+		self::invalidate_eligible_count_cache();
 
 		// Clear conversion tracking data (database table)
 		\FluxMedia\App\Services\ConversionTracker::delete_attachment_conversions( $attachment_id );
@@ -528,6 +542,8 @@ class AttachmentMetaHandler {
 
 		update_post_meta( $attachment_id, self::META_KEY_CONVERSION_ERROR, $message );
 		self::set_external_job_state( $attachment_id, 'failed' );
+		self::clear_ineligible( $attachment_id );
+		self::invalidate_eligible_count_cache();
 
 		/**
 		 * Fires after conversion failure meta is persisted.
@@ -570,7 +586,65 @@ class AttachmentMetaHandler {
 		}
 
 		self::clear_conversion_failure( $attachment_id );
+		self::clear_ineligible( $attachment_id );
 		self::reset_retry_count( $attachment_id );
+		self::invalidate_eligible_count_cache();
+	}
+
+	/**
+	 * Whether local bulk should skip this attachment.
+	 *
+	 * @since 4.4.1
+	 * @param int $attachment_id Attachment ID.
+	 * @return bool
+	 */
+	public static function is_ineligible( $attachment_id ) {
+		return '1' === (string) get_post_meta( (int) $attachment_id, self::META_KEY_INELIGIBLE, true );
+	}
+
+	/**
+	 * Persist a terminal ineligible flag so local bulk stops selecting the attachment.
+	 *
+	 * @since 4.4.1
+	 * @param int $attachment_id Attachment ID.
+	 * @return void
+	 */
+	public static function mark_ineligible( $attachment_id ) {
+		$attachment_id = (int) $attachment_id;
+		if ( $attachment_id <= 0 ) {
+			return;
+		}
+
+		update_post_meta( $attachment_id, self::META_KEY_INELIGIBLE, '1' );
+		self::invalidate_eligible_count_cache();
+	}
+
+	/**
+	 * Clear the ineligible flag so a later manual convert can run.
+	 *
+	 * @since 4.4.1
+	 * @param int $attachment_id Attachment ID.
+	 * @return void
+	 */
+	public static function clear_ineligible( $attachment_id ) {
+		$attachment_id = (int) $attachment_id;
+		if ( $attachment_id <= 0 ) {
+			return;
+		}
+
+		delete_post_meta( $attachment_id, self::META_KEY_INELIGIBLE );
+	}
+
+	/**
+	 * Drop cached bulk eligible counts after a terminal meta write.
+	 *
+	 * @since 4.4.1
+	 * @return void
+	 */
+	private static function invalidate_eligible_count_cache() {
+		if ( method_exists( BulkConverter::class, 'invalidate_eligible_count_cache' ) ) {
+			BulkConverter::invalidate_eligible_count_cache();
+		}
 	}
 
 	/**

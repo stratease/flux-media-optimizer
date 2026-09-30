@@ -389,58 +389,12 @@ class WordPressProvider {
             return;
         }
 
-        // Initialize WordPress filesystem
-        if ( ! function_exists( 'WP_Filesystem' ) ) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
-        }
-        WP_Filesystem();
-        
-        global $wp_filesystem;
-        
-        $deleted_count = 0;
-        $total_count = 0;
-
-        // Delete files from size-specific structure
-        if ( ! empty( $converted_files_by_size ) ) {
-            foreach ( $converted_files_by_size as $size_name => $size_formats ) {
-                if ( ! is_array( $size_formats ) ) {
-                    continue;
-                }
-                foreach ( $size_formats as $format => $data ) {
-                    // Extract URL/path from unified structure
-                    $url_or_path = null;
-                    if ( is_array( $data ) && isset( $data['url'] ) ) {
-                        $url_or_path = $data['url'];
-                    } elseif ( is_string( $data ) ) {
-                        $url_or_path = $data;
-                    }
-                    
-                    // Skip if invalid or CDN URL
-                    if ( ! is_string( $url_or_path ) || empty( $url_or_path ) ) {
-                        continue;
-                    }
-                    
-                    // Skip CDN URLs (only remove from meta, don't delete)
-                    if ( AttachmentMetaHandler::is_file_url( $url_or_path ) ) {
-                        continue;
-                    }
-                    
-                    $total_count++;
-                    if ( $wp_filesystem && $wp_filesystem->exists( $url_or_path ) && $wp_filesystem->delete( $url_or_path ) ) {
-                        $deleted_count++;
-                        $this->logger->info( "Deleted converted file: {$url_or_path} (size: {$size_name}, format: {$format})" );
-                    } else {
-                        $this->logger->warning( "Failed to delete converted file: {$url_or_path} (size: {$size_name}, format: {$format})" );
-                    }
-                }
-            }
-        }
-        
+        $deleted_count = LocalConvertedFileDeleter::delete_grouped( $converted_files_by_size );
 
         // Clear post meta data
         AttachmentMetaHandler::delete_all( $attachment_id );
 
-        $this->logger->info( "Deleted {$deleted_count}/{$total_count} converted files for attachment {$attachment_id}" );
+        $this->logger->info( "Deleted {$deleted_count} converted files for attachment {$attachment_id}" );
     }
 
     /**
@@ -477,61 +431,14 @@ class WordPressProvider {
             return true; // Nothing to delete
         }
 
-        // Initialize WordPress filesystem
-        if ( ! function_exists( 'WP_Filesystem' ) ) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
-        }
-        WP_Filesystem();
-        
-        global $wp_filesystem;
-        
-        $deleted_count = 0;
-        $total_count = 0;
-
-        // Delete files from size-specific structure
-        if ( ! empty( $converted_files_by_size ) ) {
-            foreach ( $converted_files_by_size as $size_name => $size_formats ) {
-                if ( ! is_array( $size_formats ) ) {
-                    continue;
-                }
-                foreach ( $size_formats as $format => $data ) {
-                    // Extract URL/path from unified structure.
-                    if ( ! is_array( $data ) || ! isset( $data['url'] ) ) {
-                        continue;
-                    }
-                    
-                    $url_or_path = $data['url'];
-                    
-                    // Ensure url_or_path is a string (skip if invalid)
-                    if ( ! is_string( $url_or_path ) || empty( $url_or_path ) ) {
-                        continue;
-                    }
-                    $total_count++;
-                    
-                    // Check if it's a URL (CDN) - skip deletion for URLs, only remove from meta.
-                    if ( AttachmentMetaHandler::is_file_url( $url_or_path ) ) {
-                        $this->logger->info( "Skipped deletion of CDN URL: {$url_or_path} (size: {$size_name}, format: {$format})" );
-                        continue;
-                    }
-                    
-                    // It's a file path, proceed with deletion.
-                    if ( $wp_filesystem && $wp_filesystem->exists( $url_or_path ) && $wp_filesystem->delete( $url_or_path ) ) {
-                        $deleted_count++;
-                        $this->logger->debug( "Deleted converted file: {$url_or_path} (size: {$size_name}, format: {$format})" );
-                    } else {
-                        $this->logger->warning( "Failed to delete converted file: {$url_or_path} (size: {$size_name}, format: {$format})" );
-                    }
-                }
-            }
-        }
-        
+        $deleted_count = LocalConvertedFileDeleter::delete_grouped( $converted_files_by_size );
 
         // Clear post meta data
         AttachmentMetaHandler::delete_all( $attachment_id );
 
-        $this->logger->debug( "Deleted {$deleted_count}/{$total_count} converted files for attachment {$attachment_id}" );
+        $this->logger->debug( "Deleted {$deleted_count} converted files for attachment {$attachment_id}" );
 
-        return $deleted_count === $total_count;
+        return true;
     }
 
     /**

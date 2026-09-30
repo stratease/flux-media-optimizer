@@ -96,15 +96,15 @@ class BulkStatsService {
 	public function get_stats(): array {
 		$enabled = Settings::is_bulk_conversion_enabled();
 
-		$pending_actions = $this->get_pending_convert_actions();
-		$pending_count   = count( $pending_actions );
-		$eligible        = $enabled || $pending_count > 0
+		$pending       = $this->get_pending_convert_snapshot();
+		$pending_count = $pending['count'];
+		$eligible      = $enabled || $pending_count > 0
 			? $this->bulk_converter->count_eligible_media()
 			: 0;
 
 		$next_discovery = null;
 		if ( $enabled && function_exists( 'as_next_scheduled_action' ) ) {
-			$next = as_next_scheduled_action(
+			$next           = as_next_scheduled_action(
 				'flux_media_optimizer_bulk_discovery',
 				[],
 				ActionSchedulerGroups::MEDIA_OPTIMIZER
@@ -113,11 +113,11 @@ class BulkStatsService {
 		}
 
 		return [
-			'enabled'             => $enabled,
-			'eligible_remaining'  => (int) $eligible,
-			'pending_actions'     => $pending_count,
-			'next_discovery_at'   => $next_discovery,
-			'state'               => $this->derive_state( $enabled, (int) $eligible, $pending_actions ),
+			'enabled'            => $enabled,
+			'eligible_remaining' => (int) $eligible,
+			'pending_actions'    => $pending_count,
+			'next_discovery_at'  => $next_discovery,
+			'state'              => $this->derive_state( $enabled, (int) $eligible, $pending_count, $pending['oldest'] ),
 		];
 	}
 
@@ -125,65 +125,128 @@ class BulkStatsService {
 	 * Map counts and pending schedule ages into a single state string.
 	 *
 	 * @since 4.4.0
-	 * @param bool  $enabled          Whether bulk is enabled.
-	 * @param int   $eligible         Eligible remaining count.
-	 * @param array $pending_actions  Pending convert action rows (ARRAY_A).
+	 * @since 4.4.1 Pending count and oldest due time replace ARRAY_A action rows.
+	 * @param bool     $enabled         Whether bulk is enabled.
+	 * @param int      $eligible        Eligible remaining count.
+	 * @param int      $pending_count   Real pending convert action count.
+	 * @param int|null $oldest_due_at   Oldest pending schedule Unix time, or null.
 	 * @return string
 	 */
-	public function derive_state( bool $enabled, int $eligible, array $pending_actions ): string {
+	public function derive_state( bool $enabled, int $eligible, int $pending_count, ?int $oldest_due_at = null ): string {
 		if ( ! $enabled ) {
 			return self::STATE_OFF;
 		}
 
-		$pending_count = count( $pending_actions );
 		if ( 0 === $pending_count ) {
 			return $eligible > 0 ? self::STATE_IDLE : self::STATE_COMPLETE;
 		}
 
 		$now       = time();
+		$oldest_ts = null === $oldest_due_at ? $now : $oldest_due_at;
 		$threshold = defined( 'FLUX_MEDIA_OPTIMIZER_STALE_JOB_THRESHOLD' )
 			? (int) FLUX_MEDIA_OPTIMIZER_STALE_JOB_THRESHOLD
 			: 6 * HOUR_IN_SECONDS;
 
-		$oldest_ts = null;
-		$any_due   = false;
-		foreach ( $pending_actions as $action ) {
-			$ts = isset( $action['timestamp'] ) ? (int) $action['timestamp'] : $now;
-			if ( null === $oldest_ts || $ts < $oldest_ts ) {
-				$oldest_ts = $ts;
-			}
-			if ( $ts <= $now ) {
-				$any_due = true;
-			}
-		}
-
-		if ( null !== $oldest_ts && ( $now - $oldest_ts ) >= $threshold ) {
+		if ( ( $now - $oldest_ts ) >= $threshold ) {
 			return self::STATE_STUCK;
 		}
 
-		return $any_due ? self::STATE_WORKING : self::STATE_QUEUED;
+		return $oldest_ts <= $now ? self::STATE_WORKING : self::STATE_QUEUED;
 	}
 
 	/**
-	 * Pending convert_attachment Action Scheduler rows.
+	 * Real pending convert count and oldest schedule time.
 	 *
-	 * @since 4.4.0
-	 * @return array<int, array<string, mixed>>
+	 * Uses Action Scheduler query_actions count when the store is loaded so the
+	 * default per_page of 5 cannot cap the number. Unit tests fall back to the
+	 * stub list, which also returns every matching row.
+	 *
+	 * @since 4.4.1
+	 * @return array{count: int, oldest: int|null}
 	 */
-	private function get_pending_convert_actions(): array {
+	private function get_pending_convert_snapshot(): array {
+		if ( ! class_exists( 'ActionScheduler_Store' ) ) {
+			return [
+				'count'  => 0,
+				'oldest' => null,
+			];
+		}
+
+		$query = [
+			'hook'     => 'flux_media_optimizer_convert_attachment',
+			'status'   => \ActionScheduler_Store::STATUS_PENDING,
+			'group'    => ActionSchedulerGroups::MEDIA_OPTIMIZER,
+			'per_page' => 1,
+			'orderby'  => 'date',
+			'order'    => 'ASC',
+		];
+
+		if ( class_exists( 'ActionScheduler' ) && is_callable( [ 'ActionScheduler', 'store' ] ) ) {
+			$store = \ActionScheduler::store();
+			if ( is_object( $store ) && method_exists( $store, 'query_actions' ) ) {
+				$count  = (int) $store->query_actions( $query, 'count' );
+				$oldest = null;
+				if ( $count > 0 && method_exists( $store, 'fetch_action' ) ) {
+					$ids = $store->query_actions( $query );
+					if ( is_array( $ids ) && isset( $ids[0] ) ) {
+						$action = $store->fetch_action( $ids[0] );
+						if ( is_object( $action ) && method_exists( $action, 'get_schedule' ) ) {
+							$schedule = $action->get_schedule();
+							if ( is_object( $schedule ) && method_exists( $schedule, 'get_date' ) ) {
+								$date = $schedule->get_date();
+								if ( $date instanceof \DateTimeInterface ) {
+									$oldest = $date->getTimestamp();
+								}
+							}
+						}
+					}
+				}
+
+				return [
+					'count'  => $count,
+					'oldest' => $oldest,
+				];
+			}
+		}
+
 		if ( ! function_exists( 'as_get_scheduled_actions' ) || ! class_exists( 'ActionScheduler_Store' ) ) {
-			return [];
+			return [
+				'count'  => 0,
+				'oldest' => null,
+			];
 		}
 
 		$actions = as_get_scheduled_actions(
 			[
-				'hook'   => 'flux_media_optimizer_convert_attachment',
-				'status' => \ActionScheduler_Store::STATUS_PENDING,
-				'group'  => ActionSchedulerGroups::MEDIA_OPTIMIZER,
+				'hook'     => 'flux_media_optimizer_convert_attachment',
+				'status'   => \ActionScheduler_Store::STATUS_PENDING,
+				'group'    => ActionSchedulerGroups::MEDIA_OPTIMIZER,
+				'per_page' => 0,
 			],
 			ARRAY_A
 		);
 
-		return is_array( $actions ) ? $actions : [];
+		if ( ! is_array( $actions ) || [] === $actions ) {
+			return [
+				'count'  => 0,
+				'oldest' => null,
+			];
+		}
+
+		$oldest = null;
+		foreach ( $actions as $action ) {
+			if ( ! is_array( $action ) || ! isset( $action['timestamp'] ) ) {
+				continue;
+			}
+			$ts = (int) $action['timestamp'];
+			if ( null === $oldest || $ts < $oldest ) {
+				$oldest = $ts;
+			}
+		}
+
+		return [
+			'count'  => count( $actions ),
+			'oldest' => $oldest,
+		];
 	}
 }

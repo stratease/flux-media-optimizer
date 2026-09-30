@@ -52,6 +52,16 @@ class BulkConverter {
 	private $conversion_orchestrator;
 
 	/**
+	 * Eligible-count cache lifetime in seconds.
+	 *
+	 * Longer than the 30s admin poll so a sitting Settings page does not COUNT every tick.
+	 *
+	 * @since 4.4.1
+	 * @var int
+	 */
+	public const ELIGIBLE_COUNT_TTL = 120;
+
+	/**
 	 * Constructor.
 	 *
 	 * @since 0.1.0
@@ -158,7 +168,7 @@ class BulkConverter {
 		}
 
 		// Get unconverted media (batch size of 50).
-		$batch_size = 50;
+		$batch_size              = 50;
 		$unconverted_attachments = $this->get_unconverted_media( $batch_size );
 
 		if ( empty( $unconverted_attachments ) ) {
@@ -166,14 +176,13 @@ class BulkConverter {
 			return;
 		}
 
-		// Schedule individual conversion actions with incremental delays (10 seconds apart).
-		$base_time = time();
-		$delay_increment = 10; // 10 seconds between each action to spread out server load.
+		// First convert is at least 10s out so discovery does not run inside the request that enabled bulk.
 		$scheduled_count = 0;
+		$now             = time();
 
 		foreach ( $unconverted_attachments as $index => $attachment_id ) {
-			$schedule_time = $base_time + ( $index * $delay_increment );
-			$action_id = call_user_func( $schedule_callback, $attachment_id, $schedule_time );
+			$schedule_time = self::discovery_schedule_time( (int) $index, $now );
+			$action_id     = call_user_func( $schedule_callback, $attachment_id, $schedule_time );
 
 			if ( $action_id ) {
 				$scheduled_count++;
@@ -184,37 +193,84 @@ class BulkConverter {
 	}
 
 	/**
-	 * Count eligible unconverted image/video attachments for bulk processing.
+	 * Unix time for a discovery batch slot. Index 0 is at least 10 seconds ahead.
+	 *
+	 * @since 4.4.1
+	 * @param int $index Zero-based position in the discovery batch.
+	 * @param int $now   Current Unix time.
+	 * @return int
+	 */
+	public static function discovery_schedule_time( int $index, int $now ): int {
+		$delay = 10;
+		return $now + $delay + ( $index * $delay );
+	}
+
+	/**
+	 * Transient key for the eligible count. Local and cloud SQL are cached separately.
+	 *
+	 * @since 4.4.1
+	 * @param bool $cdn_all Whether cloud bulk includes every attachment.
+	 * @return string
+	 */
+	public static function eligible_count_transient_key( bool $cdn_all ): string {
+		return $cdn_all
+			? 'flux_media_optimizer_eligible_count_cdn'
+			: 'flux_media_optimizer_eligible_count_local';
+	}
+
+	/**
+	 * Drop both eligible-count caches after terminal meta writes.
+	 *
+	 * @since 4.4.1
+	 * @return void
+	 */
+	public static function invalidate_eligible_count_cache(): void {
+		foreach ( [ false, true ] as $cdn_all ) {
+			$key = self::eligible_count_transient_key( $cdn_all );
+			if ( function_exists( 'delete_transient' ) ) {
+				delete_transient( $key );
+			}
+			if ( function_exists( 'wp_cache_delete' ) ) {
+				wp_cache_delete( $key, 'flux_media_optimizer' );
+			}
+		}
+	}
+
+	/**
+	 * Count eligible unconverted attachments for bulk processing.
+	 *
+	 * Local sites count optimize MIME types only. Cloud sites count every attachment.
 	 *
 	 * @since 4.4.0
+	 * @since 4.4.1 Processor-aware SQL, NOT EXISTS filters, and a 2-minute transient.
 	 * @return int
 	 */
 	public function count_eligible_media() {
+		$cdn_all = Settings::is_external_processing_active();
+		$key     = self::eligible_count_transient_key( $cdn_all );
+
+		if ( function_exists( 'get_transient' ) ) {
+			$cached = get_transient( $key );
+			if ( false !== $cached && is_numeric( $cached ) ) {
+				return (int) $cached;
+			}
+		}
+
 		global $wpdb;
 
-		$failed_state = 'failed';
-		$state_key    = AttachmentMetaHandler::META_KEY_EXTERNAL_JOB_STATE;
-		$mime_like    = $this->get_eligible_mime_sql_fragments();
+		$sql  = 'SELECT COUNT(p.ID) FROM ' . $this->posts_table() . ' p WHERE ' . $this->get_eligible_attachments_sql( $cdn_all );
+		$args = $this->get_eligible_query_args( $cdn_all );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- count is cached in a transient.
+		$count = (int) $wpdb->get_var( $wpdb->prepare( $sql, ...$args ) );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- mime fragments are fixed LIKE patterns.
-		$count = $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT COUNT(p.ID)
-				 FROM {$wpdb->posts} p
-				 LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_flux_media_optimizer_converted_formats'
-				 LEFT JOIN {$wpdb->postmeta} pm_disabled ON p.ID = pm_disabled.post_id AND pm_disabled.meta_key = '_flux_media_optimizer_conversion_disabled'
-				 LEFT JOIN {$wpdb->postmeta} pm_failed ON p.ID = pm_failed.post_id AND pm_failed.meta_key = %s
-				 WHERE p.post_type = 'attachment'
-				 AND (pm.meta_value IS NULL OR pm.meta_value = '')
-				 AND (pm_disabled.meta_value IS NULL OR pm_disabled.meta_value = '')
-				 AND (pm_failed.meta_value IS NULL OR pm_failed.meta_value != %s)
-				 AND ( {$mime_like} )",
-				$state_key,
-				$failed_state
-			)
-		);
+		if ( function_exists( 'set_transient' ) ) {
+			set_transient( $key, $count, self::ELIGIBLE_COUNT_TTL );
+		}
+		if ( function_exists( 'wp_cache_set' ) ) {
+			wp_cache_set( $key, $count, 'flux_media_optimizer', self::ELIGIBLE_COUNT_TTL );
+		}
 
-		return (int) $count;
+		return $count;
 	}
 
 	/**
@@ -228,48 +284,119 @@ class BulkConverter {
 	 * @since 4.0.0 Updated to handle all media types, not just images and videos.
 	 * @since 4.3.0 Excludes failed job state so permanent failures cannot bypass retry limits.
 	 * @since 4.4.0 Restricts to image/ and video/ MIME types so non-media attachments are not queued.
+	 * @since 4.4.1 Local uses optimize MIME IN list; cloud includes every attachment type.
 	 * @param int $limit Maximum number of files to return.
 	 * @return array Array of attachment IDs.
 	 */
 	public function get_unconverted_media( $limit = 10 ) {
 		global $wpdb;
 
-		$failed_state = 'failed';
-		$state_key    = AttachmentMetaHandler::META_KEY_EXTERNAL_JOB_STATE;
-		$mime_like    = $this->get_eligible_mime_sql_fragments();
+		$cdn_all = Settings::is_external_processing_active();
+		$sql     = 'SELECT p.ID FROM ' . $this->posts_table() . ' p WHERE ' . $this->get_eligible_attachments_sql( $cdn_all )
+			. ' ORDER BY p.post_date DESC LIMIT %d';
+		$args    = $this->get_eligible_query_args( $cdn_all );
+		$args[]  = (int) $limit;
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- mime fragments are fixed LIKE patterns.
-		$attachments = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT p.ID
-				 FROM {$wpdb->posts} p
-				 LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_flux_media_optimizer_converted_formats'
-				 LEFT JOIN {$wpdb->postmeta} pm_disabled ON p.ID = pm_disabled.post_id AND pm_disabled.meta_key = '_flux_media_optimizer_conversion_disabled'
-				 LEFT JOIN {$wpdb->postmeta} pm_failed ON p.ID = pm_failed.post_id AND pm_failed.meta_key = %s
-				 WHERE p.post_type = 'attachment'
-				 AND (pm.meta_value IS NULL OR pm.meta_value = '')
-				 AND (pm_disabled.meta_value IS NULL OR pm_disabled.meta_value = '')
-				 AND (pm_failed.meta_value IS NULL OR pm_failed.meta_value != %s)
-				 AND ( {$mime_like} )
-				 ORDER BY p.post_date DESC
-				 LIMIT %d",
-				$state_key,
-				$failed_state,
-				$limit
-			)
-		);
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- discovery batch query.
+		$attachments = $wpdb->get_col( $wpdb->prepare( $sql, ...$args ) );
 
-		return $attachments;
+		return is_array( $attachments ) ? $attachments : [];
 	}
 
 	/**
-	 * SQL OR fragments matching convertible image and video MIME types.
+	 * WHERE clause for eligible attachments. Placeholders are filled by get_eligible_query_args().
 	 *
-	 * @since 4.4.0
+	 * @since 4.4.1
+	 * @param bool $cdn_all True when cloud bulk should include every attachment MIME.
 	 * @return string
 	 */
-	private function get_eligible_mime_sql_fragments() {
-		return "p.post_mime_type LIKE 'image/%' OR p.post_mime_type LIKE 'video/%'";
+	public function get_eligible_attachments_sql( bool $cdn_all ): string {
+		$meta = $this->postmeta_table();
+
+		$sql = "p.post_type = 'attachment'
+			AND p.post_status IN ('inherit', 'private')
+			AND NOT EXISTS (
+				SELECT 1 FROM {$meta} pm_conv
+				WHERE pm_conv.post_id = p.ID
+				AND pm_conv.meta_key = %s
+				AND pm_conv.meta_value IS NOT NULL
+				AND pm_conv.meta_value != ''
+			)
+			AND NOT EXISTS (
+				SELECT 1 FROM {$meta} pm_dis
+				WHERE pm_dis.post_id = p.ID
+				AND pm_dis.meta_key = %s
+				AND pm_dis.meta_value IS NOT NULL
+				AND pm_dis.meta_value != ''
+			)
+			AND NOT EXISTS (
+				SELECT 1 FROM {$meta} pm_fail
+				WHERE pm_fail.post_id = p.ID
+				AND pm_fail.meta_key = %s
+				AND pm_fail.meta_value = %s
+			)
+			AND NOT EXISTS (
+				SELECT 1 FROM {$meta} pm_inel
+				WHERE pm_inel.post_id = p.ID
+				AND pm_inel.meta_key = %s
+				AND pm_inel.meta_value = %s
+			)";
+
+		if ( ! $cdn_all ) {
+			$mimes        = ( new EligibleMimeRegistry() )->get_optimizable_mime_types();
+			$placeholders = implode( ', ', array_fill( 0, count( $mimes ), '%s' ) );
+			$sql         .= " AND p.post_mime_type IN ({$placeholders})";
+		}
+
+		return $sql;
+	}
+
+	/**
+	 * Bound values for get_eligible_attachments_sql().
+	 *
+	 * @since 4.4.1
+	 * @param bool $cdn_all True when no MIME predicate is included.
+	 * @return array<int, string>
+	 */
+	public function get_eligible_query_args( bool $cdn_all ): array {
+		$args = [
+			AttachmentMetaHandler::META_KEY_CONVERTED_FORMATS,
+			AttachmentMetaHandler::META_KEY_CONVERSION_DISABLED,
+			AttachmentMetaHandler::META_KEY_EXTERNAL_JOB_STATE,
+			'failed',
+			AttachmentMetaHandler::META_KEY_INELIGIBLE,
+			'1',
+		];
+
+		if ( ! $cdn_all ) {
+			$args = array_merge( $args, ( new EligibleMimeRegistry() )->get_optimizable_mime_types() );
+		}
+
+		return $args;
+	}
+
+	/**
+	 * Posts table name, with a stable fallback for SQL-shape tests.
+	 *
+	 * @since 4.4.1
+	 * @return string
+	 */
+	private function posts_table() {
+		global $wpdb;
+
+		return ( isset( $wpdb->posts ) && is_string( $wpdb->posts ) && '' !== $wpdb->posts ) ? $wpdb->posts : 'wp_posts';
+	}
+
+	/**
+	 * Postmeta table name, with a stable fallback for SQL-shape tests.
+	 *
+	 * @since 4.4.1
+	 * @return string
+	 */
+	private function postmeta_table() {
+		global $wpdb;
+
+		return ( isset( $wpdb->postmeta ) && is_string( $wpdb->postmeta ) && '' !== $wpdb->postmeta ) ? $wpdb->postmeta : 'wp_postmeta';
 	}
 
 	/**

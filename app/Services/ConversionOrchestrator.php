@@ -86,7 +86,7 @@ final class ConversionOrchestrator {
 			return ConversionDispatchResult::failed( $e->getMessage() );
 		}
 
-		return $this->interpret_processor_outcome( $attachment_id, $success, $request );
+		return $this->interpret_processor_outcome( $attachment_id, $success, $request, $processor );
 	}
 
 	/**
@@ -131,12 +131,14 @@ final class ConversionOrchestrator {
 	 *
 	 * @since 4.3.0
 	 * @since 4.4.0 Soft processor failures without failure meta map to skipped.
-	 * @param int               $attachment_id Attachment ID.
-	 * @param bool              $success       Processor return.
-	 * @param ConversionRequest $request       Request.
+	 * @since 4.4.1 Local soft skips persist ineligible meta; cloud store-all does not.
+	 * @param int                        $attachment_id Attachment ID.
+	 * @param bool                       $success       Processor return.
+	 * @param ConversionRequest          $request       Request.
+	 * @param ProcessingServiceInterface $processor     Processor that ran.
 	 * @return ConversionDispatchResult
 	 */
-	private function interpret_processor_outcome( int $attachment_id, bool $success, ConversionRequest $request ): ConversionDispatchResult {
+	private function interpret_processor_outcome( int $attachment_id, bool $success, ConversionRequest $request, ProcessingServiceInterface $processor ): ConversionDispatchResult {
 		$error     = AttachmentMetaHandler::get_conversion_error( $attachment_id );
 		$job_state = AttachmentMetaHandler::get_external_job_state( $attachment_id );
 
@@ -157,8 +159,12 @@ final class ConversionOrchestrator {
 			);
 		}
 
-		// Soft skips (unsupported MIME, disabled mid-flight) return false without failure meta.
+		// Soft skips return false without failure meta. Local optimize marks them ineligible
+		// so bulk stops selecting them. Cloud store-all must not treat PDFs as ineligible.
 		if ( ! $success && 'failed' !== $job_state && '' === (string) $error ) {
+			if ( $processor instanceof LocalProcessingService ) {
+				AttachmentMetaHandler::mark_ineligible( $attachment_id );
+			}
 			return ConversionDispatchResult::skipped(
 				'Conversion skipped.',
 				[ 'trigger' => $request->get_trigger() ]

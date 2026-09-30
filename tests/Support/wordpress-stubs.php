@@ -671,6 +671,112 @@ if ( ! function_exists( 'current_time' ) ) {
 	}
 }
 
+$GLOBALS['fmo_test_transients'] = $GLOBALS['fmo_test_transients'] ?? [];
+$GLOBALS['fmo_test_deleted_files'] = $GLOBALS['fmo_test_deleted_files'] ?? [];
+
+if ( ! function_exists( 'get_transient' ) ) {
+	/**
+	 * Stub get_transient.
+	 *
+	 * @since 4.4.1
+	 * @param string $key Transient key.
+	 * @return mixed
+	 */
+	function get_transient( $key ) {
+		return $GLOBALS['fmo_test_transients'][ $key ] ?? false;
+	}
+}
+
+if ( ! function_exists( 'set_transient' ) ) {
+	/**
+	 * Stub set_transient.
+	 *
+	 * @since 4.4.1
+	 * @param string $key   Transient key.
+	 * @param mixed  $value Value.
+	 * @param int    $ttl   TTL seconds.
+	 * @return bool
+	 */
+	function set_transient( $key, $value, $ttl = 0 ) {
+		$GLOBALS['fmo_test_transients'][ $key ] = $value;
+		return true;
+	}
+}
+
+if ( ! function_exists( 'delete_transient' ) ) {
+	/**
+	 * Stub delete_transient.
+	 *
+	 * @since 4.4.1
+	 * @param string $key Transient key.
+	 * @return bool
+	 */
+	function delete_transient( $key ) {
+		unset( $GLOBALS['fmo_test_transients'][ $key ] );
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_cache_set' ) ) {
+	/**
+	 * Stub wp_cache_set.
+	 *
+	 * @since 4.4.1
+	 * @param string $key   Cache key.
+	 * @param mixed  $value Value.
+	 * @param string $group Group.
+	 * @param int    $ttl   TTL.
+	 * @return bool
+	 */
+	function wp_cache_set( $key, $value, $group = '', $ttl = 0 ) {
+		$GLOBALS['fmo_test_object_cache'][ $group ][ $key ] = $value;
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_cache_delete' ) ) {
+	/**
+	 * Stub wp_cache_delete.
+	 *
+	 * @since 4.4.1
+	 * @param string $key   Cache key.
+	 * @param string $group Group.
+	 * @return bool
+	 */
+	function wp_cache_delete( $key, $group = '' ) {
+		unset( $GLOBALS['fmo_test_object_cache'][ $group ][ $key ] );
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_delete_file' ) ) {
+	/**
+	 * Stub wp_delete_file.
+	 *
+	 * @since 4.4.1
+	 * @param string $file File path.
+	 * @return bool
+	 */
+	function wp_delete_file( $file ) {
+		$GLOBALS['fmo_test_deleted_files'][] = $file;
+		return is_file( $file ) ? unlink( $file ) : false;
+	}
+}
+
+if ( ! function_exists( 'wp_clear_scheduled_hook' ) ) {
+	/**
+	 * Stub wp_clear_scheduled_hook.
+	 *
+	 * @since 4.4.1
+	 * @param string $hook Hook name.
+	 * @return int
+	 */
+	function wp_clear_scheduled_hook( $hook ) {
+		$GLOBALS['fmo_test_cleared_cron'][] = $hook;
+		return 0;
+	}
+}
+
 if ( ! function_exists( 'get_intermediate_image_sizes' ) ) {
 	/**
 	 * Stub get_intermediate_image_sizes.
@@ -690,6 +796,8 @@ if ( ! function_exists( 'WP_Filesystem' ) ) {
 	 */
 	function WP_Filesystem() {
 		global $wp_filesystem;
+
+		$GLOBALS['fmo_wp_filesystem_calls'] = (int) ( $GLOBALS['fmo_wp_filesystem_calls'] ?? 0 ) + 1;
 
 		$wp_filesystem = new class() {
 			/**

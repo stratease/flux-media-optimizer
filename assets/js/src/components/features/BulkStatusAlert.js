@@ -45,7 +45,7 @@ const stateColor = (state) => {
     case 'stuck':
       return 'error';
     case 'idle':
-      return 'warning';
+      return 'default';
     case 'off':
     default:
       return 'default';
@@ -58,9 +58,10 @@ const stateColor = (state) => {
  * AS stores/schedules Unix epoch seconds; Date.now() is the same epoch in the viewer's local timezone.
  *
  * @since 4.4.0
+ * @since 4.4.1 Overdue timestamps are reported separately as Due now.
  * @param {number|null} unixSeconds Next discovery/batch Unix timestamp.
  * @param {number} nowMs Browser Date.now() value.
- * @return {string|null} Relative countdown string, or null when overdue/missing (show spinner).
+ * @return {string|null} Relative countdown string, or null when overdue/missing.
  */
 export const formatNextBatchCountdown = (unixSeconds, nowMs) => {
   if (unixSeconds === null || unixSeconds === undefined || unixSeconds === '') {
@@ -105,6 +106,31 @@ export const formatNextBatchCountdown = (unixSeconds, nowMs) => {
 };
 
 /**
+ * Next-batch label and data attribute for the bulk alert.
+ *
+ * @since 4.4.1
+ * @param {number|null} unixSeconds Next discovery Unix timestamp.
+ * @param {number} nowMs Browser Date.now() value.
+ * @return {{mode: 'countdown'|'due'|'waiting', label: string|null}}
+ */
+export const resolveNextBatch = (unixSeconds, nowMs) => {
+  if (unixSeconds === null || unixSeconds === undefined || unixSeconds === '') {
+    return { mode: 'waiting', label: null };
+  }
+
+  const unix = Number(unixSeconds);
+  if (!Number.isFinite(unix) || unix <= 0) {
+    return { mode: 'waiting', label: null };
+  }
+
+  if (unix * 1000 - nowMs <= 0) {
+    return { mode: 'due', label: __('Due now', 'flux-media-optimizer') };
+  }
+
+  return { mode: 'countdown', label: formatNextBatchCountdown(unix, nowMs) };
+};
+
+/**
  * Shared MUI Alert for bulk conversion progress (Settings + Overview).
  *
  * @since 4.4.0
@@ -136,8 +162,8 @@ const BulkStatusAlert = ({ stats, loading }) => {
   }
 
   const label = stateLabel(stats.state);
-  const countdown = formatNextBatchCountdown(stats.next_discovery_at, nowMs);
-  const nextBatchMode = countdown ? 'countdown' : 'waiting';
+  const nextBatch = resolveNextBatch(stats.next_discovery_at, nowMs);
+  const nextBatchMode = nextBatch.mode;
 
   return (
     <Box
@@ -166,9 +192,9 @@ const BulkStatusAlert = ({ stats, loading }) => {
             <Typography variant="body2" component="span">
               {__('Next batch:', 'flux-media-optimizer')}
             </Typography>
-            {countdown ? (
+            {nextBatch.label ? (
               <Typography variant="body2" component="span">
-                {countdown}
+                {nextBatch.label}
               </Typography>
             ) : (
               <CircularProgress size={14} thickness={5} aria-label={__('Waiting for next batch', 'flux-media-optimizer')} />

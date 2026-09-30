@@ -4,7 +4,7 @@ Tags: media optimizer, video compression, webp, avif, cdn
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 4.4.0
+Stable tag: 4.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -198,6 +198,14 @@ Locally (with FFmpeg): convert to AV1 in an MP4 container and/or WebM, with bitr
 
 == Changelog ==
 
+= 4.4.1 =
+* Fix: Plugins → Delete no longer calls WP_Filesystem(), so FTP/SSH hosts can remove the plugin folder. Converted files are deleted best-effort with wp_delete_file; attachment meta is still removed.
+* Fix: Media Library delete uses wp_delete_file after an uploads-path check and does not prompt for filesystem credentials.
+* Fix: Bulk enable only schedules discovery. The first convert waits at least 10 seconds instead of running inside the settings request.
+* Fix: Bulk eligible count uses NOT EXISTS SQL and a 2-minute cache. Local bulk is limited to optimizable image/video MIME types. Cloud bulk includes every attachment.
+* Fix: Pending convert count is the real Action Scheduler total. Overdue next batch shows Due now.
+* Feature: Local soft skips are marked ineligible so they leave the bulk queue. Manual Re-convert clears that flag.
+
 = 4.4.0 =
 * Feature: Bulk conversion status on Settings and Overview (remaining eligible, queued actions, next discovery, state) via GET /bulk/stats.
 * Feature: Enabling bulk conversion schedules Action Scheduler discovery immediately; disabling unschedules discovery (queued converts still finish).
@@ -253,6 +261,9 @@ Locally (with FFmpeg): convert to AV1 in an MP4 container and/or WebM, with bitr
 
 
 == Upgrade Notice ==
+
+= 4.4.1 =
+Fixes plugin deletion on FTP/SSH hosts and keeps bulk conversion work out of the settings request.
 
 = 4.4.0 =
 Bulk conversion now shows live queue status on Settings and Overview. Discovery starts immediately when enabled.

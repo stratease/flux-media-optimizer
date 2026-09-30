@@ -359,6 +359,7 @@ class ConversionRetryService {
 
 		AttachmentMetaHandler::reset_retry_count( $attachment_id );
 		AttachmentMetaHandler::clear_conversion_failure( $attachment_id );
+		AttachmentMetaHandler::clear_ineligible( $attachment_id );
 		AttachmentMetaHandler::delete_external_job_lifecycle_meta( $attachment_id );
 		delete_post_meta( $attachment_id, ConversionOrchestrator::META_VIDEO_DEFERRED );
 

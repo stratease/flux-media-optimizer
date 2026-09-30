@@ -110,7 +110,6 @@ class ActionSchedulerService {
 	public function on_bulk_conversion_setting_changed( $enabled, $previous ) {
 		if ( $enabled ) {
 			$this->ensure_bulk_discovery_scheduled();
-			$this->kick_bulk_discovery_if_idle();
 			return;
 		}
 
@@ -176,36 +175,6 @@ class ActionSchedulerService {
 
 		as_unschedule_all_actions( 'flux_media_optimizer_bulk_discovery', [], ActionSchedulerGroups::MEDIA_OPTIMIZER );
 		$this->logger->debug( 'Unscheduled bulk conversion discovery action' );
-	}
-
-	/**
-	 * Run discovery immediately when no convert actions are already pending.
-	 *
-	 * @since 4.4.0
-	 * @return void
-	 */
-	public function kick_bulk_discovery_if_idle() {
-		if ( ! Settings::is_bulk_conversion_enabled() ) {
-			return;
-		}
-
-		$pending_actions = [];
-		if ( function_exists( 'as_get_scheduled_actions' ) && class_exists( 'ActionScheduler_Store' ) ) {
-			$pending_actions = as_get_scheduled_actions(
-				[
-					'hook'   => 'flux_media_optimizer_convert_attachment',
-					'status' => \ActionScheduler_Store::STATUS_PENDING,
-				],
-				'ids'
-			);
-		}
-
-		if ( ! empty( $pending_actions ) ) {
-			$this->logger->debug( 'Bulk discovery kick skipped: convert actions already pending' );
-			return;
-		}
-
-		$this->handle_bulk_discovery_action();
 	}
 
 	/**

@@ -12,6 +12,8 @@ use FluxMedia\App\Services\AttachmentMetaHandler;
 use FluxMedia\App\Services\ConversionDispatchResult;
 use FluxMedia\App\Services\ConversionOrchestrator;
 use FluxMedia\App\Services\ConversionRequest;
+use FluxMedia\App\Services\ConversionRetryService;
+use FluxMedia\App\Services\LocalProcessingService;
 use FluxMedia\App\Services\MediaProcessingServiceLocator;
 use FluxMedia\App\Services\ProcessingServiceInterface;
 use FluxMedia\FluxPlugins\Common\Logger\Logger;
@@ -158,14 +160,18 @@ class ConversionOrchestratorTest extends TestCase {
 	}
 
 	/**
-	 * Soft processor false (no failure meta) maps to skipped, not failed.
+	 * Local soft processor false marks ineligible and does not mark Failed.
 	 *
 	 * @since 4.3.0
 	 * @since 4.4.0 Unsupported/soft skips no longer mark the attachment failed.
+	 * @since 4.4.1 Local soft skips persist ineligible meta.
 	 * @return void
 	 */
 	public function testDispatchSkippedWhenProcessorReturnsFalseWithoutFailure() {
-		$processor = $this->createMock( ProcessingServiceInterface::class );
+		$processor = $this->getMockBuilder( LocalProcessingService::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'process' ] )
+			->getMock();
 		$processor->method( 'process' )->willReturn( false );
 
 		$locator = $this->createMock( MediaProcessingServiceLocator::class );
@@ -176,6 +182,45 @@ class ConversionOrchestratorTest extends TestCase {
 
 		$this->assertTrue( $result->is_skipped() );
 		$this->assertNull( AttachmentMetaHandler::get_external_job_state( 506 ) );
+		$this->assertTrue( AttachmentMetaHandler::is_ineligible( 506 ) );
+	}
+
+	/**
+	 * Cloud/non-local soft false stays skipped without ineligible meta.
+	 *
+	 * @since 4.4.1
+	 * @return void
+	 */
+	public function testDispatchSoftSkipOnCloudDoesNotMarkIneligible() {
+		$processor = $this->createMock( ProcessingServiceInterface::class );
+		$processor->method( 'process' )->willReturn( false );
+
+		$locator = $this->createMock( MediaProcessingServiceLocator::class );
+		$locator->method( 'get_processor' )->willReturn( $processor );
+
+		$orch   = new ConversionOrchestrator( $this->createMock( Logger::class ), $locator );
+		$result = $orch->dispatch( new ConversionRequest( 508, ConversionRequest::TRIGGER_BULK ) );
+
+		$this->assertTrue( $result->is_skipped() );
+		$this->assertFalse( AttachmentMetaHandler::is_ineligible( 508 ) );
+	}
+
+	/**
+	 * Manual Re-convert reset clears ineligible so the attachment can run again.
+	 *
+	 * @since 4.4.1
+	 * @return void
+	 */
+	public function testManualResetClearsIneligible() {
+		AttachmentMetaHandler::mark_ineligible( 509 );
+
+		$retry = new ConversionRetryService(
+			$this->createMock( Logger::class ),
+			$this->createMock( MediaProcessingServiceLocator::class )
+		);
+		$retry->reset_cycle( 509 );
+
+		$this->assertFalse( AttachmentMetaHandler::is_ineligible( 509 ) );
 	}
 
 	/**

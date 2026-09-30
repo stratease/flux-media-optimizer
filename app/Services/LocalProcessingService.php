@@ -955,6 +955,7 @@ class LocalProcessingService implements ProcessingServiceInterface {
 	 *
 	 * @since 3.0.0
 	 * @since 4.3.0 Refuse to delete paths that resolve outside the uploads directory.
+	 * @since 4.4.1 Deletes with wp_delete_file after UploadPathGuard. Never calls WP_Filesystem().
 	 * @param int $attachment_id Attachment ID.
 	 * @return bool True if deletion was successful or not needed, false on error.
 	 */
@@ -970,82 +971,12 @@ class LocalProcessingService implements ProcessingServiceInterface {
 			return true;
 		}
 
-		// Initialize WordPress filesystem.
-		if ( ! function_exists( 'WP_Filesystem' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-		}
-		WP_Filesystem();
-
-		global $wp_filesystem;
-
-		$deleted_count = 0;
-		$total_count = 0;
-
-		// Delete local files from size-specific structure.
-		$base_url = UploadPathGuard::get_uploads_baseurl();
-		$base_dir = UploadPathGuard::get_uploads_basedir();
-		if ( false === $base_url || false === $base_dir ) {
-			$this->logger->warning(
-				"Uploads directory unavailable while deleting converted files for attachment {$attachment_id}"
-			);
-			AttachmentMetaHandler::clear_all_attachment_meta( $attachment_id );
-			return true;
-		}
-
-		foreach ( $converted_files_by_size as $size_name => $size_formats ) {
-			if ( ! is_array( $size_formats ) ) {
-				continue;
-			}
-			foreach ( $size_formats as $format => $data ) {
-				// Extract URL/path from unified structure.
-				$url_or_path = null;
-				if ( is_array( $data ) && isset( $data['url'] ) ) {
-					$url_or_path = $data['url'];
-				} elseif ( is_string( $data ) ) {
-					$url_or_path = $data;
-				}
-
-				// Skip if invalid.
-				if ( ! is_string( $url_or_path ) || empty( $url_or_path ) ) {
-					continue;
-				}
-
-				$file_path = null;
-				if ( AttachmentMetaHandler::is_file_url( $url_or_path ) ) {
-					$resolved = UploadPathGuard::local_upload_url_to_path( $url_or_path, $base_url, $base_dir );
-					if ( false === $resolved ) {
-						// CDN/external URL or unsafe local URL — skip deletion (meta cleared below).
-						continue;
-					}
-					$file_path = $resolved;
-				} else {
-					$file_path = wp_normalize_path( $url_or_path );
-					if ( ! UploadPathGuard::is_existing_path_within( $file_path, $base_dir ) ) {
-						$this->logger->warning(
-							"Refusing to delete path outside uploads for attachment {$attachment_id}: {$file_path}"
-						);
-						continue;
-					}
-				}
-
-				if ( empty( $file_path ) || ! is_string( $file_path ) ) {
-					continue;
-				}
-
-				$total_count++;
-				if ( $wp_filesystem && $wp_filesystem->exists( $file_path ) && $wp_filesystem->delete( $file_path ) ) {
-					$deleted_count++;
-					$this->logger->info( "Deleted converted file: {$file_path} (size: {$size_name}, format: {$format})" );
-				} else {
-					$this->logger->warning( "Failed to delete converted file: {$file_path} (size: {$size_name}, format: {$format})" );
-				}
-			}
-		}
+		$deleted_count = LocalConvertedFileDeleter::delete_grouped( $converted_files_by_size );
+		$this->logger->info( "Deleted {$deleted_count} converted files for attachment {$attachment_id}" );
 
 		// Clear all meta data (includes conversion tracking).
 		AttachmentMetaHandler::clear_all_attachment_meta( $attachment_id );
 
-		$this->logger->info( "Deleted {$deleted_count}/{$total_count} converted files for attachment {$attachment_id}" );
 		return true;
 	}
 }

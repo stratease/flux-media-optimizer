@@ -447,7 +447,7 @@ Any other context or screenshots about the feature request.
 - **PHPDoc comments** for all classes and methods
 - **Inline comments** for complex logic
 - **README updates** for new product/API behavior
-- **Version Tagging**: Update `@since` tags to the release in progress (currently **4.4.0**) when modifying code
+- **Version Tagging**: Update `@since` tags to the release in progress (currently **4.4.1**) when modifying code
 
 ### User Documentation
 - **Clear installation** instructions

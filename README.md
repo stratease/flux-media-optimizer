@@ -36,7 +36,7 @@ Test fixtures for PHPUnit live under `tests/_support/files/` (`sample_static.hei
 - **Bulk & On-Upload Support**: Convert existing library items or new uploads automatically
 
 ### Global CDN & Cloud Processing (SaaS)
-- **Global Content Delivery**: Optimized assets are stored on Flux's Google Cloud CDN, ensuring lightning-fast delivery worldwide regardless of visitor location
+- **Global Content Delivery**: Flux CDN delivers **any** attachment, not only images and videos. Images and videos are optimized; other types are stored as the original file. Optimized assets are stored on Flux's Google Cloud CDN.
 - **Offloaded Processing**: Heavy image/video conversion tasks are handled by our external service, reducing load on your server
 - **Automatic Upload & Optimization**: New uploads are automatically sent to our processing service and returned as optimized assets
 - **Secure Integration**: Uses license key authentication and secure webhooks for reliable communication
@@ -166,6 +166,8 @@ Reliable correlation of delayed cloud webhooks with a specific retry attempt req
 
 **Account ID on uninstall:** Shared suite option `flux-plugins_account_id` is preserved so other Flux Suite plugins keep the same support identifier.
 
+**Uninstall:** `uninstall.php` drops plugin tables, options, transients, and `_flux_media_optimizer_*` attachment meta. Local converted files are removed with `wp_delete_file` after an uploads-path check. Uninstall never calls `WP_Filesystem()`, so WordPress can still delete the plugin directory on FTP/SSH hosts. Media Library attachment delete uses the same file helper.
+
 **Privacy Policy**: [https://fluxplugins.com/privacy-policy/](https://fluxplugins.com/privacy-policy/)
 
 ## 🛠️ Build Process
@@ -254,7 +256,7 @@ This plugin uses a modern, decoupled architecture that separates business logic 
 - **External Optimization**: `ExternalOptimizationProvider` manages communication with the SaaS processing service and CDN
 - **Cleanup**: `CleanupService` handles daily stale-job recovery, notice cleanup, and enqueueing eligible retries
 - **Conversion orchestration**: `ConversionOrchestrator` + `ConversionRequest` / `ConversionDispatchResult` unify upload, manual, bulk, and retry entry paths
-- **Bulk conversion visibility**: `BulkStatsService` + `GET /bulk/stats` power shared `BulkStatusAlert` on Settings (always when enabled) and Overview (only when eligible remaining or queued actions > 0); Next batch uses Action Scheduler Unix `next_discovery_at` with a browser-local live countdown; discovery kicks on enable and unschedules on disable
+- **Bulk conversion visibility**: `BulkStatsService` + `GET /bulk/stats` power shared `BulkStatusAlert` on Settings (always when enabled) and Overview (only when eligible remaining or queued actions > 0). Next batch uses Action Scheduler Unix `next_discovery_at` with a browser-local countdown, or **Due now** when that time has passed. Enabling bulk only schedules discovery (first convert is at least 10 seconds later). Disabling unschedules discovery. Local bulk counts optimizable image/video MIME types; cloud bulk counts every attachment. The eligible count is cached for 2 minutes and cleared when conversion, failure, ineligible, or disable meta changes.
 - **Conversion retries**: `ConversionRetryService` owns bounded Action Scheduler retries (group `ActionSchedulerGroups::MEDIA_OPTIMIZER`) with `MediaAwareRetryDelayPolicy`
 - **Atomic artifacts**: `ConversionArtifactTransaction` stages image outputs until all sizes/formats succeed
 - **Attachment details**: `AttachmentDetailsPresenter` is the SSOT payload for the Media Library React island; `AttachmentDetailsMountRenderer` emits the skeleton mount via AttachmentCompat (`build_compat_tr`); `GET /attachments/{id}/details` serves async loads; `AdminScriptUrl` resolves admin/attachment bundle URLs
